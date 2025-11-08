@@ -1,0 +1,100 @@
+{
+  "aparencia": {
+    "_meta": {
+      "nome": "Aparência",
+      "explicacao": "Configurações visuais do sistema."
+    },
+    "tema": {
+      "valor": "claro",
+      "_meta": {
+        "nome": "Tema",
+        "explicacao": "Define o tema geral da interface (claro ou escuro)."
+      }
+    },
+    "tamanho_fonte": {
+      "valor": "medio",
+      "_meta": {
+        "nome": "Tamanho da Fonte",
+        "explicacao": "Define o tamanho padrão da fonte usada nas telas."
+      }
+    },
+    "mostrar_tutorial": {
+      "valor": true,
+      "_meta": {
+        "nome": "Mostrar Tutorial",
+        "explicacao": "Exibe o tutorial introdutório ao abrir o EFFRAIM pela primeira vez."
+      }
+    }
+  },
+
+  "funcionalidades_ativas": {
+    "_meta": {
+      "nome": "Funcionalidades Ativas",
+      "explicacao": "Define quais módulos e painéis estão habilitados."
+    },
+    "painel_inicial_flutuante": {
+      "valor": true,
+      "_meta": {
+        "nome": "Painel Inicial Flutuante",
+        "explicacao": "Exibe o painel inicial sobre a tela principal do eproc."
+      }
+    },
+    "consulta_flutuante": {
+      "valor": true,
+      "_meta": {
+        "nome": "Consulta Flutuante",
+        "explicacao": "Permite abrir a consulta de processos em uma janela flutuante."
+      }
+    },
+    "sisbajud": {
+      "valor": true,
+      "_meta": {
+        "nome": "SISBAJUD",
+        "explicacao": "Ativa os módulos de integração com o SISBAJUD."
+      }
+    },
+    "painel_configuracoes": {
+      "valor": true,
+      "_meta": {
+        "nome": "Painel de Configurações",
+        "explicacao": "Exibe o painel para alterar preferências do EFFRAIM."
+      }
+    }
+  },
+
+  "opcoes_sisbajud": {
+    "_meta": {
+      "nome": "Opções SISBAJUD",
+      "explicacao": "Configurações e favoritos usados nas petições SISBAJUD."
+    },
+    "favoritos": {
+      "_meta": {
+        "nome": "Favoritos",
+        "explicacao": "Valores padrão para agilizar o preenchimento dos formulários SISBAJUD."
+      },
+      "orgaoJulgador": {
+        "valor": "12269",
+        "_meta": {
+          "nome": "Órgão Julgador",
+          "explicacao": "Nome ou código do órgão solicitante (Vara, Gabinete, etc)."
+        }
+      },
+      "tipoAcao": {
+        "valor": "Ação Cível",
+        "_meta": {
+          "nome": "Tipo de Ação",
+          "explicacao": "Tipo de ação que será selecionada nos pedidos SISBAJUD."
+        }
+      }
+    }
+  },
+
+  "_interno": {
+    "versao_config": 1,
+    "opções": {
+      "ajuda": "ajuda/ajuda.html",
+      "tutorial": "ajuda/tutorial.js",
+      "configs": "preferencias.html"
+    }
+  }
+}

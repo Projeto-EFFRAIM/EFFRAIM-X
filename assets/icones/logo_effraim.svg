@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc" class="eproc-logo">
+  <title id="title">eproc — logotipo vetorial</title>
+  <desc id="desc">Círculos azuis, mão segurando um broto verde e a palavra eproc em branco.</desc>
+
+  <style>
+    .eproc-logo {
+      --bg1: #9fd0ff;
+      --bg2: #64b6ff;
+      --bg3: #3aa0ff;
+      --hand: #0f5792;
+      --plant: #2f9d58;
+      --leaf: #39b36a;
+      --text: #ffffff;
+      font-family: Inter, "Segoe UI", Arial, sans-serif;
+    }
+    .bg1{fill:var(--bg1)}
+    .bg2{fill:var(--bg2)}
+    .bg3{fill:var(--bg3)}
+    .hand{fill:var(--hand)}
+    .plant{fill:var(--plant)}
+    .leaf{fill:var(--leaf)}
+    .word{fill:var(--text)}
+  </style>
+
+  <!-- fundos circulares -->
+  <circle class="bg1" cx="292" cy="250" r="150"/>
+  <circle class="bg2" cx="150" cy="300" r="120" opacity=".95"/>
+  <circle class="bg3" cx="360" cy="330" r="110" opacity=".8"/>
+  <circle class="bg1" cx="110" cy="110" r="44" opacity=".85"/>
+  <circle class="bg2" cx="440" cy="190" r="30" opacity=".85"/>
+  <circle class="bg2" cx="260" cy="454" r="26" opacity=".85"/>
+
+  <!-- broto -->
+  <rect class="plant" x="250" y="180" width="16" height="150" rx="8"/>
+  <path class="leaf" d="M252 190c-36-42-88-36-110-20 18 32 60 56 108 46z"/>
+  <path class="leaf" d="M266 190c36-42 88-36 110-20-18 32-60 56-108 46z"/>
+
+  <!-- mão -->
+  <path class="hand" d="M110 360
+    C130 320 190 310 240 320
+    H310
+    C332 320 346 336 344 352
+    C341 369 330 378 316 392
+    L276 430
+    C267 438 257 442 245 442
+    H180
+    C140 442 120 418 110 392 Z"/>
+  <path class="hand" d="M308 320
+    C326 320 346 331 352 343
+    C358 356 353 369 340 376
+    L300 396
+    C312 382 320 371 322 354
+    C324 338 316 326 308 320 Z"/>
+
+  <!-- palavra -->
+  <text class="word" x="256" y="300" text-anchor="middle" font-size="96" font-weight="700" letter-spacing="2">
+    eproc
+  </text>
+</svg>

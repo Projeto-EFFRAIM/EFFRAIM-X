@@ -1,0 +1,179 @@
+/* ==========================================================
+   Estilos - Painel de Preferências EFFRAIM
+   ========================================================== */
+
+/* fundo geral com logotipo */
+body {
+	margin: 0;
+	background: linear-gradient(180deg, #c8f1ec 0%, #b3e5fc 100%);
+	font-family: "Segoe UI", Roboto, sans-serif;
+	color: #083b44;
+}
+
+/* container principal com o logo */
+#preferencias {
+  background:
+    url("../icones/logo_effraim.svg") center center no-repeat fixed,
+    rgba(255, 255, 255, 0.9);
+  background-size: contain; /* mantém proporção e usa toda a área possível */
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+
+
+
+/* títulos */
+h1 {
+	font-size: 20px;
+	margin-bottom: 12px;
+	color: #06424a;
+	text-align: center;
+}
+
+/* seção de primeiro nível */
+.secao-preferencia {
+	border: 1px solid #99d6cc;
+	border-radius: 10px;
+	margin-bottom: 16px;
+	overflow: hidden;
+	box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+	background: #d8f5f0;
+	opacity: 0.9;
+}
+
+/* cabeçalho recolhível */
+.cabecalho-secao {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	background: #a8e0da;
+	padding: 8px 12px;
+	cursor: pointer;
+}
+
+.cabecalho-secao h2 {
+	margin: 0;
+	font-size: 15px;
+	font-weight: 600;
+	color: #063c44;
+}
+
+.cabecalho-secao .toggle {
+	background: none;
+	border: none;
+	font-size: 16px;
+	cursor: pointer;
+	color: #063c44;
+}
+
+/* corpo da seção */
+.corpo-secao {
+	padding: 10px 14px;
+}
+
+/* subgrupos */
+.subgrupo {
+	margin-left: 12px;
+	margin-top: 6px;
+	border-left: 2px solid #bce2dc;
+	padding-left: 10px;
+}
+
+.subgrupo h3 {
+	font-size: 13px;
+	margin: 4px 0 6px 0;
+	font-weight: 600;
+	color: #063c44;
+}
+
+/* linha de preferência */
+.linha-preferencia {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+	padding: 6px 0;
+}
+
+/* rótulo */
+.linha-preferencia label {
+	flex: 1;
+	font-size: 13px;
+	color: #063c44;
+}
+
+/* campo de texto */
+.linha-preferencia input[type="text"] {
+	all: unset;
+	box-sizing: border-box;
+	border: 1px solid #8bc3bc;
+	border-radius: 4px;
+	background: #f2f2f2;
+	color: #878c8d;
+	padding: 4px 6px;
+	font-size: 13px;
+	width: 240px;
+	transition: background 0.2s, border-color 0.2s;
+}
+
+.linha-preferencia input[type="text"]:focus {
+	background: #fff;
+	border-color: #4caf50;
+	outline: none;
+}
+
+/* toggle switch */
+.linha-preferencia input[type="checkbox"] {
+	appearance: none;
+	-webkit-appearance: none;
+	position: relative;
+	width: 38px;
+	height: 20px;
+	border-radius: 20px;
+	background: #b2dfdb;
+	outline: none;
+	cursor: pointer;
+	transition: background 0.25s;
+	flex: 0 0 38px;
+}
+
+.linha-preferencia input[type="checkbox"]::before {
+	content: "";
+	position: absolute;
+	top: 2px;
+	left: 2px;
+	width: 16px;
+	height: 16px;
+	border-radius: 50%;
+	background: #fff;
+	transition: transform 0.25s;
+}
+
+.linha-preferencia input[type="checkbox"]:checked {
+	background: #4caf50;
+}
+
+.linha-preferencia input[type="checkbox"]:checked::before {
+	transform: translateX(18px);
+}
+
+/* descrição */
+.linha-preferencia small {
+	display: block;
+	margin-top: 2px;
+	margin-left: 4px;
+	font-size: 11px;
+	color: #04404a;
+	line-height: 1.3;
+}
+
+/* responsividade */
+@media (min-width: 768px) {
+	#preferencias {
+		padding: 40px;
+	}
+	.linha-preferencia input[type="text"] {
+		width: 280px;
+	}
+}

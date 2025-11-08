@@ -1,0 +1,74 @@
+{
+	"manifest_version": 3,
+	"name": "EFFRAIM - X",
+	"version": "0.4",
+	"description": "Simplifica tarefas no Eproc: integração, navegação, relatórios e mais.",
+	"icons": {
+		"16": "assets/icones/icone16.png",
+		"48": "assets/icones/icone48.png",
+		"128": "assets/icones/icone128.png"
+	},
+	"permissions": [
+		"storage"
+	],
+	"host_permissions": [
+		"https://eproc.jfrj.jus.br/*",
+		"https://sisbajud.cnj.jus.br/*",
+		"https://sso.cloud.pje.jus.br/auth/*"
+		],
+	"options_page": "preferencias.html",
+	"background": {
+		"service_worker": "background.js"
+	},
+	"content_scripts": [
+		{
+		"matches": ["https://eproc.jfrj.jus.br/*"],
+		"js": ["content/eproc_init.js"],
+		"run_at": "document_idle"
+		},
+		{
+		"matches": [
+		"https://sisbajud.cnj.jus.br/*",
+		"https://sso.cloud.pje.jus.br/*"
+		],
+		"js": ["content/sisbajud_init.js"],
+		"run_at": "document_idle",
+		"all_frames": true
+		},
+		{
+		"matches": [
+		"https://sso.cloud.pje.jus.br/auth/*"
+		],
+		"js": ["content/sso_pdpj.js"],
+		"run_at": "document_idle",
+		"all_frames": true
+		}
+	],
+	"action": {
+		"default_icon": {
+		"16": "assets/icones/icone16.png",
+		"48": "assets/icones/icone48.png",
+		"128": "assets/icones/icone128.png"
+		},
+		"default_title": "EFFRAIM"
+	},
+	"web_accessible_resources": [
+		{
+			"resources": [
+			"assets/css/*.css",
+			"assets/icones/*.png",
+			"configuracoes.json",
+			"modules/*",
+			"ajuda/*",
+			"preferencias.html",
+			"funcoes.js"
+			],
+			"matches": [
+			"https://eproc.jfrj.jus.br/*",
+			"https://sisbajud.cnj.jus.br/*",
+			"https://sso.cloud.pje.jus.br/*"
+			]
+		}
+	],
+	"key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAtYPYFgPJQpzhj7iOwXaUn8uLnfATGRpwvnfIetsdFeV7m1dW1BJzc5iOp8FM7gRCKjoaMOquq6WnoSrEoTb56T4ncFsWVXA+hrESCL00uaE+kezE2U3v4MoiRjf4qwsP4N+1u5A5dQldntgX0B3/P6FcS3ebEXWQizKhIHF0uyi4I98eUCBn4Hw1B66giLy6MxkUOVA5JMjJt9SAZBeMKuADVTRETJR818ujfmK1/JGeiuw2eHIj8u+BMRdm+GKXuLJgQKOo60/BVp4Hi6tRufs+xhHOnSnWBZPd10f4wSmkfOzN7PTXEk6mb/mJyjHaSYE5vbAInGsolvVIZRm0IwIDAQAB"
+}

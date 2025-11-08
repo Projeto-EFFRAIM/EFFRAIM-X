@@ -1,0 +1,146 @@
+
+/* LEMBRETES */
+.desLembrete {
+  display: block;
+  height: 150px; 
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  white-space: normal;
+  flex: 0 0 auto;
+  border-bottom: 5px;
+}
+
+.divLembrete {
+  min-width:300px !important;
+}
+
+.divLembretePara {
+  display: flex;
+  flex-wrap: wrap;       /* permite quebrar linha */
+  align-items: center;
+  justify-content: flex-start;
+  width: 100%;           /* ocupa toda a largura do lembrete */
+  flex-shrink: 0;        /* não encolhe os itens */
+}
+/* título dos lembretes */
+.divLembretePara * {
+  flex-shrink: 0;
+}
+.divLembretePara {
+  white-space: normal;          /* permite quebra no texto cru */
+}
+
+.divLembretePara::first-line {
+  white-space: normal;
+}
+
+.botaoLerMais { display: none !important; }
+
+#divConteudoLembretes {
+  display: flex !important;
+  flex-wrap: nowrap;       /* uma única linha */
+  flex-shrink:0;
+  overflow-x: auto;        /* rolagem lateral */
+  overflow-y: hidden;
+  white-space: nowrap;
+  gap: 8px;                /* espaçamento opcional */
+  min-width: 0;
+  -webkit-overflow-scrolling: touch;
+  height: 275px;
+}
+
+#divConteudoLembretes:not(:has(.divLembrete)) {
+  height: 0px;
+}
+
+
+/* CONTAINER EFFRAIM interface.js*/
+.effraim-btn-init{
+  border-radius: 50% !important;
+}
+
+.effraim-funcionalidades-container{
+  position: sticky;
+  top: var(--altura-navbar, 60px); /* ajuste fino */
+  width:fit-content;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1131;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  background: #fff; /* evita “sumir” sob a barra */
+  background-size: contain;
+
+
+}
+
+.effraim-painel-conteudo {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  justify-content: center;
+}
+
+
+.effraim-opcoes-dinamicas {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+
+.effraim-btn-init img {
+  width: 60%;              /* proporcional ao botão */
+  height: 60%;
+  object-fit: contain;
+  border-radius: 50%;      /* arredonda a própria imagem */
+}
+
+#effraim-controles {
+  position: relative !important;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  z-index: 10;
+}
+
+/* PAINEL DESLIZANTE interface.js */
+
+#effraim-painel-hover {
+  background: #fafafa;
+  border: 1px solid #ddd;
+  box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.15);
+  font-family: Arial, sans-serif;
+}
+
+#effraim-painel-hover img {
+  cursor: pointer;
+  opacity: 0.85;
+  transition: opacity 0.2s, transform 0.2s;
+}
+
+#effraim-painel-hover img:hover {
+  opacity: 1;
+  transform: scale(1.05);
+}
+
+#effraim-painel-flutuante button {
+  flex: 0 0 auto;
+  margin-bottom: 15px !important;
+}
+
+
+/* INFRA */
+/* label acima das seções das páginas*/
+legend.infraLegendObrigatorio {
+  background-color: #e9f4f8 !important;
+  border: 1px solid black;
+}
+
+
+
