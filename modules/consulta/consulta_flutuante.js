@@ -6,16 +6,16 @@ export async function init() {
     botao,
     secoes: [
   { id: "fldCapa", nome: "Capa", chave: "."}, //futuramente pode trazer um resumo da capa
-  { id: "fldLembretes", nome: "Lembretes", chave: "l" },
+  { id: "fldLembretes", nome: "Lembretes", chave: "," },
   { id: "fldAssuntos", nome: "Assuntos", chave: "j" },
   { id: "fldPartes", nome: "Partes", chave:"z" },
   { id: "fldMinutas", nome: "Minutas", chave:"i" },
   { id: "fldInformacoesAdicionais", nome: "Informações Adicionais", chave:"+" },
-  { id: "fldResumo", nome: "Resumo", chave:"0"},
+  { id: "fldResumo", nome: "Resumo", chave:";"},
   { id: "fldAcoes", nome: "Ações", chave:"ç" },
-  { id: "div-preferencia-minuta", nome: "Minutas Favoritas", chave:"4"},
-  { id: "div-preferencia-movimentacao", nome: "Movimentos Favoritos", chave:"5"},
-  { id: "div-preferencia-intimacao", nome:"Intimações Favoritas", chave:"6"}
+  { id: "div-preferencia-minuta", nome: "Minutas Favoritas", chave:"/"},
+  { id: "div-preferencia-movimentacao", nome: "Movimentos Favoritos", chave:"*"},
+  { id: "div-preferencia-intimacao", nome:"Intimações Favoritas", chave:"-"}
 ]
   });
 }
