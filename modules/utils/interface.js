@@ -330,11 +330,29 @@ export function criarPainelDeslizantePadrao(id, botaoReferencia, titulo = "") {
     // listeners padrão
     botaoReferencia.addEventListener("mouseenter", () => mostrarPainel(painel));
     botaoReferencia.addEventListener("mouseleave", e => ocultarPainelSeFora(painel, e));
-    painel.addEventListener("mouseleave", () => ocultarPainel(painel));
+    painel.addEventListener("mouseleave", () => iniciarOcultarComDelay(painel));
+    painel.addEventListener("mouseenter", cancelarOcultar);
+
     console.log("Painel padrão criado");
   return painel;
   }
 }
+
+// --- controle de delay para esconder painel ---
+let ocultarTimeout = null;
+
+function iniciarOcultarComDelay(painel, delay = 500) {
+	if (ocultarTimeout) clearTimeout(ocultarTimeout);
+	ocultarTimeout = setTimeout(() => ocultarPainel(painel), delay);
+}
+
+function cancelarOcultar() {
+	if (ocultarTimeout) {
+		clearTimeout(ocultarTimeout);
+		ocultarTimeout = null;
+	}
+}
+
 
 function mostrarPainel(painel) {
   Object.assign(painel.style, {
@@ -354,11 +372,18 @@ function ocultarPainel(painel) {
 
 
 function ocultarPainelSeFora(painel, e) {
-  const related = e.relatedTarget;
-  if (!painel.contains(related)) {
-    ocultarPainel(painel);
-  }
+	const related = e.relatedTarget;
+
+	// se o mouse ainda está dentro do painel, cancela o fechamento
+	if (painel.contains(related)) {
+		cancelarOcultar();
+		return;
+	}
+
+	// mouse saiu: inicia contagem para fechar
+	iniciarOcultarComDelay(painel);
 }
+
 
 //Fim do Painel deslizante padrão cima-baixo=======================================
 
