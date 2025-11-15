@@ -187,8 +187,6 @@ async function configurarRadios(dados) {
 	console.log("[configurarRadios] Meta.teimosinha falso ou indefinido.");
 	}
 
-
-
 	await esperar(400);
 	console.log("[configurarRadios] Concluído.");
 }
@@ -281,39 +279,85 @@ async function incluirConsultados(dados, isInformacao = false) {
 	const placeholder = isInformacao
 		? "CPF/CNPJ da pessoa pesquisada"
 		: "CPF/CNPJ do réu/executado";
+
 	const inputCpf = document.querySelector(`input[placeholder*='${placeholder}']`);
+
 	if (!inputCpf) {
 		console.warn(`[incluirConsultados] Campo '${placeholder}' não encontrado.`);
 		return;
 	}
 
-	let botaoAdicionar = null;
-	const botoes = [...document.querySelectorAll(".btn-adicionar")];
-	for (const btn of botoes) {
-		if (btn.getBoundingClientRect().top > inputCpf.getBoundingClientRect().top) {
-			botaoAdicionar = btn;
-			break;
-		}
-	}
+	// -------------------------------------------------------------
+	// NOVO BLOCO RESILIENTE PARA ENCONTRAR O BOTÃO "ADICIONAR"
+	// -------------------------------------------------------------
+
+	console.log("[incluirConsultados] Procurando botão 'Adicionar'...");
+
+	// 1. Identifica container lógico do bloco
+	let container =
+		inputCpf.closest("mat-card, form, .row, .container, .card-body") ||
+		inputCpf.closest("[class*='col']") ||
+		document;
+
+	console.log("[incluirConsultados] Container identificado:", container);
+
+	// 2. Busca botão dentro desse container
+	let botaoAdicionar = container.querySelector(".btn-adicionar");
+
+	// 3. Fallback global caso não encontrado
 	if (!botaoAdicionar) {
-		console.warn("[incluirConsultados] Botão 'Adicionar' não encontrado.");
+		console.warn("[incluirConsultados] Botão não encontrado no container. Tentando global...");
+		botaoAdicionar = document.querySelector(".btn-adicionar");
+	}
+
+	if (!botaoAdicionar) {
+		console.error("[incluirConsultados] Botão 'Adicionar' NÃO encontrado. Abortando inclusão.");
 		return;
 	}
 
+	console.log("[incluirConsultados] Botão encontrado:", botaoAdicionar);
+
+	// -------------------------------------------------------------
+	// PROCESSO DE INCLUSÃO DOS CONSULTADOS
+	// -------------------------------------------------------------
+
 	for (let i = 0; i < consultados.length; i++) {
 		const c = consultados[i];
-		await preencherCampoConsultado(inputCpf, c.cpf);
-		await botaoAdicionar.click();
-		console.log(`[incluirConsultados] Consultado ${i + 1}/${consultados.length} adicionado.`);
+		console.log(`[incluirConsultados] Preenchendo consultado ${i + 1}/${consultados.length}`);
 
+		// Preenche CPF/CNPJ
+		await preencherCampoConsultado(inputCpf, c.cpf);
+
+		// Clica no botão adicionar
+		console.log("[incluirConsultados] Clicando no botão 'Adicionar'...");
+		await botaoAdicionar.click();
+
+		// Espera o campo de valor aparecer
 		const campoValor = await esperarNovoCampoValor(i);
-		if (!campoValor) continue;
+
+		if (!campoValor) {
+			console.warn("[incluirConsultados] Campo de valor não encontrado após adicionar.");
+			continue;
+		}
+
+		// Preenche valor bruto (somente dígitos)
 		const bruto = c.valor_bloqueado ?? "";
 		const soDigitos = String(bruto).replace(/[^\d]/g, "");
+
+		console.log(
+			`[incluirConsultados] Campo valor localizado. Preenchendo:`,
+			{ bruto, soDigitos }
+		);
+
 		await preencherCampoSimples(campoValor, soDigitos);
+
+		// Pressiona Enter para validar
 		await pressionarEnter(campoValor);
 		await esperar(200);
+
+		console.log(`[incluirConsultados] Consultado ${i + 1} incluído.`);
 	}
+
 	console.log("[incluirConsultados] Concluído");
 }
 
