@@ -419,10 +419,20 @@ async function preencherCampoConsultante(el, valor) {
 			}
 		}
 	} else {
-		console.log("[preencherCampoConsultante] Modo CNPJ (por enquanto mesma lógica de CPF).");
-		for (const char of textoOriginal) {
+		// -----------------------------------------------------
+		// CNPJ — digitação simulada com pausas críticas
+		// -----------------------------------------------------
+		console.log("[preencherCampoConsultante] Modo CNPJ (digitação simulada).");
+
+		const pauses = [2, 5, 8, 12, 13, 14];
+		let index = 0;
+
+		el.value = ""; // limpar antes de digitar
+
+		for (const char of soDigitos) {
 			index++;
 
+			// Eventos padrão Angular Material
 			el.dispatchEvent(new KeyboardEvent("keydown", { key: char, bubbles: true }));
 			el.dispatchEvent(new KeyboardEvent("keypress", { key: char, bubbles: true }));
 
@@ -433,13 +443,28 @@ async function preencherCampoConsultante(el, valor) {
 
 			el.dispatchEvent(new KeyboardEvent("keyup", { key: char, bubbles: true }));
 
-			if ([9, 10].includes(index)) {
-				console.log(
-					`[preencherCampoConsultante] Pausa crítica no dígito ${index} (char='${char}').`
-				);
-				await esperar(pausaCritica);
+			// Pausas nos pontos críticos da máscara do CNPJ
+			if (pauses.includes(index)) {
+				console.log(`[CNPJ-consultante] Pausa crítica no dígito ${index} (char='${char}')`);
+				await esperar(80);
 			}
 		}
+
+		// Pequena pausa para consolidar
+		await esperar(20);
+
+		// Eventos finais
+		el.dispatchEvent(new Event("change", { bubbles: true }));
+		parent?.dispatchEvent(new Event("change", { bubbles: true }));
+
+		await esperar(20);
+
+		el.dispatchEvent(new Event("blur", { bubbles: true }));
+		parent?.dispatchEvent(new Event("blur", { bubbles: true }));
+
+		console.log("[preencherCampoConsultante] CNPJ final:", el.value);
+
+
 	}
 
 	await esperar(20);
@@ -488,33 +513,73 @@ async function preencherCampoConsultado(el, valor) {
 
 	el.focus();
 
-	// Mantida a lógica original: atribuição direta,
-	// apenas adicionando logs e detecção do tipo.
+	// -----------------------------------------------------
+	// CPF — funciona bem, mantém exatamente como estava
+	// -----------------------------------------------------
 	if (isCPF) {
-		console.log("[preencherCampoConsultado] Modo CPF (atribuição direta).");
-		el.value = textoOriginal;
-	} else {
-		console.log("[preencherCampoConsultado] Modo CNPJ (atribuição direta, por enquanto).");
-		el.value = textoOriginal;
+		console.log("[preencherCampoConsultado] Modo CPF (preenchimento direto).");
+
+		el.value = soDigitos;
+
+		el.dispatchEvent(new Event("input", { bubbles: true }));
+		parent?.dispatchEvent(new Event("input", { bubbles: true }));
+
+		await esperar(20);
+
+		el.dispatchEvent(new Event("change", { bubbles: true }));
+		parent?.dispatchEvent(new Event("change", { bubbles: true }));
+
+		await esperar(10);
+
+		el.dispatchEvent(new Event("blur", { bubbles: true }));
+		parent?.dispatchEvent(new Event("blur", { bubbles: true }));
+
+		console.log("[preencherCampoConsultado] CPF final:", el.value);
+		return;
 	}
 
-	el.dispatchEvent(new Event("input", { bubbles: true }));
-	parent?.dispatchEvent(new Event("input", { bubbles: true }));
+	// -----------------------------------------------------
+	// CNPJ — digitação simulada com pausas críticas
+	// -----------------------------------------------------
+	console.log("[preencherCampoConsultado] Modo CNPJ (digitação simulada).");
+
+	const pauses = [2, 5, 8, 12, 13, 14];
+	let index = 0;
+
+	el.value = ""; // zera o campo antes de digitar
+
+	for (const char of soDigitos) {
+		index++;
+
+		el.dispatchEvent(new KeyboardEvent("keydown", { key: char, bubbles: true }));
+		el.dispatchEvent(new KeyboardEvent("keypress", { key: char, bubbles: true }));
+
+		el.value += char;
+
+		el.dispatchEvent(new Event("input", { bubbles: true }));
+		parent?.dispatchEvent(new Event("input", { bubbles: true }));
+
+		el.dispatchEvent(new KeyboardEvent("keyup", { key: char, bubbles: true }));
+
+		if (pauses.includes(index)) {
+			console.log(`[CNPJ] Pausa crítica no dígito ${index} (char='${char}')`);
+			await esperar(80);
+		}
+	}
+
+	// Após toda a digitação:
+	await esperar(20);
 
 	el.dispatchEvent(new Event("change", { bubbles: true }));
 	parent?.dispatchEvent(new Event("change", { bubbles: true }));
 
+	await esperar(20);
+
 	el.dispatchEvent(new Event("blur", { bubbles: true }));
 	parent?.dispatchEvent(new Event("blur", { bubbles: true }));
 
-	console.log(
-		"[preencherCampoConsultado] Final",
-		{
-			valorCampoFinal: el.value,
-			lenFinal: String(el.value ?? "").replace(/[^\d]/g, "").length,
-			tipoDetectado: isCPF ? "CPF" : "CNPJ/indefinido"
-		}
-	);
+	console.log("[preencherCampoConsultado] CNPJ final:", el.value);
+
 }
 
 
