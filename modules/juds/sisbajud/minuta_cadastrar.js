@@ -349,7 +349,7 @@ async function preencherCampoConsultante(el, valor) {
 		el.dispatchEvent(new KeyboardEvent("keyup", { key: char, bubbles: true }));
 
 		// pausa SOMENTE no 9º e 10º dígitos
-		if ([9, 10].includes(index)) {
+		if ([9,10].includes(index)) {
 			await esperar(pausaCritica);
 		}
 	}
