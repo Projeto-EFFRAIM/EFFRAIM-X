@@ -21,7 +21,7 @@ export async function executar(dados) {
 		await esperar(600);
 
 		console.log("[2] Preenchendo magistrado");
-		preencherCampo(campos[1]?.querySelector(".mat-input-element"), dados?.capa?.magistrado);
+		await preencherCampo(campos[1]?.querySelector(".mat-input-element"), dados?.capa?.magistrado);
 
 		console.log("[3] Selecionando órgão julgador");
 		campos[2].click();
@@ -29,7 +29,7 @@ export async function executar(dados) {
 		await selecionarOpcaoMatSelect(dados?.sisbajud_configuracoes?.favoritos?.orgaoJulgador?.valor);
 
 		console.log("[4] Preenchendo número do processo");
-		preencherCampo(campos[3]?.querySelector(".mat-input-element"), dados?.capa?.numProcesso);
+		await preencherCampo(campos[3]?.querySelector(".mat-input-element"), dados?.capa?.numProcesso);
 
 		console.log("[5] Selecionando tipo de ação");
 		campos[4].click();
@@ -37,10 +37,10 @@ export async function executar(dados) {
 		await selecionarOpcaoMatSelect(dados?.sisbajud_configuracoes?.favoritos?.tipoAcao?.valor);
 
 		console.log("[6] Preenchendo CPF do consultante");
-		preencherCampo(campos[5]?.querySelector(".mat-input-element"), dados?.dados_consulta?.consultante?.cpf);
+		await preencherCampo(campos[5]?.querySelector(".mat-input-element"), dados?.dados_consulta?.consultante?.cpf);
 
 		console.log("[7] Preenchendo nome do consultante");
-		preencherCampo(campos[6]?.querySelector(".mat-input-element"), dados?.dados_consulta?.consultante?.nome);
+		await preencherCampo(campos[6]?.querySelector(".mat-input-element"), dados?.dados_consulta?.consultante?.nome);
 
 		if (dados?.dados_consulta?.metadados_consulta?.tipo === "informacoes") {
 			console.log("[8] Preenchendo opções de Requisição de Informações");
@@ -287,29 +287,60 @@ async function incluirConsultados(dados, isInformacao = false) {
 
 	for (let i = 0; i < consultados.length; i++) {
 		const c = consultados[i];
-		preencherCampo(inputCpf, c.cpf);
-		botaoAdicionar.click();
+		await preencherCampo(inputCpf, c.cpf);
+		await botaoAdicionar.click();
 		console.log(`[incluirConsultados] Consultado ${i + 1}/${consultados.length} adicionado.`);
 
 		const campoValor = await esperarNovoCampoValor(i);
 		if (!campoValor) continue;
 		const bruto = c.valor_bloqueado ?? "";
 		const soDigitos = String(bruto).replace(/[^\d]/g, "");
-		preencherCampo(campoValor, soDigitos);
-		pressionarEnter(campoValor);
+		await preencherCampo(campoValor, soDigitos);
+		await pressionarEnter(campoValor);
 		await esperar(200);
 	}
 	console.log("[incluirConsultados] Concluído");
 }
 
-function preencherCampo(el, valor) {
+async function preencherCampo(el, valor) {
 	if (!el) return;
+
+	const parent = el.closest('.mat-form-field');
+
 	el.focus();
-	el.value = valor ?? "";
+	el.value = "";
 	el.dispatchEvent(new Event("input", { bubbles: true }));
+	parent?.dispatchEvent(new Event("input", { bubbles: true }));
+
+	// Aumento da pausa entre caracteres
+	const PAUSA = 45; // antes era ~8–10, agora bem maior
+
+	for (const char of String(valor ?? "")) {
+		el.dispatchEvent(new KeyboardEvent("keydown", { key: char, bubbles: true }));
+		el.dispatchEvent(new KeyboardEvent("keypress", { key: char, bubbles: true }));
+
+		el.value += char;
+
+		el.dispatchEvent(new Event("input", { bubbles: true }));
+		parent?.dispatchEvent(new Event("input", { bubbles: true }));
+
+		el.dispatchEvent(new KeyboardEvent("keyup", { key: char, bubbles: true }));
+
+		// pequena pausa para permitir validação parcial
+		await esperar(PAUSA);
+	}
+
+	// micro-pausa final antes de blur
+	await esperar(20);
+
 	el.dispatchEvent(new Event("change", { bubbles: true }));
+	parent?.dispatchEvent(new Event("change", { bubbles: true }));
+
 	el.dispatchEvent(new Event("blur", { bubbles: true }));
+	parent?.dispatchEvent(new Event("blur", { bubbles: true }));
 }
+
+
 
 function formatarDataBR(iso) {
 	const d = new Date(iso);
