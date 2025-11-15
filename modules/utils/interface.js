@@ -239,6 +239,7 @@ export function criarPainelFlutuante({ botao, secoes, id="effraim-painel-flutuan
       right: "",
       zIndex: "",
       background: "",
+      border: "",
       maxHeight: "",
       overflow: ""
     });
