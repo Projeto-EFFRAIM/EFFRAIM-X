@@ -21,7 +21,10 @@ export async function executar(dados) {
 		await esperar(600);
 
 		console.log("[2] Preenchendo magistrado");
-		await preencherCampo(campos[1]?.querySelector(".mat-input-element"), dados?.capa?.magistrado);
+		await preencherCampoSimples(
+			campos[1]?.querySelector(".mat-input-element"),
+			dados?.capa?.magistrado
+		);
 
 		console.log("[3] Selecionando órgão julgador");
 		campos[2].click();
@@ -29,7 +32,10 @@ export async function executar(dados) {
 		await selecionarOpcaoMatSelect(dados?.sisbajud_configuracoes?.favoritos?.orgaoJulgador?.valor);
 
 		console.log("[4] Preenchendo número do processo");
-		await preencherCampo(campos[3]?.querySelector(".mat-input-element"), dados?.capa?.numProcesso);
+		await preencherCampoSimples(
+			campos[3]?.querySelector(".mat-input-element"),
+			dados?.capa?.numProcesso
+		);
 
 		console.log("[5] Selecionando tipo de ação");
 		campos[4].click();
@@ -37,10 +43,16 @@ export async function executar(dados) {
 		await selecionarOpcaoMatSelect(dados?.sisbajud_configuracoes?.favoritos?.tipoAcao?.valor);
 
 		console.log("[6] Preenchendo CPF do consultante");
-		await preencherCampo(campos[5]?.querySelector(".mat-input-element"), dados?.dados_consulta?.consultante?.cpf);
+		await preencherCampoConsultante(
+			campos[5]?.querySelector(".mat-input-element"),
+			dados?.dados_consulta?.consultante?.cpf
+		);
 
 		console.log("[7] Preenchendo nome do consultante");
-		await preencherCampo(campos[6]?.querySelector(".mat-input-element"), dados?.dados_consulta?.consultante?.nome);
+		await preencherCampoSimples(
+			campos[6]?.querySelector(".mat-input-element"),
+			dados?.dados_consulta?.consultante?.nome
+		);
 
 		if (dados?.dados_consulta?.metadados_consulta?.tipo === "informacoes") {
 			console.log("[8] Preenchendo opções de Requisição de Informações");
@@ -241,7 +253,7 @@ async function preencherDatas(dados) {
 		const campoProt = await esperarCampo("input[placeholder*='Data do protocolo']");
 		if (campoProt) {
 			const data = formatarDataBR(meta.data_protocolo);
-			preencherCampo(campoProt, data);
+			preencherCampoSimples(campoProt, data);
 			console.log("[preencherDatas] Data do protocolo preenchida:", data);
 		}
 	}
@@ -249,7 +261,10 @@ async function preencherDatas(dados) {
 	if (meta.teimosinha && meta.data_limite_teimosinha) {
 		const campoTeimosinha = await esperarCampo("input[placeholder*='Data limite']");
 		if (campoTeimosinha) {
-			preencherCampo(campoTeimosinha, formatarDataBR(meta.data_limite_teimosinha));
+		await preencherCampoSimples(
+			campoTeimosinha,
+			formatarDataBR(meta.data_limite_teimosinha)
+		);
 			console.log("[preencherDatas] Data limite teimosinha preenchida.");
 		}
 	}
@@ -287,7 +302,7 @@ async function incluirConsultados(dados, isInformacao = false) {
 
 	for (let i = 0; i < consultados.length; i++) {
 		const c = consultados[i];
-		await preencherCampo(inputCpf, c.cpf);
+		await preencherCampoConsultado(inputCpf, c.cpf);
 		await botaoAdicionar.click();
 		console.log(`[incluirConsultados] Consultado ${i + 1}/${consultados.length} adicionado.`);
 
@@ -295,27 +310,34 @@ async function incluirConsultados(dados, isInformacao = false) {
 		if (!campoValor) continue;
 		const bruto = c.valor_bloqueado ?? "";
 		const soDigitos = String(bruto).replace(/[^\d]/g, "");
-		await preencherCampo(campoValor, soDigitos);
+		await preencherCampoSimples(campoValor, soDigitos);
 		await pressionarEnter(campoValor);
 		await esperar(200);
 	}
 	console.log("[incluirConsultados] Concluído");
 }
 
-async function preencherCampo(el, valor) {
+// ---------------------------------------------------------
+// NOVA FUNÇÃO 1 — Consultante (CPF/CNPJ sensível)
+// Imita digitação, mas só aplica pausa no 9º e 10º dígitos
+// ---------------------------------------------------------
+async function preencherCampoConsultante(el, valor) {
 	if (!el) return;
 
 	const parent = el.closest('.mat-form-field');
+	const texto = String(valor ?? "");
+	const pausaCritica = 80 //pausa usada apenas no 9º e 10º dígitos
 
 	el.focus();
 	el.value = "";
 	el.dispatchEvent(new Event("input", { bubbles: true }));
 	parent?.dispatchEvent(new Event("input", { bubbles: true }));
 
-	// Aumento da pausa entre caracteres
-	const PAUSA = 45; // antes era ~8–10, agora bem maior
+	let index = 0;
+	for (const char of texto) {
+		index++;
 
-	for (const char of String(valor ?? "")) {
+		// eventos padrão de digitação Angular
 		el.dispatchEvent(new KeyboardEvent("keydown", { key: char, bubbles: true }));
 		el.dispatchEvent(new KeyboardEvent("keypress", { key: char, bubbles: true }));
 
@@ -326,12 +348,60 @@ async function preencherCampo(el, valor) {
 
 		el.dispatchEvent(new KeyboardEvent("keyup", { key: char, bubbles: true }));
 
-		// pequena pausa para permitir validação parcial
-		await esperar(PAUSA);
+		// pausa SOMENTE no 9º e 10º dígitos
+		if ([9, 10].includes(index)) {
+			await esperar(pausaCritica);
+		}
 	}
 
-	// micro-pausa final antes de blur
 	await esperar(20);
+
+	el.dispatchEvent(new Event("change", { bubbles: true }));
+	parent?.dispatchEvent(new Event("change", { bubbles: true }));
+
+	el.dispatchEvent(new Event("blur", { bubbles: true }));
+	parent?.dispatchEvent(new Event("blur", { bubbles: true }));
+}
+
+
+
+// ---------------------------------------------------------
+// NOVA FUNÇÃO 2 — Consultado (validação simples)
+// Sem imitar digitação, apenas define valor e dispara eventos
+// ---------------------------------------------------------
+async function preencherCampoConsultado(el, valor) {
+	if (!el) return;
+
+	const parent = el.closest('.mat-form-field');
+
+	el.focus();
+	el.value = String(valor ?? "");
+
+	el.dispatchEvent(new Event("input", { bubbles: true }));
+	parent?.dispatchEvent(new Event("input", { bubbles: true }));
+
+	el.dispatchEvent(new Event("change", { bubbles: true }));
+	parent?.dispatchEvent(new Event("change", { bubbles: true }));
+
+	el.dispatchEvent(new Event("blur", { bubbles: true }));
+	parent?.dispatchEvent(new Event("blur", { bubbles: true }));
+}
+
+
+
+// ---------------------------------------------------------
+// NOVA FUNÇÃO 3 — Campos simples (sem validação especial)
+// ---------------------------------------------------------
+async function preencherCampoSimples(el, valor) {
+	if (!el) return;
+
+	const parent = el.closest('.mat-form-field');
+
+	el.focus();
+	el.value = String(valor ?? "");
+
+	el.dispatchEvent(new Event("input", { bubbles: true }));
+	parent?.dispatchEvent(new Event("input", { bubbles: true }));
 
 	el.dispatchEvent(new Event("change", { bubbles: true }));
 	parent?.dispatchEvent(new Event("change", { bubbles: true }));
