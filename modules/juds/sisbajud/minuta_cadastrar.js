@@ -67,6 +67,8 @@ export async function executar(dados) {
 			await incluirConsultados(dados, false);
 		}
 
+		await clicarFinalizarSalvarProtocolar();
+
 		console.log("[minuta_cadastrar] Execução finalizada com sucesso.");
 	} catch (erro) {
 		console.error("[minuta_cadastrar] Erro durante execução:", erro);
@@ -683,4 +685,46 @@ async function selecionarOpcaoMatSelect(textoOpcao, seletor = "[id^='mat-option'
 	if (!opcao) return;
 	opcao.scrollIntoView({ block: "center" });
 	opcao.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+}
+
+async function clicarFinalizarSalvarProtocolar() {
+	console.log("[clicarFinalizarSalvarProtocolar] Início");
+
+	// espera curta para a tela estabilizar
+	await esperar(300);
+
+	// ----------------------------------------------
+	// 1. CLICAR SALVAR (se existir)
+	// ----------------------------------------------
+	let botaoSalvar = [...document.querySelectorAll("button")]
+		.find(b => /salvar/i.test(b.innerText));
+
+	if (botaoSalvar) {
+		console.log("[clicarFinalizarSalvarProtocolar] Botão SALVAR encontrado:", botaoSalvar.innerText);
+		botaoSalvar.scrollIntoView({ block: "center" });
+		await esperar(80);
+		botaoSalvar.click();
+		await esperar(350);
+	} else {
+		console.log("[clicarFinalizarSalvarProtocolar] Nenhum botão SALVAR encontrado. Prosseguindo...");
+	}
+
+	// ----------------------------------------------
+	// 2. CLICAR PROTOCOLAR (independente se ficou oculto antes)
+	// ----------------------------------------------
+	let botaoProtocolar = [...document.querySelectorAll("button")]
+		.find(b => /protocolar/i.test(b.innerText));
+
+	if (!botaoProtocolar) {
+		console.warn("[clicarFinalizarSalvarProtocolar] Botão PROTOCOLAR não encontrado.");
+		return;
+	}
+
+	console.log("[clicarFinalizarSalvarProtocolar] Botão PROTOCOLAR encontrado:", botaoProtocolar.innerText);
+	botaoProtocolar.scrollIntoView({ block: "center" });
+	await esperar(80);
+	botaoProtocolar.click();
+	await esperar(350);
+
+	console.log("[clicarFinalizarSalvarProtocolar] Concluído.");
 }
