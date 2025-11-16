@@ -123,8 +123,8 @@ async function selecionar_dados_consulta(conteudo, dados_processo) {
 		</div>
 
 
-		<div id="opcoes-informacoes" style="display:none; margin-top:10px;">
-			<div style="display:flex; flex-wrap:wrap; gap:20px;">
+		<div id="opcoes-informacoes" class="effraim-nao-preenchido" style="display:none; margin-top:10px;">
+			<div id="grupo-informacoes-opcoes" style="display:flex; flex-wrap:wrap; gap:20px;">
 				<label><input type="checkbox" id="info-saldo"> Saldo</label>
 				<label><input type="checkbox" id="info-enderecos"> Endereços</label>
 				<label><input type="checkbox" id="info-agencias"> Relação de agências e contas</label>
@@ -132,6 +132,9 @@ async function selecionar_dados_consulta(conteudo, dados_processo) {
 			<label style="display:block; margin-top:6px;">
 				<input type="checkbox" id="info-encerrados" checked> Incluir contas, investimentos e ativos encerrados
 			</label>
+			<div id="aviso-opcoes-informacoes" class="effraim-texto-atencao" style="margin-top:6px;">
+				Nenhuma opção selecionada.
+			</div>
 		</div>
 
 		<div style="position:sticky; bottom:0; background:#f0f8ff; padding:8px 0; text-align:center; border-top:1px solid #ccc;">
@@ -155,6 +158,38 @@ async function selecionar_dados_consulta(conteudo, dados_processo) {
 	const blocoBloqueio = conteudo.querySelector("#opcoes-bloqueio");
 	const blocoInfo = conteudo.querySelector("#opcoes-informacoes");
 	const salario = conteudo.querySelector("#toggle-bloq-conta-salario");
+
+	const infoSaldo = conteudo.querySelector("#info-saldo");
+	const infoEnderecos = conteudo.querySelector("#info-enderecos");
+	const infoAgencias = conteudo.querySelector("#info-agencias");
+	const avisoInfo = conteudo.querySelector("#aviso-opcoes-informacoes");
+
+	const atualizarAvisoInfo = () => {
+		const algumMarcado =
+			(infoSaldo && infoSaldo.checked) ||
+			(infoEnderecos && infoEnderecos.checked) ||
+			(infoAgencias && infoAgencias.checked);
+
+		if (algumMarcado) {
+			blocoInfo.classList.remove("effraim-nao-preenchido");
+			if (avisoInfo) {
+				avisoInfo.style.display = "none";
+			}
+		} else {
+			blocoInfo.classList.add("effraim-nao-preenchido");
+			if (avisoInfo) {
+				avisoInfo.style.display = "block";
+			}
+		}
+	};
+
+	[infoSaldo, infoEnderecos, infoAgencias].forEach(chk => {
+		if (!chk) return;
+		chk.addEventListener("change", atualizarAvisoInfo);
+	});
+
+	// estado inicial de atenção (nenhuma opção marcada)
+	atualizarAvisoInfo();
 
 	// alternância de tipo
 	radios.forEach(r => {
@@ -182,6 +217,9 @@ async function selecionar_dados_consulta(conteudo, dados_processo) {
 				blocosValor.forEach(div => (div.style.display = "none"));
 				controlesSelecionarTodos.forEach(el => el.closest("label").style.display = "block");
 				controlesPermitirDif.forEach(el => el.closest("label").style.display = "none");
+
+				// garantir que o estado visual (borda/texto) reflita a seleção atual
+				atualizarAvisoInfo();
 			}
 		});
 	});
@@ -313,7 +351,15 @@ function gerarListaPartes(partes = [], tipo) {
 
 	const checkboxes = partes.map((parte, i) => {
 		const nome = parte?.nome || "(sem nome)";
-		const cpf  = parte?.cpf  || "";
+		const cpf = parte?.cpf || "";
+		let cpfHtml = "";
+
+		if (!cpf) {
+			cpfHtml = `<span class="effraim-texto-atencao">CPF/CNPJ não informado</span>`;
+		} else {
+			cpfHtml = `(${cpf})`;
+		}
+
 		const checked = i === 0 && tipo === "consultante" ? "checked" : "";
 		const valorCampo =
 			tipo === "consultado"
@@ -327,7 +373,7 @@ function gerarListaPartes(partes = [], tipo) {
 		  <div class="linha_parte" style="margin-bottom:6px;">
 			<label style="display:block;">
 			  <input type="${checkType}" name="${tipo}" value="${i}" data-nome="${nome}" data-cpf="${cpf}" ${checked}>
-			  ${nome} ${cpf ? `(${cpf})` : ""}
+			  ${nome} ${cpfHtml}
 			</label>
 			${valorCampo}
 		  </div>
@@ -345,11 +391,21 @@ function gerarListaPartes(partes = [], tipo) {
 				   Permitir valores diferentes por consultado
 			   </label>`
 			: "";
+	let avisoHtml = "";
+	if (tipo === "consultado") {
+		avisoHtml = `
+		<div id="aviso-consultados" class="effraim-texto-atencao" style="margin-top:6px;">
+			Nenhum consultado selecionado.
+		</div>
+	`;
+}
+
 
 	const html = `
-		<div id="${blocoId}" style="max-height:360px; overflow-y:auto; border:1px solid #ccc; padding:6px; border-radius:4px;">
+		<div id="${blocoId}" class="effraim-nao-preenchido" style="max-height:360px; overflow-y:auto; border:1px solid #ccc; padding:6px; border-radius:4px;">
 			${controlesExtras}
 			${checkboxes}
+			${avisoHtml}
 		</div>
 	`;
 
@@ -385,7 +441,10 @@ function gerarListaPartes(partes = [], tipo) {
 		const consultadoChecks = root.querySelectorAll('input[name="consultado"]');
 		consultadoChecks.forEach((cb, i) => {
 			const blocoValor = root.querySelector(`.valor_consultado[data-idx="${i}"]`)?.closest(".bloco_valor");
-			if (cb.checked && blocoValor) blocoValor.style.display = "block";
+
+			if (cb.checked && blocoValor) {
+				blocoValor.style.display = "block";
+			}
 
 			cb.addEventListener("change", () => {
 				if (blocoValor) {
@@ -393,9 +452,12 @@ function gerarListaPartes(partes = [], tipo) {
 						const tipoAtual = document.querySelector('input[name="tipoConsulta"]:checked')?.value;
 						if (tipoAtual === "bloqueio") {
 							blocoValor.style.display = "block";
+
 							if (!permitirDif?.checked && valores.length) {
 								const base = valores[0].value;
-								if (base) blocoValor.querySelector(".valor_consultado").value = base;
+								if (base) {
+									blocoValor.querySelector(".valor_consultado").value = base;
+								}
 							}
 						}
 					} else {
@@ -408,8 +470,23 @@ function gerarListaPartes(partes = [], tipo) {
 					const todosMarcados = [...boxes].every(x => x.checked);
 					checkAll.checked = todosMarcados;
 				}
+
+				// ATENÇÃO VISUAL PARA CONSULTADO
+				if (tipo === "consultado") {
+					const algumMarcado = [...consultadoChecks].some(x => x.checked);
+					const aviso = root.querySelector("#aviso-consultados");
+
+					if (algumMarcado) {
+						root.classList.remove("effraim-nao-preenchido");
+						if (aviso) aviso.style.display = "none";
+					} else {
+						root.classList.add("effraim-nao-preenchido");
+						if (aviso) aviso.style.display = "block";
+					}
+				}
 			});
 		});
+
 
 		if (checkAll) {
 			checkAll.addEventListener("change", () => {
