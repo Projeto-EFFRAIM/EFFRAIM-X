@@ -1,6 +1,6 @@
 // modules/juds/sisbajud/minuta_cadastrar.js
 
-import { pressionarEnter, esperar } from "/funcoes.js";
+import { pressionarEnter, esperar, normalizar } from "/funcoes.js";
 
 export async function executar(dados) {
 	try {
@@ -20,11 +20,12 @@ export async function executar(dados) {
 		await configurarRadios(dados);
 		await esperar(600);
 
-		console.log("[2] Preenchendo magistrado");
-		await preencherCampoSimples(
-			campos[1]?.querySelector(".mat-input-element"),
-			dados?.capa?.magistrado
-		);
+		console.log("[2] Preenchendo magistrado:", dados?.capa?.magistrado);
+		campos[1].click();
+		await esperar(400);
+		await selecionarOpcaoMatSelect(dados?.capa?.magistrado)
+
+
 
 		console.log("[3] Selecionando órgão julgador");
 		campos[2].click();
@@ -677,7 +678,8 @@ async function selecionarOpcaoMatSelect(textoOpcao, seletor = "[id^='mat-option'
 	if (!textoOpcao) return;
 	const overlay = await esperarSobreposicao(seletor);
 	const lista = [...overlay.querySelectorAll(seletor)];
-	const opcao = lista.find(e => e.innerText.includes(textoOpcao));
+	const alvo = normalizar(textoOpcao);
+	const opcao = lista.find(e => normalizar(e.innerText).includes(alvo));
 	if (!opcao) return;
 	opcao.scrollIntoView({ block: "center" });
 	opcao.dispatchEvent(new MouseEvent("click", { bubbles: true }));
