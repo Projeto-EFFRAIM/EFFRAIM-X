@@ -75,3 +75,16 @@ export function pressionarEnter(el) {
 }
 
 //Fim de pressioanr teclas=====================================================
+
+//Texto==========================================================================
+export function normalizar(txt) {
+	return String(txt ?? "")
+		.normalize("NFD")                     // separa acento da letra
+		.replace(/[\u0300-\u036f]/g, "")      // remove acentos
+		.replace(/\s+/g, " ")                 // colapsa múltiplos espaços
+		.trim()                               // remove espaços laterais
+		.toLowerCase();                       // case-insensitive
+}
+
+
+//Fim de Texto===================================================================
