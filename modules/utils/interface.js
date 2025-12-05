@@ -302,11 +302,12 @@ export function criarPainelDeslizantePadrao(id, botaoReferencia, titulo = "") {
       zIndex: "1000",
       padding: "4px 6px",
       // layout: todos os botões em uma linha horizontal
-      display: "inline-block",
+      display: "none",
       overflowX: "auto",
       overflowY: "hidden",
       minWidth: "200px",
-      maxWidth: "90vw"
+      maxWidth: "90vw",
+      pointerEvents: "none"
     });
 
 
@@ -356,6 +357,7 @@ function cancelarOcultar() {
 
 function mostrarPainel(painel) {
   Object.assign(painel.style, {
+    display: "inline-block",
     opacity: "1",
     maxHeight: painel.scrollHeight + "px",
     pointerEvents:"auto"
@@ -366,7 +368,8 @@ function ocultarPainel(painel) {
   Object.assign(painel.style, {
     opacity: "0",
     maxHeight: "0",
-    pointerEvents: "none"
+    pointerEvents: "none",
+    display: "none"
   });
 }
 
