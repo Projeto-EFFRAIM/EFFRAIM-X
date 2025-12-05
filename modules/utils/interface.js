@@ -358,13 +358,23 @@ function cancelarOcultar() {
 
 
 function mostrarPainel(painel) {
-  painel.style.display = "inline-block"; // deixar visível antes de medir altura
-  const altura = painel.scrollHeight || painel.offsetHeight || 0;
-  Object.assign(painel.style, {
-    opacity: "1",
-    maxHeight: `${altura}px`,
-    pointerEvents: "auto"
-  });
+  const ajustarAltura = () => {
+    const altura = (() => {
+      const prevMax = painel.style.maxHeight;
+      painel.style.maxHeight = "none"; // libera para medir o tamanho real
+      const medida = painel.scrollHeight || painel.offsetHeight || 0;
+      painel.style.maxHeight = prevMax;
+      return medida;
+    })();
+    painel.style.maxHeight = `${altura}px`;
+  };
+
+  painel.style.display = "inline-block"; // deixar visível antes de medir
+  painel.style.opacity = "1";
+  painel.style.pointerEvents = "auto";
+
+  ajustarAltura(); // mede no mesmo tick
+  requestAnimationFrame(ajustarAltura); // mede de novo após qualquer ajuste de conteúdo
 }
 
 function ocultarPainel(painel) {
