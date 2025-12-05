@@ -199,7 +199,9 @@ export function criarPainelFlutuante({ botao, secoes, id="effraim-painel-flutuan
       secao.classList.add("show");
 
     const painelRect = painel.getBoundingClientRect();
-    const base = painelRect.top + painel.scrollHeight + 8;
+    const baseOriginal = painelRect.top + painel.scrollHeight + 8;
+    const base = Math.max(60, baseOriginal) + 15;
+
 
     placeholder = document.createElement("div");
     placeholder.id = `ph-${idSecao}`;
@@ -356,11 +358,12 @@ function cancelarOcultar() {
 
 
 function mostrarPainel(painel) {
+  painel.style.display = "inline-block"; // deixar visível antes de medir altura
+  const altura = painel.scrollHeight || painel.offsetHeight || 0;
   Object.assign(painel.style, {
-    display: "inline-block",
     opacity: "1",
-    maxHeight: painel.scrollHeight + "px",
-    pointerEvents:"auto"
+    maxHeight: `${altura}px`,
+    pointerEvents: "auto"
   });
 }
 
