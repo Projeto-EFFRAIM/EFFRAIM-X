@@ -9,7 +9,7 @@ export async function init() {
   { id: "fldLembretes", nome: "Lembretes", chave: "," },
   { id: "fldAssuntos", nome: "Assuntos", chave: "j" },
   { id: "fldPartes", nome: "Partes", chave:"z" },
-  { id: "fldMinutas", nome: "Minutas", chave:"i" },
+  { id: "fldMinutas", nome: "Minutas", chave:"'" },
   { id: "fldInformacoesAdicionais", nome: "Informações Adicionais", chave:"+" },
   { id: "fldResumo", nome: "Resumo", chave:";"},
   { id: "fldAcoes", nome: "Ações", chave:"ç" },

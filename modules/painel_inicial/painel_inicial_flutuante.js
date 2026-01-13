@@ -18,7 +18,7 @@ const secoesPainelInicial = [
   { id: "fldLocalizadores", nome: "Localizadores", chave: "5" },
   { id: "fldRequisicoesPagamento", nome: "Requisições de Pagamento", chave: "r" },
   { id: "fldAgravo", nome: "Agravo", chave: "g" },
-  { id: "fldMinutas", nome: "Minutas", chave: "t" },
+  { id: "fldMinutas", nome: "Minutas", chave: "'" },
   { id: "fldMeusLocalizadores", nome: "Meus Localizadores", chave: "ç" },
   { id: "fldComunicacoes", nome: "Comunicações Recebidas", chave: "6" },
   { id: "fldProcessoDeUmLocalizador", nome: "Processo por Localizador", chave: "l" },
