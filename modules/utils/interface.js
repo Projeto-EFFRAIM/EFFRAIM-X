@@ -199,7 +199,9 @@ export function criarPainelFlutuante({ botao, secoes, id="effraim-painel-flutuan
       secao.classList.add("show");
 
     const painelRect = painel.getBoundingClientRect();
-    const base = painelRect.top + painel.scrollHeight + 8;
+    const baseOriginal = painelRect.top + painel.scrollHeight + 8;
+    const base = Math.max(60, baseOriginal) + 15;
+
 
     placeholder = document.createElement("div");
     placeholder.id = `ph-${idSecao}`;
@@ -302,11 +304,12 @@ export function criarPainelDeslizantePadrao(id, botaoReferencia, titulo = "") {
       zIndex: "1000",
       padding: "4px 6px",
       // layout: todos os botões em uma linha horizontal
-      display: "inline-block",
+      display: "none",
       overflowX: "auto",
       overflowY: "hidden",
       minWidth: "200px",
-      maxWidth: "90vw"
+      maxWidth: "90vw",
+      pointerEvents: "none"
     });
 
 
@@ -355,18 +358,31 @@ function cancelarOcultar() {
 
 
 function mostrarPainel(painel) {
-  Object.assign(painel.style, {
-    opacity: "1",
-    maxHeight: painel.scrollHeight + "px",
-    pointerEvents:"auto"
-  });
+  const ajustarAltura = () => {
+    const altura = (() => {
+      const prevMax = painel.style.maxHeight;
+      painel.style.maxHeight = "none"; // libera para medir o tamanho real
+      const medida = painel.scrollHeight || painel.offsetHeight || 0;
+      painel.style.maxHeight = prevMax;
+      return medida;
+    })();
+    painel.style.maxHeight = `${altura}px`;
+  };
+
+  painel.style.display = "inline-block"; // deixar visível antes de medir
+  painel.style.opacity = "1";
+  painel.style.pointerEvents = "auto";
+
+  ajustarAltura(); // mede no mesmo tick
+  requestAnimationFrame(ajustarAltura); // mede de novo após qualquer ajuste de conteúdo
 }
 
 function ocultarPainel(painel) {
   Object.assign(painel.style, {
     opacity: "0",
     maxHeight: "0",
-    pointerEvents: "none"
+    pointerEvents: "none",
+    display: "none"
   });
 }
 

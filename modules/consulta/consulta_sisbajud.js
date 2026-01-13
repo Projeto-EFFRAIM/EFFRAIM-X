@@ -18,7 +18,7 @@ export function init() {
 		color: "#002244",
 		width: "55vw",
 		maxWidth: "55vw",
-		height: "80vh",
+		height: "auto", // deixa ajustar ao conteúdo
 		maxHeight: "80vh",
 		overflowY: "auto",
 		paddingRight: "12px"
