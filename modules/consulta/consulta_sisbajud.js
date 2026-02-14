@@ -41,7 +41,7 @@ async function inserir_sisbajud_no_painel(painel, conteudo) {
 	try {
 		const sisbajud_configuracoes = window.EFFRAIM_CONFIGURACOES.opcoes_sisbajud;
 		console.log("Sisba config:", sisbajud_configuracoes);
-		const dados_processo = consulta_dados_processo();
+		const dados_processo = window.__EFFRAIM_DADOS_PROCESSO || consulta_dados_processo();
 		console.log("Dados coletados para enviar sisbajud:", dados_processo);
 
 		const dados_consulta = await selecionar_dados_consulta(conteudo, dados_processo);

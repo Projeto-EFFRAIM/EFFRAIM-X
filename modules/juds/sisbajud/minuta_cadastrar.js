@@ -556,7 +556,7 @@ async function preencherCampoConsultado(el, valor) {
 
 		// primeira digitação com pausa padrão
 		await digitar(PAUSA_DIGITO);
-		await esperar(200); // pausa pós digitação para a máscara/consulta remota
+		await esperar(100); // pausa pós digitação para a máscara/consulta remota
 
 		// se a máscara apagou DV (len < 11), redigita mais devagar
 		if (String(el.value ?? "").replace(/[^\d]/g, "").length < 11) {
