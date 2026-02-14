@@ -30,7 +30,19 @@ export function init() {
 	conteudo.textContent = "Clique no botão SISBAJUD para consultar os dados.";
 	painel.appendChild(conteudo);
 
+	const abrirPainel = () => {
+		painel.style.display = "inline-block";
+		painel.style.opacity = "1";
+		painel.style.pointerEvents = "auto";
+		// recalcula altura após reflow
+		requestAnimationFrame(() => {
+			const altura = painel.scrollHeight || 0;
+			painel.style.maxHeight = `${altura}px`;
+		});
+	};
+
 	botao.addEventListener("click", () => {
+		abrirPainel();
 		inserir_sisbajud_no_painel(painel, conteudo);
 	});
 
