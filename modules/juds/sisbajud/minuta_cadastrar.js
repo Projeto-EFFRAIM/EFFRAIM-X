@@ -707,14 +707,52 @@ function formatarDataBR(iso) {
 async function preencherCampoDataMaterial(el, valor) {
 	if (!el) return;
 	const parent = el.closest(".mat-form-field");
+	const toggleBtn = parent?.querySelector(".mat-datepicker-toggle button, button[aria-haspopup='dialog']");
+
+	// garante que o campo esteja habilitado para setar valor
+	const wasDisabled = el.disabled;
+	if (wasDisabled) el.disabled = false;
+
 	el.focus();
 	el.value = String(valor ?? "");
+
+	// evento compatível com Angular Material
+	const dateObj = (() => {
+		const m = String(valor ?? "").match(/(\d{2})\/(\d{2})\/(\d{4})/);
+		return m ? new Date(`${m[3]}-${m[2]}-${m[1]}T00:00:00`) : null;
+	})();
+
+	if (dateObj instanceof Date && !isNaN(dateObj)) {
+		const fireMatEvent = (name) => {
+			const evt = new Event(name, { bubbles: true });
+			evt.value = dateObj; // Angular Material lê .value
+			el.dispatchEvent(evt);
+		};
+		fireMatEvent("dateInput");
+		fireMatEvent("dateChange");
+	}
+
 	["input", "change", "blur"].forEach(ev =>
 		el.dispatchEvent(new Event(ev, { bubbles: true }))
 	);
 	parent?.dispatchEvent(new Event("input", { bubbles: true }));
 	parent?.dispatchEvent(new Event("change", { bubbles: true }));
-	await esperar(120);
+	// força estado Angular de campo modificado
+	el.classList.remove("ng-pristine");
+	el.classList.add("ng-dirty");
+	el.classList.add("ng-touched");
+
+	// fecha o datepicker se tiver ficado aberto
+	const overlayCalendario = document.querySelector(".cdk-overlay-pane mat-calendar");
+	if (overlayCalendario && toggleBtn) {
+		toggleBtn.click();
+	} else if (overlayCalendario) {
+		document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", code: "Escape", bubbles: true }));
+	}
+
+	if (wasDisabled) el.disabled = true;
+
+	await esperar(150);
 }
 
 
