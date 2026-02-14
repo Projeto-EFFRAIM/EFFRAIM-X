@@ -133,6 +133,31 @@ async function configurarRadios(dados) {
 		}
 	}
 
+	// conta salário
+	if (meta.conta_salario) {
+		// apenas slide-toggle (SISBAJUD)
+		let slide = [...document.querySelectorAll("mat-slide-toggle")]
+			.find(el => /conta\s*sal[áa]rio/i.test(el.innerText || ""));
+		// fallback: pega o primeiro slide-toggle da sessão de bloqueio
+		if (!slide) {
+			const bloco = [...document.querySelectorAll("mat-card, form, div")]
+				.find(e => /agendar protocolo|bloqueio/i.test(e.innerText || ""));
+			slide = bloco?.querySelector("mat-slide-toggle") || document.querySelector("mat-slide-toggle");
+		}
+		const thumb = slide?.querySelector(".mat-slide-toggle-thumb-container") || slide?.querySelector(".mat-slide-toggle-bar");
+		if (thumb) {
+			thumb.scrollIntoView({ block: "center" });
+			["mousedown", "mouseup", "click"].forEach(ev =>
+				thumb.dispatchEvent(new MouseEvent(ev, { bubbles: true }))
+			);
+			slide.dispatchEvent(new Event("change", { bubbles: true }));
+			console.log("[configurarRadios] Conta salário ativada via slide-toggle.");
+			await esperar(200);
+		} else {
+			console.warn("[configurarRadios] Slide-toggle 'conta salário' não encontrado.");
+		}
+	}
+
 	// --- agendar protocolo ---
 	if (meta.agendar_protocolo) {
 	const blocoProt = [...document.querySelectorAll(".sisbajud-label")]
@@ -169,7 +194,7 @@ async function configurarRadios(dados) {
 	} else {
 		const radios = [...cardTeimo.querySelectorAll("mat-radio-button")];
 		console.log("[configurarRadios] Rádios detectados dentro do card:", radios.map(r => r.innerText.trim()));
-		const alvo = radios.find(r => /repetir/i.test(r.innerText) || /até a data/i.test(r.innerText));
+		const alvo = radios.find(r => /repetir\s+a\s+ordem\s+até\s+a\s+data/i.test(r.innerText) || /até a data/i.test(r.innerText) || /sim/i.test(r.innerText));
 		if (!alvo) {
 		console.warn("[configurarRadios] Nenhum rádio com texto 'Repetir' ou 'até a data' localizado.");
 		} else {
@@ -178,13 +203,15 @@ async function configurarRadios(dados) {
 			if (!input || !container) {
 				console.warn("[configurarRadios] Falha ao localizar input/container no rádio teimosinha.");
 			} else {
-				["mousedown", "mouseup", "click"].forEach(ev =>
-					container.dispatchEvent(new MouseEvent(ev, { bubbles: true }))
-				);
-				["input", "change"].forEach(ev =>
-					input.dispatchEvent(new Event(ev, { bubbles: true }))
-				);
-				console.log("[configurarRadios] Rádio 'Teimosinha' ativado via sequência padrão de eventos.");
+				// sequência robusta de eventos
+				["mousedown", "mouseup", "click"].forEach(ev => container.dispatchEvent(new MouseEvent(ev, { bubbles: true })));
+				["input", "change"].forEach(ev => input.dispatchEvent(new Event(ev, { bubbles: true })));
+				container.click();
+				await esperar(200);
+				// clique extra no label para garantir binding Angular
+				alvo.querySelector(".mat-radio-label")?.click();
+				await esperar(200);
+				console.log("[configurarRadios] Rádio 'Teimosinha' marcado (até a data).");
 			}
 
 		}
@@ -257,7 +284,7 @@ async function preencherDatas(dados) {
 		const campoProt = await esperarCampo("input[placeholder*='Data do protocolo']");
 		if (campoProt) {
 			const data = formatarDataBR(meta.data_protocolo);
-			preencherCampoSimples(campoProt, data);
+			await preencherCampoDataMaterial(campoProt, data);
 			console.log("[preencherDatas] Data do protocolo preenchida:", data);
 		}
 	}
@@ -265,11 +292,14 @@ async function preencherDatas(dados) {
 	if (meta.teimosinha && meta.data_limite_teimosinha) {
 		const campoTeimosinha = await esperarCampo("input[placeholder*='Data limite']");
 		if (campoTeimosinha) {
-		await preencherCampoSimples(
-			campoTeimosinha,
-			formatarDataBR(meta.data_limite_teimosinha)
-		);
-			console.log("[preencherDatas] Data limite teimosinha preenchida.");
+			const data = formatarDataBR(meta.data_limite_teimosinha);
+			// garante que o campo esteja habilitado antes de preencher
+			for (let i = 0; i < 10 && campoTeimosinha.disabled; i++) {
+				await esperar(100);
+			}
+			await preencherCampoDataMaterial(campoTeimosinha, data);
+			await esperar(200);
+			console.log("[preencherDatas] Data limite teimosinha preenchida:", data);
 		}
 	}
 }
@@ -277,6 +307,7 @@ async function preencherDatas(dados) {
 async function incluirConsultados(dados, isInformacao = false) {
 	console.log("[incluirConsultados] Início");
 	const consultados = dados?.dados_consulta?.consultados ?? [];
+	const meta = dados?.dados_consulta?.metadados_consulta ?? {};
 	if (!consultados.length) {
 		console.warn("[incluirConsultados] Nenhum consultado encontrado.");
 		return;
@@ -360,6 +391,22 @@ async function incluirConsultados(dados, isInformacao = false) {
 		// Pressiona Enter para validar
 		await pressionarEnter(campoValor);
 		await esperar(200);
+
+		// Ativa "bloquear conta salário?" na linha, se solicitado nos metadados
+		if (meta.conta_salario) {
+			const linhas = document.querySelectorAll(".mat-row.element-row");
+			const linhaAlvo = linhas[linhas.length - 1];
+			const toggle = linhaAlvo?.querySelector(".cdk-column-bloqueioConta mat-slide-toggle .mat-slide-toggle-thumb-container");
+			if (toggle) {
+				["mousedown", "mouseup", "click"].forEach(ev =>
+					toggle.dispatchEvent(new MouseEvent(ev, { bubbles: true }))
+				);
+				linhaAlvo.querySelector("mat-slide-toggle")?.dispatchEvent(new Event("change", { bubbles: true }));
+				console.log("[incluirConsultados] Conta salário ativada na linha", i + 1);
+			} else {
+				console.warn("[incluirConsultados] Toggle conta salário não localizado na linha", i + 1);
+			}
+		}
 
 		console.log(`[incluirConsultados] Consultado ${i + 1} incluído.`);
 	}
@@ -649,12 +696,27 @@ async function preencherCampoSimples(el, valor) {
 
 
 function formatarDataBR(iso) {
-	const d = new Date(iso);
-	const dia = String(d.getDate()).padStart(2, "0");
-	const mes = String(d.getMonth() + 1).padStart(2, "0");
-	const ano = d.getFullYear();
+	// evita deslocamento de fuso ao criar Date()
+	const m = String(iso ?? "").match(/(\d{4})-(\d{2})-(\d{2})/);
+	if (!m) return "";
+	const [_, ano, mes, dia] = m;
 	return `${dia}/${mes}/${ano}`;
 }
+
+// Dispara eventos esperados pelo matDatepicker em inputs tipo texto
+async function preencherCampoDataMaterial(el, valor) {
+	if (!el) return;
+	const parent = el.closest(".mat-form-field");
+	el.focus();
+	el.value = String(valor ?? "");
+	["input", "change", "blur"].forEach(ev =>
+		el.dispatchEvent(new Event(ev, { bubbles: true }))
+	);
+	parent?.dispatchEvent(new Event("input", { bubbles: true }));
+	parent?.dispatchEvent(new Event("change", { bubbles: true }));
+	await esperar(120);
+}
+
 
 async function esperarCampo(seletor) {
 	for (let i = 0; i < 30; i++) {
