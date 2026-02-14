@@ -2,6 +2,9 @@
 
 import { pressionarEnter, esperar, normalizar } from "/funcoes.js";
 
+// Pausa padrão entre dígitos nos campos com máscara (CPF/CNPJ)
+const PAUSA_DIGITO = 200;
+
 export async function executar(dados) {
 	try {
 		console.log("[minuta_cadastrar] Início. Dados recebidos:", dados);
@@ -377,6 +380,7 @@ async function preencherCampoConsultante(el, valor) {
 	const textoOriginal = String(valor ?? "");
 	const soDigitos = textoOriginal.replace(/[^\d]/g, "");
 	const isCPF = soDigitos.length <= 11;
+	const pausaDigito = PAUSA_DIGITO; // pausa entre dígitos críticos para CPF/CNPJ
 
 	console.log(
 		"[preencherCampoConsultante] Início",
@@ -503,6 +507,7 @@ async function preencherCampoConsultado(el, valor) {
 	const textoOriginal = String(valor ?? "");
 	const soDigitos = textoOriginal.replace(/[^\d]/g, "");
 	const isCPF = soDigitos.length <= 11;
+	const pausaDigito = PAUSA_DIGITO; // pausa entre dígitos críticos para CPF/CNPJ
 
 	console.log(
 		"[preencherCampoConsultado] Início",
@@ -520,19 +525,53 @@ async function preencherCampoConsultado(el, valor) {
 	// CPF — funciona bem, mantém exatamente como estava
 	// -----------------------------------------------------
 	if (isCPF) {
-		console.log("[preencherCampoConsultado] Modo CPF (preenchimento direto).");
+		console.log("[preencherCampoConsultado] Modo CPF (digitação simulada).");
 
-		el.value = soDigitos;
+		const pauses = [3, 6, 9, 10]; // pontos da máscara ###.###.###-##
+		let index = 0;
 
-		el.dispatchEvent(new Event("input", { bubbles: true }));
-		parent?.dispatchEvent(new Event("input", { bubbles: true }));
+		el.value = ""; // zera o campo antes de digitar
 
-		await esperar(20);
+		const digitar = async (pausa) => {
+			index = 0;
+			el.value = "";
+			for (const char of soDigitos) {
+				index++;
+
+				el.dispatchEvent(new KeyboardEvent("keydown", { key: char, bubbles: true }));
+				el.dispatchEvent(new KeyboardEvent("keypress", { key: char, bubbles: true }));
+
+				el.value += char;
+
+				el.dispatchEvent(new Event("input", { bubbles: true }));
+				parent?.dispatchEvent(new Event("input", { bubbles: true }));
+
+				el.dispatchEvent(new KeyboardEvent("keyup", { key: char, bubbles: true }));
+
+				// pausa após cada dígito para a máscara acompanhar
+				console.log(`[CPF] Pausa após dígito ${index} (char='${char}')`);
+				await esperar(pausa);
+			}
+		};
+
+		// primeira digitação com pausa padrão
+		await digitar(PAUSA_DIGITO);
+		await esperar(200); // pausa pós digitação para a máscara/consulta remota
+
+		// se a máscara apagou DV (len < 11), redigita mais devagar
+		if (String(el.value ?? "").replace(/[^\d]/g, "").length < 11) {
+			console.warn("[preencherCampoConsultado] CPF encolheu após máscara; redigitando com pausa maior.");
+			await digitar(150);
+			await esperar(300); // pausa pós redigitação
+		}
+
+		// pausa extra para a máscara consolidar antes de disparar change/blur
+		await esperar(150);
 
 		el.dispatchEvent(new Event("change", { bubbles: true }));
 		parent?.dispatchEvent(new Event("change", { bubbles: true }));
 
-		await esperar(10);
+		await esperar(50);
 
 		el.dispatchEvent(new Event("blur", { bubbles: true }));
 		parent?.dispatchEvent(new Event("blur", { bubbles: true }));
@@ -566,7 +605,7 @@ async function preencherCampoConsultado(el, valor) {
 
 		if (pauses.includes(index)) {
 			console.log(`[CNPJ] Pausa crítica no dígito ${index} (char='${char}')`);
-			await esperar(80);
+			await esperar(pausaDigito);
 		}
 	}
 
