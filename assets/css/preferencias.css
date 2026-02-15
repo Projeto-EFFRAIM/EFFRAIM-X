@@ -57,6 +57,32 @@ h1 {
 	text-align: center;
 }
 
+body.effraim-tema-escuro {
+	background: #121212 !important;
+	color: #e0e0e0 !important;
+}
+body.effraim-tema-escuro h1,
+body.effraim-tema-escuro h2,
+body.effraim-tema-escuro h3 {
+	color: #d7eaff !important;
+}
+body.effraim-tema-escuro .secao-preferencia {
+	background: #1e1e1e;
+	border-color: #2d3b4a;
+}
+body.effraim-tema-escuro .cabecalho-secao {
+	background: #2b3a4a;
+}
+body.effraim-tema-escuro .linha-preferencia input[type="text"] {
+	background: #2a2a2a;
+	border-color: #4a90e2;
+	color: #f0f0f0;
+}
+
+.effraim-fonte-pequena { font-size: 13px !important; }
+.effraim-fonte-medio { font-size: 14px !important; }
+.effraim-fonte-grande { font-size: 16px !important; }
+
 /* seção de primeiro nível */
 .secao-preferencia {
 	border: 1px solid #99d6cc;

@@ -5,9 +5,15 @@
 export async function carregarConfiguracoes() {
 	const existentes = await lerConfiguracoes();
 
-	// carrega padrão da versão atual
-	const resposta = await fetch(chrome.runtime.getURL("configuracoes.json"));
-	const padrao = await resposta.json();
+	// carrega padrão da versão atual (tolerando context invalidated)
+	let padrao = {};
+	try {
+		const resposta = await fetch(chrome.runtime.getURL("configuracoes.json"));
+		padrao = await resposta.json();
+	} catch (e) {
+		console.warn("[EFFRAIM] Não foi possível ler configuracoes.json, usando armazenado.", e);
+		return existentes;
+	}
 
 	// nenhum salvo ainda → grava padrão completo
 	if (!Object.keys(existentes).length) {
@@ -114,6 +120,7 @@ export async function montarPreferencias() {
 		console.error("[EFFRAIM] erro ao carregar configurações:", err);
 		return {};
 	});
+	aplicarTemaEFonte(cfg);
 
 	const container = document.getElementById("preferencias");
 	if (!container) return;
@@ -235,13 +242,53 @@ function adicionarCampos(container, prefixo, objeto) {
 				input = document.createElement("input");
 				input.type = "checkbox";
 				input.checked = valor.valor;
+				if (caminho === "aparencia.mostrar_tutorial") {
+					label.textContent += " (ainda não implementado)";
+				}
 				const slider = document.createElement("span");
 				slider.className = "slider";
 				label.append(input, slider);
 				linha.appendChild(label);
 			} else {
+				// Caso especial: tema claro/escuro como toggle
+				if (caminho === "aparencia.tema") {
+					input = document.createElement("input");
+					input.type = "checkbox";
+					input.checked = String(valor.valor || "").toLowerCase() === "escuro";
+					const slider = document.createElement("span");
+					slider.className = "slider";
+					label.append(input, slider);
+					const texto = document.createElement("small");
+					texto.textContent = input.checked ? "Escuro" : "Claro";
+					texto.style.marginLeft = "8px";
+					texto.style.color = "#333";
+					label.appendChild(texto);
+					input.addEventListener("change", () => {
+						texto.textContent = input.checked ? "Escuro" : "Claro";
+					});
+					linha.appendChild(label);
+				}
+				// Caso especial: tamanho da fonte como range 3 passos
+				else if (caminho === "aparencia.tamanho_fonte") {
+					input = document.createElement("input");
+					input.type = "range";
+					input.min = 1;
+					input.max = 3;
+					input.step = 1;
+					const mapa = { 1: "pequena", 2: "medio", 3: "grande" };
+					const valorAtual = String(valor.valor || "medio").toLowerCase();
+					const inverso = { pequena: 1, pequeno: 1, medio: 2, grande: 3 };
+					input.value = inverso[valorAtual] || 2;
+					const labelValor = document.createElement("small");
+					labelValor.style.marginLeft = "8px";
+					labelValor.textContent = mapa[input.value];
+					input.addEventListener("input", () => {
+						labelValor.textContent = mapa[input.value];
+					});
+					linha.append(label, input, labelValor);
+				}
 				// Caso especial: select para tipo de ação SISBAJUD
-				if (caminho === "opcoes_sisbajud.favoritos.tipoAcao") {
+				else if (caminho === "opcoes_sisbajud.favoritos.tipoAcao") {
 					input = document.createElement("select");
 					const opcoes = [
 						"Ação Cível",
@@ -276,6 +323,10 @@ function adicionarCampos(container, prefixo, objeto) {
 					const novoValor = input.type === "checkbox" ? input.checked : input.value;
 					await gravarConfiguracao(caminho, novoValor);
 					console.log("[EFFRAIM] atualizado:", caminho, "=", novoValor);
+					if (caminho === "aparencia.tema" || caminho === "aparencia.tamanho_fonte") {
+						const cfgAtual = await carregarConfiguracoes();
+						aplicarTemaEFonte(cfgAtual);
+					}
 				}, 300);
 			});
 
@@ -308,7 +359,8 @@ document.addEventListener("DOMContentLoaded", () => {
 			try {
 				btnReset.disabled = true;
 				await zerarConfiguracoes();
-				await carregarConfiguracoes(); // repõe padrão
+				const cfg = await carregarConfiguracoes(); // repõe padrão
+				aplicarTemaEFonte(cfg);
 				await montarPreferencias();
 			} catch (e) {
 				console.error("[EFFRAIM] erro ao restaurar padrões:", e);
@@ -320,3 +372,21 @@ document.addEventListener("DOMContentLoaded", () => {
 
 	if (document.getElementById("preferencias")) montarPreferencias();
 });
+
+// aplica tema/ fonte no documento
+async function aplicarTemaEFonte(cfg) {
+	try {
+		const tema = cfg?.aparencia?.tema?.valor;
+		document.body.classList.toggle("effraim-tema-escuro", String(tema).toLowerCase() === "escuro");
+		document.body.classList.remove("effraim-fonte-pequena", "effraim-fonte-medio", "effraim-fonte-grande");
+		const fonte = String(cfg?.aparencia?.tamanho_fonte?.valor || "medio").toLowerCase();
+		const classe = fonte === "pequena" || fonte === "pequeno"
+			? "effraim-fonte-pequena"
+			: fonte === "grande"
+				? "effraim-fonte-grande"
+				: "effraim-fonte-medio";
+		document.body.classList.add(classe);
+	} catch (e) {
+		console.warn("[EFFRAIM] aplicarTemaEFonte falhou:", e);
+	}
+}
