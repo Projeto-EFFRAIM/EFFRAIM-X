@@ -122,6 +122,25 @@
 	const parar = await monitorarMudancaDeRota(rotas);
 	console.log("monitorarMudancaDeRota iniciado. Função de parar:", !!parar, "\nrota atual:", window.location.pathname );
 
+	// Aciona imediatamente a rota atual (não depende apenas de mudanças)
+	let rotaAcionada = false;
+	for (const [rota, acao] of Object.entries(rotas)) {
+		if (location.href.startsWith(rota)) {
+			console.log("[EFFRAIM] Rota atual corresponde a:", rota, " — acionando módulo agora.");
+			try {
+				await acao(location.href);
+				console.log("[EFFRAIM] Rota atual acionada com sucesso:", rota);
+				rotaAcionada = true;
+			} catch (e) {
+				console.error("[EFFRAIM] Erro ao acionar rota atual:", rota, e);
+			}
+			break;
+		}
+	}
+	if (!rotaAcionada) {
+		console.warn("[EFFRAIM] Nenhuma rota acionada imediatamente para", location.href);
+	}
+
 // Verificação direta e única após injeção do script
 (async () => {
 	try {
@@ -136,6 +155,13 @@
 			);
 			await executar(window.__EFFRAIM_DADOS_PROCESSO);
 			console.log("[EFFRAIM] minuta.js executado após carregamento inicial.");
+		} else if (norm === "/ordem-judicial") {
+			console.log("[EFFRAIM] Página atual é /ordem-judicial. Executando módulo imediatamente…");
+			const { executar } = await import(
+				chrome.runtime.getURL("modules/juds/sisbajud/ordem_judicial.js")
+			);
+			await executar(window.__EFFRAIM_DADOS_PROCESSO);
+			console.log("[EFFRAIM] ordem_judicial.js executado após carregamento inicial.");
 		} else {
 			// Fallback: espera um pouco e verifica de novo
 			setTimeout(async () => {
@@ -148,6 +174,13 @@
 					);
 					await executar(window.__EFFRAIM_DADOS_PROCESSO);
 					console.log("[EFFRAIM] minuta.js executado após atraso.");
+				} else if (norm2 === "/ordem-judicial") {
+					console.log("[EFFRAIM] Agora em /ordem-judicial. Executando módulo…");
+					const { executar } = await import(
+						chrome.runtime.getURL("modules/juds/sisbajud/ordem_judicial.js")
+					);
+					await executar(window.__EFFRAIM_DADOS_PROCESSO);
+					console.log("[EFFRAIM] ordem_judicial.js executado após atraso.");
 				}
 			}, 500);
 		}

@@ -66,7 +66,10 @@ async function inserir_sisbajud_no_painel(painel, conteudo) {
 
 		console.log(`Iframe criado: ${iframe.id}`);
 
-		iframe.src = "https://sisbajud.cnj.jus.br/";
+		const destino = dados_consulta?.metadados_consulta?.tipo === "ordem"
+			? "https://sisbajud.cnj.jus.br/ordem-judicial"
+			: "https://sisbajud.cnj.jus.br/";
+		iframe.src = destino;
 		Object.assign(iframe.style, {
 			width: "50vw",
 			height: "80vh",
@@ -101,6 +104,7 @@ async function selecionar_dados_consulta(conteudo, dados_processo) {
 			<div id="tipo-consulta" style="margin-bottom:10px;">
 				<label><input type="radio" name="tipoConsulta" value="bloqueio" checked> Bloqueio</label>
 				<label style="margin-left:12px;"><input type="radio" name="tipoConsulta" value="informacoes"> Informações</label>
+				<label style="margin-left:12px;"><input type="radio" name="tipoConsulta" value="ordem"> Consultar ordem emitida</label>
 			</div>
 			<h3>Selecione o consultante (apenas um)</h3>
 			${gerarListaPartes(dados_processo.partes.AUTOR, "consultante")}
@@ -222,7 +226,7 @@ async function selecionar_dados_consulta(conteudo, dados_processo) {
 				});
 				controlesSelecionarTodos.forEach(el => el.closest("label").style.display = "block");
 				controlesPermitirDif.forEach(el => el.closest("label").style.display = "block");
-			} else {
+			} else if (tipo === "informacoes") {
 				blocoBloqueio.style.display = "none";
 				blocoInfo.style.display = "block";
 				salario.disabled = true;
@@ -232,6 +236,14 @@ async function selecionar_dados_consulta(conteudo, dados_processo) {
 
 				// garantir que o estado visual (borda/texto) reflita a seleção atual
 				atualizarAvisoInfo();
+			} else if (tipo === "ordem") {
+				// consulta de ordem: ocultar blocos específicos e dispensar valores
+				blocoBloqueio.style.display = "none";
+				blocoInfo.style.display = "none";
+				salario.disabled = true;
+				blocosValor.forEach(div => (div.style.display = "none"));
+				controlesSelecionarTodos.forEach(el => el.closest("label").style.display = "none");
+				controlesPermitirDif.forEach(el => el.closest("label").style.display = "none");
 			}
 		});
 	});
@@ -287,7 +299,7 @@ async function selecionar_dados_consulta(conteudo, dados_processo) {
 			const consultanteSel = conteudo.querySelector('input[name="consultante"]:checked');
 			const consultadosSel = [...conteudo.querySelectorAll('input[name="consultado"]:checked')];
 
-			if (consultadosSel.length === 0) {
+			if (tipo === "bloqueio" && consultadosSel.length === 0) {
 				alert("Selecione ao menos um consultado antes de prosseguir.");
 				console.warn("[SISBAJUD] Nenhum consultado selecionado.");
 				return;
@@ -331,13 +343,15 @@ async function selecionar_dados_consulta(conteudo, dados_processo) {
 					teimosinha: conteudo.querySelector("#toggle-teimosinha").checked,
 					data_limite_teimosinha: conteudo.querySelector("#data_limite_teimosinha").value || null
 				});
-			} else {
+			} else if (tipo === "informacoes") {
 				Object.assign(metadados_consulta, {
 					saldo: conteudo.querySelector("#info-saldo").checked,
 					enderecos: conteudo.querySelector("#info-enderecos").checked,
 					agencias: conteudo.querySelector("#info-agencias").checked,
 					incluir_encerrados: conteudo.querySelector("#info-encerrados").checked
 				});
+			} else if (tipo === "ordem") {
+				// sem campos adicionais no momento
 			}
 
 			const dados_consulta = { consultante, consultados, metadados_consulta };
