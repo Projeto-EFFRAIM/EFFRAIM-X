@@ -410,6 +410,33 @@ export function focarPrimeiroElemento(container) {
   if (el) el.focus();
 }
 
+// =========================
+// Formatação / Máscaras
+// =========================
+// Aplica formatação monetária (R$) ao input alvo.
+// Se registrar for true, associa listeners de input/blur para manter o formato.
+export function aplicarMascaraMoeda(input, registrar = false) {
+  if (!input) return;
+  const formatar = (el) => {
+    let val = (el.value || "").replace(/\D/g, "");
+    if (val === "") return (el.value = "");
+    val = (parseInt(val, 10) / 100).toFixed(2);
+    val = val.replace(".", ",").replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+    el.value = val;
+  };
+  formatar(input);
+  if (registrar) {
+    input.addEventListener("input", (e) => formatar(e.target));
+    input.addEventListener("blur", (e) => formatar(e.target));
+  }
+}
+
+// Registra a máscara de moeda em uma lista de inputs NodeList/Array.
+export function registrarMascaraMoeda(inputs) {
+  if (!inputs) return;
+  inputs.forEach((el) => aplicarMascaraMoeda(el, true));
+}
+
   // função local para exibir o aviso padrão
 export function inserir_aviso_effraim(mensagem, tempo = 15000, posicao = "topo") {
 	let container = document.getElementById("aviso-effraim-container");

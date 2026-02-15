@@ -4,12 +4,25 @@
 
 export async function carregarConfiguracoes() {
 	const existentes = await lerConfiguracoes();
-	if (Object.keys(existentes).length) return existentes;
 
+	// carrega padrão da versão atual
 	const resposta = await fetch(chrome.runtime.getURL("configuracoes.json"));
 	const padrao = await resposta.json();
-	await chrome.storage.sync.set({ effraim_configuracoes: padrao });
-	return padrao;
+
+	// nenhum salvo ainda → grava padrão completo
+	if (!Object.keys(existentes).length) {
+		await chrome.storage.sync.set({ effraim_configuracoes: padrao });
+		return padrao;
+	}
+
+	// há salvos: inclui apenas as chaves novas do padrão, sem sobrescrever preferências
+	const mesclado = mesclarPadroes(padrao, existentes);
+	if (mesclado._atualizado) {
+		delete mesclado._atualizado;
+		await chrome.storage.sync.set({ effraim_configuracoes: mesclado });
+		return mesclado;
+	}
+	return existentes;
 }
 
 async function lerConfiguracoes() {
@@ -156,6 +169,51 @@ function formatarChave(chave) {
 	return chave.replaceAll("_", " ").replace(/\b\w/g, l => l.toUpperCase());
 }
 
+// inclui no objeto destino apenas as chaves que existem no padrão e não estão salvas
+function mesclarPadroes(padrao, salvos) {
+	let houveAtualizacao = false;
+
+	const merge = (src, dst) => {
+		for (const [chave, valorPadrao] of Object.entries(src)) {
+			const valorAtual = dst[chave];
+
+			// se não existe no salvo, copia por completo
+			if (typeof valorAtual === "undefined") {
+				dst[chave] = clone(valorPadrao);
+				houveAtualizacao = true;
+				continue;
+			}
+
+			// se ambos são objetos (e não array), desce recursivamente
+			if (
+				valorPadrao &&
+				typeof valorPadrao === "object" &&
+				!Array.isArray(valorPadrao) &&
+				valorAtual &&
+				typeof valorAtual === "object" &&
+				!Array.isArray(valorAtual)
+			) {
+				merge(valorPadrao, valorAtual);
+			}
+			// caso contrário, mantém o valor atual (não sobrescreve preferências)
+		}
+	};
+
+	merge(padrao, salvos);
+
+	// flag interna para sabermos se precisamos gravar de volta
+	if (houveAtualizacao) salvos._atualizado = true;
+	return salvos;
+}
+
+function clone(obj) {
+	try {
+		return structuredClone ? structuredClone(obj) : JSON.parse(JSON.stringify(obj));
+	} catch (e) {
+		return JSON.parse(JSON.stringify(obj));
+	}
+}
+
 function adicionarCampos(container, prefixo, objeto) {
 	for (const [chave, valor] of Object.entries(objeto)) {
 		if (chave.startsWith("_")) continue;
@@ -182,12 +240,32 @@ function adicionarCampos(container, prefixo, objeto) {
 				label.append(input, slider);
 				linha.appendChild(label);
 			} else {
-				input = document.createElement("input");
-				input.type = "text";
-				input.value = valor.valor ?? "";
-				input.disabled = true;
-				input.title = valor._meta?.explicacao || "";
-				linha.append(label, input);
+				// Caso especial: select para tipo de ação SISBAJUD
+				if (caminho === "opcoes_sisbajud.favoritos.tipoAcao") {
+					input = document.createElement("select");
+					const opcoes = [
+						"Ação Cível",
+						"Ação Criminal",
+						"Ação Trabalhista",
+						"Execução Fiscal",
+						"Execução de Alimentos"
+					];
+					opcoes.forEach(opt => {
+						const o = document.createElement("option");
+						o.value = opt;
+						o.textContent = opt;
+						if (String(valor.valor) === opt) o.selected = true;
+						input.appendChild(o);
+					});
+					linha.append(label, input);
+				} else {
+					input = document.createElement("input");
+					input.type = "text";
+					input.value = valor.valor ?? "";
+					input.disabled = false;
+					input.title = valor._meta?.explicacao || "";
+					linha.append(label, input);
+				}
 			}
 
 			let timer;
@@ -224,5 +302,21 @@ function adicionarCampos(container, prefixo, objeto) {
 // -----------------------------------------------------------
 
 document.addEventListener("DOMContentLoaded", () => {
+	const btnReset = document.getElementById("btn-reset-config");
+	if (btnReset) {
+		btnReset.addEventListener("click", async () => {
+			try {
+				btnReset.disabled = true;
+				await zerarConfiguracoes();
+				await carregarConfiguracoes(); // repõe padrão
+				await montarPreferencias();
+			} catch (e) {
+				console.error("[EFFRAIM] erro ao restaurar padrões:", e);
+			} finally {
+				btnReset.disabled = false;
+			}
+		});
+	}
+
 	if (document.getElementById("preferencias")) montarPreferencias();
 });

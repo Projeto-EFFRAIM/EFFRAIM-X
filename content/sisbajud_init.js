@@ -46,18 +46,9 @@
 	window.addEventListener("message", (evento) => {
 		const mensagem = evento.data;
 		const origem_remetente = evento.origin;
-		console.log("Mensagem recebida no iframe-sisbajud:", mensagem);
-		console.log("Origem do remetente:", origem_remetente);
-
 		if (!mensagem || mensagem.type !== "EFFRAIM_DADOS_PROCESSO") return;
-		if (!mensagem.origem) {
-			console.warn("Mensagem sem origem declarada. Ignorada.");
-			return;
-		}
-		if (!origem_remetente.includes("eproc")) {
-			console.warn("Mensagem recusada. Origem inválida:", origem_remetente);
-			return;
-		}
+		if (!origem_remetente.includes("eproc")) return;
+		if (!mensagem.origem) return;
 
 		console.log("Mensagem recebida do Eproc:", mensagem.origem);
 		console.log("Dados do processo:", mensagem.dados);
@@ -138,7 +129,13 @@
 		}
 	}
 	if (!rotaAcionada) {
-		console.warn("[EFFRAIM] Nenhuma rota acionada imediatamente para", location.href);
+		const host = location.hostname;
+		// Evita log de alerta em iframes de login do SSO, onde não há rota a ser executada.
+		if (host && host.includes("sso.cloud.pje.jus.br")) {
+			console.log("[EFFRAIM] Aguardando login do SSO (rota não aplicável neste host).");
+		} else {
+			console.warn("[EFFRAIM] Nenhuma rota acionada imediatamente para", location.href);
+		}
 	}
 
 // Verificação direta e única após injeção do script

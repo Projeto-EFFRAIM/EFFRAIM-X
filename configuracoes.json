@@ -53,6 +53,13 @@
         "explicacao": "Ativa os módulos de integração com o SISBAJUD."
       }
     },
+    "renajud": {
+      "valor": true,
+      "_meta": {
+        "nome": "RENAJUD",
+        "explicacao": "Ativa o painel e automação de consultas do RENAJUD."
+      }
+    },
     "painel_configuracoes": {
       "valor": true,
       "_meta": {
@@ -76,7 +83,7 @@
         "valor": "12269",
         "_meta": {
           "nome": "Órgão Julgador",
-          "explicacao": "Nome ou código do órgão solicitante (Vara, Gabinete, etc)."
+          "explicacao": "O texto deve conter o texto da opção existente no SISBAJUD. Por exemplo: 10ª Turma Especializada selecionará a opção 88065 - 10ªa Turma Especializada. Recomendamos, para evitar ambiguidade, utilizar o número da opção (no caso, 88065)."
         }
       },
       "tipoAcao": {

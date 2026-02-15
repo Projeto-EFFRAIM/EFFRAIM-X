@@ -20,6 +20,32 @@ body {
   background-repeat: no-repeat;
 }
 
+/* barra de ações */
+.toolbar-preferencias {
+	display: flex;
+	justify-content: flex-end;
+	align-items: center;
+	margin: 0 0 8px 0;
+	gap: 8px;
+	padding: 0 4px;
+}
+
+.toolbar-preferencias button {
+	background: #0066cc;
+	color: #fff;
+	border: none;
+	border-radius: 4px;
+	padding: 6px 12px;
+	cursor: pointer;
+	font-weight: 600;
+	box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+}
+
+.toolbar-preferencias button:disabled {
+	opacity: 0.6;
+	cursor: not-allowed;
+}
+
 
 
 
@@ -110,7 +136,7 @@ h1 {
 	border: 1px solid #8bc3bc;
 	border-radius: 4px;
 	background: #f2f2f2;
-	color: #878c8d;
+	color: #000;
 	padding: 4px 6px;
 	font-size: 13px;
 	width: 240px;

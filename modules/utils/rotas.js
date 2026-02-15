@@ -4,7 +4,7 @@
 
 export function verificarRotasAtivas(rotas, cfg) {
   const disponiveis = rotas.filter(r => r.cond());
-  return disponiveis.filter(r => cfg.funcionalidades_ativas?.[r.nome].valor);
+  return disponiveis.filter(r => cfg.funcionalidades_ativas?.[r.nome]?.valor);
 }
 
 export function monitorarMudancaDeRota(mapaRotas, intervalo = 1000) {

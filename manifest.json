@@ -1,7 +1,7 @@
 {
 	"manifest_version": 3,
 	"name": "EFFRAIM - X",
-	"version": "0.5.4",
+	"version": "0.6",
 	"description": "Simplifica tarefas no Eproc: integração, navegação, relatórios e mais.",
 	"icons": {
 		"16": "assets/icones/icone16.png",
@@ -14,7 +14,8 @@
 	"host_permissions": [
 		"https://eproc.jfrj.jus.br/*",
 		"https://sisbajud.cnj.jus.br/*",
-		"https://sso.cloud.pje.jus.br/auth/*"
+		"https://sso.cloud.pje.jus.br/auth/*",
+		"https://renajud.pdpj.jus.br/*"
 		],
 	"options_page": "preferencias.html",
 	"background": {
@@ -32,6 +33,14 @@
 		"https://sso.cloud.pje.jus.br/*"
 		],
 		"js": ["content/sisbajud_init.js"],
+		"run_at": "document_idle",
+		"all_frames": true
+		},
+		{
+		"matches": [
+		"https://renajud.pdpj.jus.br/*"
+		],
+		"js": ["content/renajud_init.js"],
 		"run_at": "document_idle",
 		"all_frames": true
 		},
@@ -66,7 +75,8 @@
 			"matches": [
 			"https://eproc.jfrj.jus.br/*",
 			"https://sisbajud.cnj.jus.br/*",
-			"https://sso.cloud.pje.jus.br/*"
+			"https://sso.cloud.pje.jus.br/*",
+			"https://renajud.pdpj.jus.br/*"
 			]
 		}
 	],
