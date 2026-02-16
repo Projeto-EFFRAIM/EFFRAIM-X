@@ -38,6 +38,12 @@ console.log("EFFRAIM iniciado. Importando módulo de configurações.");
 			modulo: "modules/consulta/consulta_renajud.js",
 			nome: "renajud",
 			titulo: "RENAJUD"
+		},
+		{
+			cond: () => window.location.href.includes("acao=processo_selecionar"),
+			modulo: "modules/consulta/consulta_requisitorio.js",
+			nome: "requisitorio",
+			titulo: "Requisitórios"
 		}
 
 	];

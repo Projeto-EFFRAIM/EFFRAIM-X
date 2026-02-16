@@ -210,6 +210,36 @@ body.effraim-tema-escuro .linha-preferencia input[type="text"] {
 	transform: translateX(18px);
 }
 
+/* listbox de localizadores (override do toggle padrão) */
+.linha-preferencia .effraim-listbox {
+	background: #f6fbfb;
+	border: 1px solid #d7e7e5;
+	border-radius: 6px;
+	padding: 4px;
+}
+
+.linha-preferencia .effraim-listbox-item {
+	cursor: default;
+}
+
+.linha-preferencia .effraim-listbox input[type="checkbox"],
+.linha-preferencia .effraim-listbox-checkbox {
+	appearance: auto !important;
+	-webkit-appearance: checkbox !important;
+	position: static !important;
+	width: 14px !important;
+	height: 14px !important;
+	border-radius: 2px !important;
+	background: initial !important;
+	flex: 0 0 auto !important;
+}
+
+.linha-preferencia .effraim-listbox input[type="checkbox"]::before,
+.linha-preferencia .effraim-listbox-checkbox::before {
+	content: none !important;
+	display: none !important;
+}
+
 /* descrição */
 .linha-preferencia small {
 	display: block;

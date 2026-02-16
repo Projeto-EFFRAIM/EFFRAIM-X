@@ -341,6 +341,69 @@ export function criarPainelDeslizantePadrao(id, botaoReferencia, titulo = "") {
   }
 }
 
+// Badge de status numérico para botões de funcionalidade
+export function atualizarBadgeRequisitorioBotao(botao, status, quantidade = 0) {
+  if (!botao) return;
+
+  let badge = botao.querySelector(".effraim-badge-requisitorio");
+  if (!badge) {
+    botao.style.position = "relative";
+    badge = document.createElement("span");
+    badge.className = "effraim-badge-requisitorio";
+    Object.assign(badge.style, {
+      position: "absolute",
+      top: "-6px",
+      right: "-6px",
+      minWidth: "18px",
+      height: "18px",
+      padding: "0 5px",
+      borderRadius: "999px",
+      fontSize: "11px",
+      fontWeight: "700",
+      lineHeight: "18px",
+      textAlign: "center",
+      color: "#fff",
+      background: "#6c757d",
+      border: "1px solid rgba(255,255,255,0.85)",
+      boxShadow: "0 1px 3px rgba(0,0,0,0.25)",
+      zIndex: "2"
+    });
+    botao.appendChild(badge);
+  }
+
+  if (status === "carregando") {
+    badge.textContent = "...";
+    badge.style.background = "#0d6efd";
+    badge.title = "Consultando requisitorios...";
+    return;
+  }
+
+  if (status === "com") {
+    badge.textContent = String(quantidade);
+    badge.style.background = "#198754";
+    badge.title = `${quantidade} requisitorio(s) encontrado(s).`;
+    return;
+  }
+
+  if (status === "sem") {
+    badge.textContent = "0";
+    badge.style.background = "#6c757d";
+    badge.title = "Nenhum requisitorio encontrado.";
+    return;
+  }
+
+  if (status === "inativo") {
+    badge.textContent = "-";
+    badge.style.background = "#adb5bd";
+    badge.title = "Consulta automatica desativada para este localizador.";
+    return;
+  }
+
+  badge.textContent = "!";
+  badge.style.background = "#dc3545";
+  badge.title = "Falha na consulta de requisitorios.";
+}
+
 // --- controle de delay para esconder painel ---
 let ocultarTimeout = null;
 

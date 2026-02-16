@@ -236,6 +236,12 @@ function adicionarCampos(container, prefixo, objeto) {
 			label.textContent = valor._meta?.nome || formatarChave(chave);
 			label.title = valor._meta?.explicacao || "";
 
+			if (caminho === "opcoes_requisitorio.localizadores_disparo") {
+				montarEditorLocalizadoresDisparo(linha, label, valor, caminho);
+				container.appendChild(linha);
+				continue;
+			}
+
 			let input;
 			if (typeof valor.valor === "boolean") {
 				label.classList.add("toggle-label");
@@ -305,6 +311,20 @@ function adicionarCampos(container, prefixo, objeto) {
 						input.appendChild(o);
 					});
 					linha.append(label, input);
+				}
+				// Caso especial: operação lógica dos localizadores de disparo
+				else if (caminho === "opcoes_requisitorio.operacao_logica_localizadores") {
+					input = document.createElement("select");
+					const opcoes = ["OU", "E"];
+					const atual = String(valor.valor || "OU").toUpperCase();
+					opcoes.forEach(opt => {
+						const o = document.createElement("option");
+						o.value = opt;
+						o.textContent = opt;
+						if (atual === opt) o.selected = true;
+						input.appendChild(o);
+					});
+					linha.append(label, input);
 				} else {
 					input = document.createElement("input");
 					input.type = "text";
@@ -346,6 +366,161 @@ function adicionarCampos(container, prefixo, objeto) {
 			container.appendChild(sub);
 		}
 	}
+}
+
+function montarEditorLocalizadoresDisparo(linha, label, valor, caminho) {
+	const bloco = document.createElement("div");
+	bloco.style.display = "flex";
+	bloco.style.flexDirection = "column";
+	bloco.style.gap = "8px";
+	bloco.style.width = "100%";
+
+	const painelLista = document.createElement("div");
+	painelLista.className = "effraim-listbox-painel";
+	painelLista.style.border = "1px solid #ccc";
+	painelLista.style.borderRadius = "6px";
+	painelLista.style.padding = "8px";
+	painelLista.style.display = "flex";
+	painelLista.style.flexDirection = "column";
+	painelLista.style.gap = "8px";
+
+	const topoLista = document.createElement("div");
+	topoLista.style.display = "flex";
+	topoLista.style.alignItems = "center";
+	topoLista.style.justifyContent = "space-between";
+	topoLista.style.gap = "8px";
+
+	const tituloLista = document.createElement("small");
+	tituloLista.textContent = "Localizadores cadastrados";
+	tituloLista.style.fontWeight = "600";
+
+	const listaWrap = document.createElement("div");
+	listaWrap.className = "effraim-listbox";
+	listaWrap.setAttribute("role", "listbox");
+	listaWrap.setAttribute("aria-label", "Localizadores de disparo");
+	listaWrap.style.maxHeight = "160px";
+	listaWrap.style.overflowY = "auto";
+	listaWrap.style.paddingRight = "4px";
+
+	const acoes = document.createElement("div");
+	acoes.style.display = "flex";
+	acoes.style.gap = "6px";
+	acoes.style.alignItems = "center";
+	acoes.style.flexWrap = "wrap";
+
+	const inputNovo = document.createElement("input");
+	inputNovo.type = "text";
+	inputNovo.placeholder = "Digite o nome do localizador";
+	inputNovo.style.minWidth = "260px";
+	inputNovo.style.flex = "1";
+
+	const btnAdicionar = document.createElement("button");
+	btnAdicionar.type = "button";
+	btnAdicionar.textContent = "+";
+	btnAdicionar.title = "Adicionar localizador";
+	btnAdicionar.style.width = "28px";
+	btnAdicionar.style.height = "28px";
+
+	const btnExcluir = document.createElement("button");
+	btnExcluir.type = "button";
+	btnExcluir.title = "Excluir localizadores selecionados";
+	btnExcluir.style.width = "28px";
+	btnExcluir.style.height = "28px";
+	btnExcluir.style.display = "inline-flex";
+	btnExcluir.style.alignItems = "center";
+	btnExcluir.style.justifyContent = "center";
+	const iconeExcluir = document.createElement("img");
+	iconeExcluir.src = chrome.runtime.getURL("assets/icones/excluir.png");
+	iconeExcluir.alt = "Excluir";
+	iconeExcluir.style.width = "14px";
+	iconeExcluir.style.height = "14px";
+	btnExcluir.appendChild(iconeExcluir);
+
+	const listaInicial = Array.isArray(valor?.valor) ? valor.valor : [];
+	let itens = listaInicial
+		.map(x => String(x || "").trim())
+		.filter(Boolean);
+
+	const render = () => {
+		listaWrap.innerHTML = "";
+		if (!itens.length) {
+			const vazio = document.createElement("small");
+			vazio.textContent = "Nenhum localizador configurado.";
+			vazio.style.color = "#555";
+			listaWrap.appendChild(vazio);
+			return;
+		}
+
+		itens.forEach((item, idx) => {
+			const row = document.createElement("label");
+			row.className = "effraim-listbox-item";
+			row.style.display = "flex";
+			row.style.alignItems = "flex-start";
+			row.style.gap = "8px";
+			row.style.marginBottom = "6px";
+			row.style.padding = "4px 2px";
+			row.style.borderRadius = "4px";
+			row.style.background = "#fff";
+
+			const chk = document.createElement("input");
+			chk.type = "checkbox";
+			chk.className = "effraim-listbox-checkbox";
+			chk.dataset.idx = String(idx);
+			chk.setAttribute("aria-label", `Selecionar localizador ${item}`);
+
+			const texto = document.createElement("span");
+			texto.textContent = item;
+			texto.style.wordBreak = "break-word";
+
+			row.append(chk, texto);
+			listaWrap.appendChild(row);
+		});
+	};
+
+	const salvar = async () => {
+		await gravarConfiguracao(caminho, itens);
+	};
+
+	btnAdicionar.addEventListener("click", async () => {
+		const novo = String(inputNovo.value || "").trim();
+		if (!novo) return;
+
+		const jaExiste = itens.some(x => x.toLowerCase() === novo.toLowerCase());
+		if (!jaExiste) {
+			itens.push(novo);
+			await salvar();
+			render();
+		}
+		inputNovo.value = "";
+		inputNovo.focus();
+	});
+
+	inputNovo.addEventListener("keydown", async (e) => {
+		if (e.key !== "Enter") return;
+		e.preventDefault();
+		btnAdicionar.click();
+	});
+
+	btnExcluir.addEventListener("click", async () => {
+		const selecionados = [...listaWrap.querySelectorAll('input[type="checkbox"]:checked')]
+			.map(chk => Number(chk.dataset.idx))
+			.filter(Number.isInteger)
+			.sort((a, b) => b - a);
+
+		if (!selecionados.length) return;
+		selecionados.forEach(i => {
+			if (i >= 0 && i < itens.length) itens.splice(i, 1);
+		});
+		await salvar();
+		render();
+	});
+
+	topoLista.append(tituloLista, btnExcluir);
+	painelLista.append(topoLista, listaWrap);
+	acoes.append(inputNovo, btnAdicionar);
+	bloco.append(label, painelLista, acoes);
+	linha.appendChild(bloco);
+	render();
 }
 
 // -----------------------------------------------------------

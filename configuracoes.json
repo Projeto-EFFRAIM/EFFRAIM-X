@@ -59,6 +59,13 @@
         "nome": "RENAJUD",
         "explicacao": "Ativa o painel e automação de consultas do RENAJUD."
       }
+    },
+    "requisitorio": {
+      "valor": true,
+      "_meta": {
+        "nome": "Requisitórios",
+        "explicacao": "Ativa o painel de integração com a consulta de requisitórios no eproc."
+      }
     }
   },
 
@@ -85,6 +92,29 @@
           "nome": "Tipo de Ação",
           "explicacao": "Tipo de ação que será selecionada nos pedidos SISBAJUD."
         }
+      }
+    }
+  },
+
+  "opcoes_requisitorio": {
+    "_meta": {
+      "nome": "Opções Requisitório",
+      "explicacao": "Configurações para consulta automática de ofício requisitório."
+    },
+    "operacao_logica_localizadores": {
+      "valor": "OU",
+      "_meta": {
+        "nome": "Operação lógica dos localizadores",
+        "explicacao": "Define se a consulta automática exige QUALQUER localizador da lista (OU) ou TODOS os localizadores (E)."
+      }
+    },
+    "localizadores_disparo": {
+      "valor": [
+        "[REQ]-expedir-requisitorio"
+      ],
+      "_meta": {
+        "nome": "Localizadores de disparo automático",
+        "explicacao": "A consulta automática será executada quando o processo tiver algum dos localizadores selecionados."
       }
     }
   },
