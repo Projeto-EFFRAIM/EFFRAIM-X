@@ -1,7 +1,7 @@
 {
 	"manifest_version": 3,
 	"name": "EFFRAIM - X",
-	"version": "0.8.3",
+	"version": "0.8.4.1",
 	"description": "Simplifica tarefas no Eproc: integração, navegação, relatórios e mais.",
 	"icons": {
 		"16": "assets/icones/icone16.png",

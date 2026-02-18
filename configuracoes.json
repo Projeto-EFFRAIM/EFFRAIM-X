@@ -74,11 +74,11 @@
         "explicacao": "Ativa o painel de integração com a consulta de requisitórios no eproc."
       }
     },
-    "email_flutuante": {
+    "acao_flutuante": {
       "valor": true,
       "_meta": {
-        "nome": "Email Flutuante",
-        "explicacao": "Ativa a abertura do envio de email do eproc em painel flutuante."
+        "nome": "Ação Flutuante",
+        "explicacao": "Ativa a abertura das ações do fieldset Ações em um painel flutuante."
       }
     }
   },
@@ -129,6 +129,28 @@
       "_meta": {
         "nome": "Localizadores de disparo automático",
         "explicacao": "A consulta automática será executada quando o processo tiver algum dos localizadores selecionados."
+      }
+    }
+  },
+
+  "opcoes_acao_flutuante": {
+    "_meta": {
+      "nome": "Opções Ação Flutuante",
+      "explicacao": "Configurações dos comportamentos específicos da Ação Flutuante."
+    },
+    "enviar_email_flutuante": {
+      "_meta": {
+        "nome": "Enviar Email Flutuante",
+        "explicacao": "Configurações específicas da ação Enviar Email no painel flutuante."
+      },
+      "textos_padrao_email": {
+        "valor": [
+          "Por ordem, envio a decisão e demais documentos em anexo, para providências."
+        ],
+        "_meta": {
+          "nome": "Textos padrão da mensagem",
+          "explicacao": "Lista de textos padrão para o campo Mensagem do Enviar Email. Limite de 15 textos e 150 palavras por texto."
+        }
       }
     }
   },

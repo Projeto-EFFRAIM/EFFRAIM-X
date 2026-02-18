@@ -243,6 +243,12 @@ function adicionarCampos(container, prefixo, objeto) {
 				continue;
 			}
 
+			if (caminho === "opcoes_acao_flutuante.enviar_email_flutuante.textos_padrao_email") {
+				montarEditorTextosPadraoEmail(linha, label, valor, caminho);
+				container.appendChild(linha);
+				continue;
+			}
+
 			let input;
 			if (typeof valor.valor === "boolean") {
 				label.classList.add("toggle-label");
@@ -534,6 +540,152 @@ function montarEditorLocalizadoresDisparo(linha, label, valor, caminho) {
 	acoes.append(inputNovo, btnAdicionar);
 	painelAdicionar.append(tituloAdicionar, acoes);
 	bloco.append(label, painelLista, painelAdicionar);
+	linha.appendChild(bloco);
+	render();
+}
+
+function contarPalavrasTextoPadrao(texto = "") {
+	const limpo = String(texto).replace(/\s+/g, " ").trim();
+	return limpo ? limpo.split(" ").length : 0;
+}
+
+function montarEditorTextosPadraoEmail(linha, label, valor, caminho) {
+	const LIMITE_TEXTOS = 15;
+	const LIMITE_PALAVRAS = 150;
+
+	const bloco = document.createElement("div");
+	bloco.style.display = "flex";
+	bloco.style.flexDirection = "column";
+	bloco.style.gap = "8px";
+	bloco.style.width = "100%";
+
+	const observacao = document.createElement("small");
+	observacao.textContent = `Limites: até ${LIMITE_TEXTOS} textos e ${LIMITE_PALAVRAS} palavras por texto.`;
+	observacao.style.color = "#555";
+
+	const lista = document.createElement("div");
+	lista.style.display = "flex";
+	lista.style.flexDirection = "column";
+	lista.style.gap = "6px";
+	lista.style.maxHeight = "220px";
+	lista.style.overflowY = "auto";
+	lista.style.border = "1px solid #ccc";
+	lista.style.borderRadius = "6px";
+	lista.style.padding = "8px";
+	lista.style.background = "#fff";
+
+	const contador = document.createElement("small");
+	contador.style.color = "#333";
+
+	const textarea = document.createElement("textarea");
+	textarea.rows = 4;
+	textarea.placeholder = "Digite o texto padrão que será inserido no campo Mensagem.";
+	textarea.style.width = "100%";
+	textarea.style.resize = "vertical";
+
+	const contadorPalavras = document.createElement("small");
+	contadorPalavras.style.color = "#555";
+
+	const atualizarContadorPalavras = () => {
+		const qtd = contarPalavrasTextoPadrao(textarea.value);
+		contadorPalavras.textContent = `Palavras: ${qtd}/${LIMITE_PALAVRAS}`;
+		contadorPalavras.style.color = qtd > LIMITE_PALAVRAS ? "#a11" : "#555";
+	};
+	textarea.addEventListener("input", atualizarContadorPalavras);
+	atualizarContadorPalavras();
+
+	const botaoAdicionar = document.createElement("button");
+	botaoAdicionar.type = "button";
+	botaoAdicionar.textContent = "Adicionar texto padrão";
+
+	let itens = Array.isArray(valor?.valor)
+		? valor.valor.map((x) => String(x || "").trim()).filter(Boolean)
+		: [];
+
+	const salvar = async () => {
+		await gravarConfiguracao(caminho, itens);
+	};
+
+	const render = () => {
+		lista.innerHTML = "";
+		contador.textContent = `Textos salvos: ${itens.length}/${LIMITE_TEXTOS}`;
+
+		if (!itens.length) {
+			const vazio = document.createElement("small");
+			vazio.textContent = "Nenhum texto padrão cadastrado.";
+			vazio.style.color = "#555";
+			lista.appendChild(vazio);
+			return;
+		}
+
+		itens.forEach((texto, idx) => {
+			const item = document.createElement("div");
+			item.style.border = "1px solid #d8e5ee";
+			item.style.borderRadius = "6px";
+			item.style.padding = "6px";
+			item.style.background = "#f9fcff";
+
+			const pre = document.createElement("div");
+			pre.textContent = texto;
+			pre.style.whiteSpace = "pre-wrap";
+			pre.style.marginBottom = "6px";
+
+			const metadado = document.createElement("small");
+			metadado.textContent = `${contarPalavrasTextoPadrao(texto)} palavra(s)`;
+			metadado.style.display = "inline-block";
+			metadado.style.marginRight = "8px";
+			metadado.style.color = "#555";
+
+			const btnExcluir = document.createElement("button");
+			btnExcluir.type = "button";
+			btnExcluir.title = "Excluir texto padrão";
+			btnExcluir.style.width = "26px";
+			btnExcluir.style.height = "26px";
+			btnExcluir.style.display = "inline-flex";
+			btnExcluir.style.alignItems = "center";
+			btnExcluir.style.justifyContent = "center";
+			btnExcluir.style.padding = "0";
+			const iconeExcluir = document.createElement("img");
+			iconeExcluir.src = chrome.runtime.getURL("assets/icones/excluir.png");
+			iconeExcluir.alt = "Excluir";
+			iconeExcluir.style.width = "14px";
+			iconeExcluir.style.height = "14px";
+			btnExcluir.appendChild(iconeExcluir);
+			btnExcluir.addEventListener("click", async () => {
+				if (!confirm("Deseja excluir este texto padrão?")) return;
+				itens.splice(idx, 1);
+				await salvar();
+				render();
+			});
+
+			item.append(pre, metadado, btnExcluir);
+			lista.appendChild(item);
+		});
+	};
+
+	botaoAdicionar.addEventListener("click", async () => {
+		const novo = String(textarea.value || "").trim();
+		if (!novo) return;
+
+		if (itens.length >= LIMITE_TEXTOS) {
+			alert(`Limite atingido: no máximo ${LIMITE_TEXTOS} textos padrão.`);
+			return;
+		}
+
+		const qtdPalavras = contarPalavrasTextoPadrao(novo);
+		if (qtdPalavras > LIMITE_PALAVRAS) {
+			alert(`Texto excede o limite de ${LIMITE_PALAVRAS} palavras (${qtdPalavras}).`);
+			return;
+		}
+
+		itens.push(novo);
+		await salvar();
+		textarea.value = "";
+		atualizarContadorPalavras();
+		render();
+	});
+
+	bloco.append(label, observacao, contador, lista, textarea, contadorPalavras, botaoAdicionar);
 	linha.appendChild(bloco);
 	render();
 }

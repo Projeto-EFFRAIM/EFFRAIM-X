@@ -51,6 +51,12 @@ function getRuntimeUrl(path) {
 		},
 		{
 			cond: () => window.location.href.includes("acao=processo_selecionar") || (isTutorialRoute && tutorialTipo === "consulta_processual"),
+			modulo: "modules/consulta/consulta_requisitorio.js",
+			nome: "requisitorio",
+			titulo: "Requisitórios"
+		},
+		{
+			cond: () => window.location.href.includes("acao=processo_selecionar") || (isTutorialRoute && tutorialTipo === "consulta_processual"),
 			modulo: "modules/consulta/consulta_sisbajud.js",
 			nome: "sisbajud",
 			titulo: "SISBAJUD"
@@ -63,15 +69,9 @@ function getRuntimeUrl(path) {
 		},
 		{
 			cond: () => window.location.href.includes("acao=processo_selecionar") || (isTutorialRoute && tutorialTipo === "consulta_processual"),
-			modulo: "modules/consulta/consulta_requisitorio.js",
-			nome: "requisitorio",
-			titulo: "Requisitórios"
-		},
-		{
-			cond: () => window.location.href.includes("acao=processo_selecionar") || (isTutorialRoute && tutorialTipo === "consulta_processual"),
-			modulo: "modules/consulta/consulta_email_flutuante.js",
-			nome: "email_flutuante",
-			titulo: "Email Flutuante",
+			modulo: "modules/consulta/acao_flutuante/index.js",
+			nome: "acao_flutuante",
+			titulo: "Ação Flutuante",
 			ocultarNoPainel: true
 		}
 
