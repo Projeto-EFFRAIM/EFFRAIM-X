@@ -87,8 +87,34 @@ function criarAreaConteudo() {
 
 
 //painel de opções===========================
+function ensureMetafuncionalCss() {
+    if (document.getElementById("effraim-meta-css")) return;
+    const link = document.createElement("link");
+    link.id = "effraim-meta-css";
+    link.rel = "stylesheet";
+    link.href = chrome.runtime.getURL("assets/css/metafuncional.css");
+    (document.head || document.documentElement).appendChild(link);
+}
+
+function obterLabelOpcao(nome) {
+    const mapa = {
+      configs: "Configurações",
+      tutorial: "Tutorial",
+      ajuda: "Ajuda"
+    };
+    return mapa[nome] || nome.replaceAll("_", " ");
+}
+
+function normalizarLinkOpcao(nome, link) {
+    // compatibilidade com configurações antigas salvas no sync
+    if (nome === "tutorial" && link === "ajuda/tutorial.js") {
+      return "ajuda/tutorial.html";
+    }
+    return link;
+}
 
 export function criarOpcoes(dicionarioOpcoes) {
+    ensureMetafuncionalCss();
     const div = document.createElement("div");
     div.className = "effraim-opcoes-dinamicas";
 
@@ -96,16 +122,19 @@ export function criarOpcoes(dicionarioOpcoes) {
     if (nomes.length === 0) return div;
 
     nomes.forEach(nome => {
-        const link = dicionarioOpcoes[nome];
+        const link = normalizarLinkOpcao(nome, dicionarioOpcoes[nome]);
         const a = document.createElement("a");
-        a.className = "link-secondary text-center";
+        a.className = "effraim-meta-opcao";
 
         const img = document.createElement("img");
         img.src = chrome.runtime.getURL(`assets/icones/${nome}.png`);
-        img.style.width = "24px";
-        img.style.height = "24px";
-        img.title = nome;
+        img.title = obterLabelOpcao(nome);
         a.appendChild(img);
+
+        const label = document.createElement("span");
+        label.className = "effraim-meta-opcao-label";
+        label.textContent = obterLabelOpcao(nome);
+        a.appendChild(label);
 
         if (link.endsWith(".html")) {
           a.href = chrome.runtime.getURL(link);
@@ -129,6 +158,7 @@ export function criarOpcoes(dicionarioOpcoes) {
 export function criarPainelHoverLogo(dicionarioOpcoes) {
     if (typeof dicionarioOpcoes !== "object")
       throw new Error("criarPainelHoverLogo requer um dicionario de opcoes valido.");
+    ensureMetafuncionalCss();
     
     const logo = document.querySelector("#effraim-logo-container");
     if (!logo) return;

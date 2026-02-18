@@ -4,32 +4,87 @@
 <head>
   <meta charset="UTF-8" />
   <title>Ajuda - EFFRAIM</title>
-  <style>
-    body { font-family: sans-serif; padding: 1em; line-height: 1.6; }
-    h1 { color: #2c3e50; }
-    section { margin-bottom: 2em; }
-  </style>
+  <link rel="stylesheet" href="../assets/css/metafuncional_paginas.css" />
 </head>
-<body>
-  <h1>Bem-vindo ao EFFRAIM</h1>
-  <q>Ao segundo, chamou-lhe EFFRAIM, pois disse: Deus me fez próspero na terra da minha aflição.(Gen41:52)</q>
-  <p>Este assistente foi criado para facilitar seu trabalho no Eproc. Aqui você encontrará explicações simples sobre cada funcionalidade.</p>
+<body class="effraim-meta-page">
+  <main class="effraim-meta-wrap">
+    <h1>Prazer, EFFRAIM.</h1>
+    <q>Ao segundo, chamou-lhe EFFRAIM, pois disse: Deus me fez próspero na terra da minha aflição. (Gen 41:52)</q>
+    <p class="intro">Este assistente facilita seu trabalho no Eproc. Aqui você encontra instruções rápidas para destravar o uso imediato.</p>
 
-  <section>
-    <h2>📂 Abrindo a extensão</h2>
-    <p>Clique no ícone do EFFRAIM na barra de extensões do Chrome. Se não estiver visível, clique no quebra-cabeça (🔧) e fixe o ícone com o alfinete.</p>
-  </section>
+    <section class="secao-preferencia">
+      <div class="cabecalho-secao"><h2>⚙️ Configurações</h2></div>
+      <div class="corpo-secao">
+        <p>No menu de configurações, você pode ativar ou desativar funcionalidades como SISBAJUD, RENAJUD, painel inicial e consulta flutuante.</p>
+      </div>
+    </section>
 
-  <section>
-    <h2>⚙️ Configurações</h2>
-    <p>No menu de configurações, você pode ativar ou desativar funcionalidades como o SISBAJUD, movimentações inteligentes, entre outras.</p>
-  </section>
+    <section class="secao-preferencia">
+      <div class="cabecalho-secao"><h2>🧭 Painel Inicial Flutuante</h2></div>
+      <div class="corpo-secao">
+        <p>No painel inicial do eproc, use o botão do painel flutuante para trazer seções para frente da tela. Os atalhos exibidos no botão de cada seção também funcionam via teclado.</p>
+      </div>
+    </section>
 
-  <section>
-    <h2>❓ Precisa de ajuda?</h2>
-    <p>Volte a esta página sempre que precisar. Em breve teremos tutoriais com imagens e vídeos.</p>
-  </section>
+    <section class="secao-preferencia">
+      <div class="cabecalho-secao"><h2>⭐ Favoritos do Painel Inicial</h2></div>
+      <div class="corpo-secao">
+        <p>Use a estrela nas linhas para favoritar. Você pode salvar na raiz, em pasta ou subpasta (até nível 2), arrastar para reordenar e mover entre pastas.</p>
+        <p>Limite atual: 50 entradas no total (favoritos + pastas).</p>
+      </div>
+    </section>
 
+    <section class="secao-preferencia">
+      <div class="cabecalho-secao"><h2>🔎 Consulta Flutuante</h2></div>
+      <div class="corpo-secao">
+        <p>Traz para frente as seções da própria página do processo (como Partes, Capa e Ações), em um painel deslizante. Funciona no mesmo conceito do painel inicial flutuante.</p>
+      </div>
+    </section>
+
+    <section class="secao-preferencia">
+      <div class="cabecalho-secao"><h2>🏦 SISBAJUD</h2></div>
+      <div class="corpo-secao">
+        <p>Integra dados do processo com a consulta/minuta do SISBAJUD para reduzir preenchimento manual. Verifique sempre os campos finais antes de confirmar no sistema externo.</p>
+      </div>
+    </section>
+
+    <section class="secao-preferencia">
+      <div class="cabecalho-secao"><h2>🚗 RENAJUD</h2></div>
+      <div class="corpo-secao">
+        <p>Disponibiliza acesso rápido ao RENAJUD em contexto de consulta do processo. A ideia é reduzir troca manual de telas durante o fluxo de trabalho.</p>
+      </div>
+    </section>
+
+    <section class="secao-preferencia">
+      <div class="cabecalho-secao"><h2>💰 Requisitórios</h2></div>
+      <div class="corpo-secao">
+        <p>Abre a consulta de Ofício Requisitório no painel deslizante e pode iniciar pesquisa automática conforme os marcadores configurados.</p>
+        <p>Se a pesquisa automática não acontecer, confira os marcadores do processo e as opções em Configurações.</p>
+      </div>
+    </section>
+
+    <section class="secao-preferencia">
+      <div class="cabecalho-secao"><h2>❓ Precisa de mais ajuda?</h2></div>
+      <div class="corpo-secao">
+        <p>Volte a esta página para orientações rápidas. Para fluxos completos, use o item Tutorial no menu do logo.</p>
+      </div>
+    </section>
+
+    <section class="secao-preferencia">
+      <div class="cabecalho-secao"><h2>📨 Fale Conosco</h2></div>
+      <div class="corpo-secao">
+        <form id="form-fale-conosco" class="effraim-form-contato">
+          <label for="contato-assunto">Assunto</label>
+          <input id="contato-assunto" name="assunto" type="text" required maxlength="140" placeholder="Resumo da sua dúvida" />
+
+          <label for="contato-descricao">Descrição</label>
+          <textarea id="contato-descricao" name="descricao" required rows="5" placeholder="Descreva o que aconteceu e como podemos ajudar"></textarea>
+
+          <button type="submit">Fale Conosco</button>
+        </form>
+      </div>
+    </section>
+  </main>
   <script src="ajuda.js"></script>
 </body>
 </html>

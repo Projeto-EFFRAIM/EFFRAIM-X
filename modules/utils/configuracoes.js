@@ -167,6 +167,7 @@ function filtrarInternos(obj) {
 	const limpo = {};
 	for (const [k, v] of Object.entries(obj)) {
 		if (k.startsWith("_")) continue;
+		if (k === "painel_favoritos") continue; // dados operacionais (não é seção de preferência)
 		limpo[k] = v;
 	}
 	return limpo;
@@ -391,7 +392,7 @@ function montarEditorLocalizadoresDisparo(linha, label, valor, caminho) {
 	topoLista.style.gap = "8px";
 
 	const tituloLista = document.createElement("small");
-	tituloLista.textContent = "Localizadores cadastrados";
+	tituloLista.textContent = "Excluir localizadores";
 	tituloLista.style.fontWeight = "600";
 
 	const listaWrap = document.createElement("div");
@@ -401,6 +402,19 @@ function montarEditorLocalizadoresDisparo(linha, label, valor, caminho) {
 	listaWrap.style.maxHeight = "160px";
 	listaWrap.style.overflowY = "auto";
 	listaWrap.style.paddingRight = "4px";
+
+	const painelAdicionar = document.createElement("div");
+	painelAdicionar.className = "effraim-listbox-painel";
+	painelAdicionar.style.border = "1px solid #ccc";
+	painelAdicionar.style.borderRadius = "6px";
+	painelAdicionar.style.padding = "8px";
+	painelAdicionar.style.display = "flex";
+	painelAdicionar.style.flexDirection = "column";
+	painelAdicionar.style.gap = "8px";
+
+	const tituloAdicionar = document.createElement("small");
+	tituloAdicionar.textContent = "Adicionar localizador";
+	tituloAdicionar.style.fontWeight = "600";
 
 	const acoes = document.createElement("div");
 	acoes.style.display = "flex";
@@ -518,7 +532,8 @@ function montarEditorLocalizadoresDisparo(linha, label, valor, caminho) {
 	topoLista.append(tituloLista, btnExcluir);
 	painelLista.append(topoLista, listaWrap);
 	acoes.append(inputNovo, btnAdicionar);
-	bloco.append(label, painelLista, acoes);
+	painelAdicionar.append(tituloAdicionar, acoes);
+	bloco.append(label, painelLista, painelAdicionar);
 	linha.appendChild(bloco);
 	render();
 }

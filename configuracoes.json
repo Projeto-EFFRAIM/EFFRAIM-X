@@ -39,6 +39,13 @@
         "explicacao": "Exibe o painel inicial sobre a tela principal do eproc."
       }
     },
+    "painel_inicial_favoritos": {
+      "valor": true,
+      "_meta": {
+        "nome": "Painel Inicial Favoritos",
+        "explicacao": "Ativa os favoritos no painel inicial."
+      }
+    },
     "consulta_flutuante": {
       "valor": true,
       "_meta": {
@@ -123,7 +130,7 @@
     "versao_config": 1,
     "opções": {
       "ajuda": "ajuda/ajuda.html",
-      "tutorial": "ajuda/tutorial.js",
+      "tutorial": "ajuda/tutorial.html",
       "configs": "preferencias.html"
     }
   }
