@@ -73,6 +73,13 @@
         "nome": "Requisitórios",
         "explicacao": "Ativa o painel de integração com a consulta de requisitórios no eproc."
       }
+    },
+    "email_flutuante": {
+      "valor": true,
+      "_meta": {
+        "nome": "Email Flutuante",
+        "explicacao": "Ativa a abertura do envio de email do eproc em painel flutuante."
+      }
     }
   },
 

@@ -66,6 +66,13 @@ function getRuntimeUrl(path) {
 			modulo: "modules/consulta/consulta_requisitorio.js",
 			nome: "requisitorio",
 			titulo: "Requisitórios"
+		},
+		{
+			cond: () => window.location.href.includes("acao=processo_selecionar") || (isTutorialRoute && tutorialTipo === "consulta_processual"),
+			modulo: "modules/consulta/consulta_email_flutuante.js",
+			nome: "email_flutuante",
+			titulo: "Email Flutuante",
+			ocultarNoPainel: true
 		}
 
 	];
@@ -212,18 +219,22 @@ async function ativarFuncionalidades(rotasAtivas, { tutorial = false } = {}) {
 			console.log(`Importando módulo ${r.modulo}...`);
 			const mod = await import(getRuntimeUrl(r.modulo));
 			console.log(`Módulo ${r.nome} importado.`);
-			const botao = document.createElement("button");
-			botao.id = `btn-${r.nome}`;
-			console.log(`Botão ${botao.id} criado`);
-			botao.className = "btn btn-sm btn-outline-primary d-flex flex-column align-items-center effraim-btn-init";
-			botao.title = r.titulo || r.nome;
-			botao.innerHTML = `
-				<img src="${getRuntimeUrl("assets/icones/" + r.nome + ".png")}"
-					 style="width:32px; height:32px;">
-			`;
-			console.log(`Ativando módulo: ${r.nome}`);
-			conteudo.appendChild(botao);
-			console.log(`Botão ${r.nome} adicionado.`);
+			if (!r.ocultarNoPainel) {
+				const botao = document.createElement("button");
+				botao.id = `btn-${r.nome}`;
+				console.log(`Botão ${botao.id} criado`);
+				botao.className = "btn btn-sm btn-outline-primary d-flex flex-column align-items-center effraim-btn-init";
+				botao.title = r.titulo || r.nome;
+				botao.innerHTML = `
+					<img src="${getRuntimeUrl("assets/icones/" + r.nome + ".png")}"
+						 style="width:32px; height:32px;">
+				`;
+				console.log(`Ativando módulo: ${r.nome}`);
+				conteudo.appendChild(botao);
+				console.log(`Botão ${r.nome} adicionado.`);
+			} else {
+				console.log(`Módulo ${r.nome} configurado para iniciar sem botão no painel.`);
+			}
 			try {
 					await mod.init();
 					console.log(`Módulo ${r.nome} iniciado.`);
