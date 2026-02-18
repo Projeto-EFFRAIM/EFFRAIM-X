@@ -87,6 +87,13 @@
         "nome": "Legibilidade de Tabelas",
         "explicacao": "Limita a altura de células longas nas tabelas de processos, com rolagem interna."
       }
+    },
+    "paginacao_aprimorada": {
+      "valor": true,
+      "_meta": {
+        "nome": "Paginação Aprimorada",
+        "explicacao": "Adiciona opções extras de paginação em listagens de processos e mantém a preferência local."
+      }
     }
   },
 

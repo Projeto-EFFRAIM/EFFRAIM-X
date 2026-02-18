@@ -75,10 +75,23 @@ function getRuntimeUrl(path) {
 			ocultarNoPainel: true
 		},
 		{
-			cond: () => window.location.href.includes("acao=localizador_processos_lista") || window.location.href.includes("acao=relatorio_geral"),
+			cond: () =>
+				window.location.href.includes("acao=localizador_processos_lista") ||
+				window.location.href.includes("acao=relatorio_geral") ||
+				Boolean(document.querySelector("#tblProcessoLista, #tabelaNomAJG, #tabelaLocalizadores")),
 			modulo: "modules/legibilidade_tabelas.js",
 			nome: "legibilidade_tabelas",
 			titulo: "Legibilidade de Tabelas",
+			ocultarNoPainel: true
+		},
+		{
+			cond: () =>
+				window.location.href.includes("acao=localizador_processos_lista") ||
+				window.location.href.includes("acao=relatorio_geral") ||
+				Boolean(document.querySelector("#divPaginacao, #tblProcessoLista_length")),
+			modulo: "modules/paginacao_aprimorada.js",
+			nome: "paginacao_aprimorada",
+			titulo: "Paginação Aprimorada",
 			ocultarNoPainel: true
 		}
 
