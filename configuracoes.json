@@ -80,6 +80,13 @@
         "nome": "Ação Flutuante",
         "explicacao": "Ativa a abertura das ações do fieldset Ações em um painel flutuante."
       }
+    },
+    "legibilidade_tabelas": {
+      "valor": true,
+      "_meta": {
+        "nome": "Legibilidade de Tabelas",
+        "explicacao": "Limita a altura de células longas nas tabelas de processos, com rolagem interna."
+      }
     }
   },
 
@@ -151,6 +158,20 @@
           "nome": "Textos padrão da mensagem",
           "explicacao": "Lista de textos padrão para o campo Mensagem do Enviar Email. Limite de 15 textos e 150 palavras por texto."
         }
+      }
+    }
+  },
+
+  "opcoes_legibilidade_tabelas": {
+    "_meta": {
+      "nome": "Opções Legibilidade de Tabelas",
+      "explicacao": "Configurações visuais para células longas em tabelas de processos."
+    },
+    "altura_maxima_celula": {
+      "valor": 50,
+      "_meta": {
+        "nome": "Altura máxima da célula (px)",
+        "explicacao": "Define a altura máxima antes de aplicar rolagem vertical no conteúdo da célula."
       }
     }
   },

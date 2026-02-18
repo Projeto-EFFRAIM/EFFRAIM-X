@@ -73,6 +73,13 @@ function getRuntimeUrl(path) {
 			nome: "acao_flutuante",
 			titulo: "Ação Flutuante",
 			ocultarNoPainel: true
+		},
+		{
+			cond: () => window.location.href.includes("acao=localizador_processos_lista") || window.location.href.includes("acao=relatorio_geral"),
+			modulo: "modules/legibilidade_tabelas.js",
+			nome: "legibilidade_tabelas",
+			titulo: "Legibilidade de Tabelas",
+			ocultarNoPainel: true
 		}
 
 	];

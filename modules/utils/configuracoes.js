@@ -185,6 +185,25 @@ function mesclarPadroes(padrao, salvos) {
 		for (const [chave, valorPadrao] of Object.entries(src)) {
 			const valorAtual = dst[chave];
 
+			// metadados (nome/explicacao) devem acompanhar o padrão mais recente
+			if (
+				chave === "_meta" &&
+				valorPadrao &&
+				typeof valorPadrao === "object" &&
+				!Array.isArray(valorPadrao)
+			) {
+				const metaAtual =
+					valorAtual && typeof valorAtual === "object" && !Array.isArray(valorAtual)
+						? valorAtual
+						: {};
+				const metaMesclado = { ...metaAtual, ...valorPadrao };
+				if (JSON.stringify(metaMesclado) !== JSON.stringify(metaAtual)) {
+					dst[chave] = metaMesclado;
+					houveAtualizacao = true;
+				}
+				continue;
+			}
+
 			// se não existe no salvo, copia por completo
 			if (typeof valorAtual === "undefined") {
 				dst[chave] = clone(valorPadrao);
