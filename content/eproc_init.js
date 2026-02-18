@@ -4,7 +4,7 @@ console.log("EFFRAIM iniciado. Importando módulo de configurações.");
 	
 	const { zerarConfiguracoes, carregarConfiguracoes, prepararDOM, verificarRotasAtivas, verificarUsoSync } = await import(chrome.runtime.getURL("funcoes.js"));
 	//Comentar em produção! Zera para o padrão json
-	await zerarConfiguracoes();
+	//await zerarConfiguracoes();
 	
 	window.EFFRAIM_CONFIGURACOES = await carregarConfiguracoes();
 	const effraim_configuracoes = window.EFFRAIM_CONFIGURACOES;

@@ -18,14 +18,14 @@ export const secoesPainelInicial = [
     const descTd = row.querySelector("td:first-child");
     return { id, titulo: (descTd?.textContent || "").trim() };
   }},
-  { id: "fldMeusLocalizadores", nome: "Meus Localizadores", chave: "c1", favoritavel: true, matcher: row => {
+  { id: "fldMeusLocalizadores", nome: "Meus Localizadores", chave: "z", favoritavel: true, matcher: row => {
     const descTd = row.querySelector("td[id^='tdMeusLocalizadoresDesc']");
     if (!descTd) return null;
     const id = descTd.id.replace("tdMeusLocalizadoresDesc", "");
     return { id, titulo: (descTd.textContent || "").trim() };
   }},
   { id: "fldComunicacoes", nome: "Comunicações Recebidas", chave: "6", favoritavel: false },
-  { id: "fldProcessoDeUmLocalizador", nome: "Processo por Localizador", chave: "l", favoritavel: true, matcher: row => {
+  { id: "fldProcessoDeUmLocalizador", nome: "Processo por Localizador", chave: "x", favoritavel: true, matcher: row => {
     const descTd = row.querySelector("td[id^='tdListaDeProcessosPorLocalizadorDesc']");
     if (!descTd) return null;
     const id = descTd.id.replace("tdListaDeProcessosPorLocalizadorDesc", "");
@@ -80,14 +80,18 @@ export async function init() {
   }
   btnFav.style.display = habilitarFavoritos ? "inline-flex" : "none";
 
-  criarPainelFlutuante({ botao, secoes: secoesPainelInicial });
-
   if (habilitarFavoritos) {
     aplicarFavoritosNasSecoes(secoesPainelInicial);
-    renderizarSecaoFavoritos();
+    await renderizarSecaoFavoritos();
     btnFav.addEventListener("click", e => {
       e.stopPropagation();
       mostrarPainelFavoritos(btnFav);
     });
   }
+
+  const secoesPainelComFavoritos = habilitarFavoritos
+    ? [{ id: "fldFavoritosPainel", nome: "Favoritos", chave: "v", favoritavel: false }, ...secoesPainelInicial]
+    : secoesPainelInicial;
+
+  criarPainelFlutuante({ botao, secoes: secoesPainelComFavoritos });
 }
