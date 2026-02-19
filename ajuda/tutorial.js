@@ -3,7 +3,8 @@ const MAPA_TIPO_TUTORIAL = {
 	consulta_flutuante: "consulta_processual",
 	sisbajud: "consulta_processual",
 	renajud: "consulta_processual",
-	requisitorios: "consulta_processual"
+	requisitorios: "consulta_processual",
+	lista_partes_aprimorada: "consulta_processual"
 };
 
 function iniciarTutorialPorRota(id) {

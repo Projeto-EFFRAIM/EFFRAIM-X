@@ -79,9 +79,18 @@ function getRuntimeUrl(path) {
 				window.location.href.includes("acao=localizador_processos_lista") ||
 				window.location.href.includes("acao=relatorio_geral") ||
 				Boolean(document.querySelector("#tblProcessoLista, #tabelaNomAJG, #tabelaLocalizadores")),
-			modulo: "modules/legibilidade_tabelas.js",
-			nome: "legibilidade_tabelas",
-			titulo: "Legibilidade de Tabelas",
+			modulo: "modules/tabelas_compactas.js",
+			nome: "tabelas_compactas",
+			titulo: "Tabelas Compactas",
+			ocultarNoPainel: true
+		},
+		{
+			cond: () =>
+				window.location.href.includes("acao=processo_selecionar") ||
+				Boolean(document.querySelector("#fldPartes, #tblPartesERepresentantes")),
+			modulo: "modules/lista_partes_aprimorada.js",
+			nome: "lista_partes_aprimorada",
+			titulo: "Lista de Partes Aprimorada",
 			ocultarNoPainel: true
 		},
 		{
@@ -164,7 +173,8 @@ window.addEventListener("message", async (event) => {
 		consulta_flutuante: "modules/tutorials/live_consulta_flutuante_tour.js",
 		sisbajud: "modules/tutorials/live_sisbajud_tour.js",
 		renajud: "modules/tutorials/live_renajud_tour.js",
-		requisitorios: "modules/tutorials/live_requisitorios_tour.js"
+		requisitorios: "modules/tutorials/live_requisitorios_tour.js",
+		lista_partes_aprimorada: "modules/tutorials/live_lista_partes_aprimorada_tour.js"
 	};
 	const moduloPath = mapa[tutorialId];
 	if (!moduloPath) {
@@ -266,3 +276,4 @@ async function ativarFuncionalidades(rotasAtivas, { tutorial = false } = {}) {
 		}
 	}
 }
+

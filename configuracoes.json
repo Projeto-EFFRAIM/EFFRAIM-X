@@ -81,10 +81,10 @@
         "explicacao": "Ativa a abertura das ações do fieldset Ações em um painel flutuante."
       }
     },
-    "legibilidade_tabelas": {
+    "tabelas_compactas": {
       "valor": true,
       "_meta": {
-        "nome": "Legibilidade de Tabelas",
+        "nome": "Tabelas Compactas",
         "explicacao": "Limita a altura de células longas nas tabelas de processos, com rolagem interna."
       }
     },
@@ -93,6 +93,13 @@
       "_meta": {
         "nome": "Paginação Aprimorada",
         "explicacao": "Adiciona opções extras de paginação em listagens de processos e mantém a preferência local."
+      }
+    },
+    "lista_partes_aprimorada": {
+      "valor": true,
+      "_meta": {
+        "nome": "Lista de Partes Aprimorada",
+        "explicacao": "Expande partes ocultas automaticamente e compacta os blocos excedentes em colapsáveis."
       }
     }
   },
@@ -169,9 +176,9 @@
     }
   },
 
-  "opcoes_legibilidade_tabelas": {
+  "opcoes_tabelas_compactas": {
     "_meta": {
-      "nome": "Opções Legibilidade de Tabelas",
+      "nome": "Opções Tabelas Compactas",
       "explicacao": "Configurações visuais para células longas em tabelas de processos."
     },
     "altura_maxima_celula": {
@@ -183,8 +190,22 @@
     }
   },
 
+  "opcoes_lista_partes_aprimorada": {
+    "_meta": {
+      "nome": "Opções Lista de Partes Aprimorada",
+      "explicacao": "Configurações visuais da compactação dos blocos de partes."
+    },
+    "altura_maxima_tabela": {
+      "valor": 300,
+      "_meta": {
+        "nome": "Altura máxima da tabela (px)",
+        "explicacao": "Define a altura máxima da tabela de partes. O scroll aparece apenas quando o conteúdo ultrapassar esse limite."
+      }
+    }
+  },
+
   "_interno": {
-    "versao_config": 1,
+    "versao_config": 3,
     "opções": {
       "ajuda": "ajuda/ajuda.html",
       "tutorial": "ajuda/tutorial.html",

@@ -23,7 +23,8 @@ export async function carregarConfiguracoes() {
 
 	// há salvos: inclui apenas as chaves novas do padrão, sem sobrescrever preferências
 	const mesclado = mesclarPadroes(padrao, existentes);
-	if (mesclado._atualizado) {
+	const migrado = aplicarMigracoesConfiguracao(mesclado, padrao);
+	if (migrado._atualizado) {
 		delete mesclado._atualizado;
 		await chrome.storage.sync.set({ effraim_configuracoes: mesclado });
 		return mesclado;
@@ -42,6 +43,7 @@ async function lerConfiguracoes() {
 export async function zerarConfiguracoes() {
 	return new Promise(resolve => {
 		chrome.storage.sync.remove("effraim_configuracoes", resolve);
+		console.log('[EFFRAIM]Configurações zeradas.')
 	});
 }
 
@@ -239,6 +241,36 @@ function clone(obj) {
 	} catch (e) {
 		return JSON.parse(JSON.stringify(obj));
 	}
+}
+
+function aplicarMigracoesConfiguracao(cfg, padrao) {
+	const versaoPadrao = Number(padrao?._interno?.versao_config || 1);
+	const versaoAtual = Number(cfg?._interno?.versao_config || 1);
+	if (!Number.isFinite(versaoPadrao) || !Number.isFinite(versaoAtual)) return cfg;
+	if (versaoAtual >= versaoPadrao) return cfg;
+
+	// Migração v2: altura máxima da tabela de partes definida para 200.
+	if (versaoAtual < 2) {
+		const alturaParte = cfg?.opcoes_lista_partes_aprimorada?.altura_maxima_tabela;
+		if (alturaParte && typeof alturaParte === "object" && "valor" in alturaParte) {
+			alturaParte.valor = 200;
+			cfg._atualizado = true;
+		}
+	}
+
+	// Migração v3: altura máxima da tabela de partes definida para 300.
+	if (versaoAtual < 3) {
+		const alturaParte = cfg?.opcoes_lista_partes_aprimorada?.altura_maxima_tabela;
+		if (alturaParte && typeof alturaParte === "object" && "valor" in alturaParte) {
+			alturaParte.valor = 300;
+			cfg._atualizado = true;
+		}
+	}
+
+	if (!cfg._interno || typeof cfg._interno !== "object") cfg._interno = {};
+	cfg._interno.versao_config = versaoPadrao;
+	cfg._atualizado = true;
+	return cfg;
 }
 
 function adicionarCampos(container, prefixo, objeto) {
