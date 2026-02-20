@@ -1,0 +1,70 @@
+.effraim-lista-partes-aviso {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	margin: 8px 0;
+	padding: 6px 10px;
+	border: 1px solid #b9dec2;
+	border-radius: 6px;
+	background: #e9f8ee;
+	color: #1f4d2c;
+	font-size: 12px;
+}
+
+.effraim-lista-partes-aviso-logo {
+	width: 18px;
+	height: 18px;
+	flex: 0 0 auto;
+}
+
+.effraim-lista-partes-scroll-tabela {
+	max-height: var(--effraim-lista-partes-max-height, 150px);
+	overflow-y: auto;
+	overflow-x: auto;
+}
+
+.effraim-lista-partes-colapsavel {
+	display: flex;
+	flex-direction: column;
+	gap: 3px;
+	margin-top: 2px;
+}
+
+.effraim-lista-partes-linha {
+	display: block;
+}
+
+.effraim-lista-partes-toggle {
+	font-size: 12px;
+	line-height: 1;
+	padding: 0 2px;
+	border: 0;
+	background: transparent;
+	color: #35556e;
+	cursor: pointer;
+	margin: 0 0 2px 0;
+	display: inline-block;
+}
+
+.effraim-lista-partes-conteudo {
+	display: none;
+	line-height: 1.3;
+	flex: 1;
+	min-width: 0;
+}
+
+.effraim-lista-partes-colapsavel[data-expandido="1"] .effraim-lista-partes-conteudo {
+	display: block;
+}
+
+.effraim-lista-partes-tabela-interna {
+	border-collapse: collapse;
+	width: 100%;
+	table-layout: fixed;
+}
+
+.effraim-lista-partes-tabela-interna td,
+.effraim-lista-partes-tabela-interna th {
+	vertical-align: top;
+	word-break: break-word;
+}

@@ -1,0 +1,45 @@
+<div class="tutorial-sim-page tutorial-fav-snippet" id="sim-favoritos-page" aria-label="Tela simulada de favoritos">
+  <div class="tutorial-sim-topbar" id="sim-favoritos-topbar">
+    <img class="tutorial-topbar-icon" src="../assets/icones/painel_inicial_favoritos.png" alt="" aria-hidden="true" />
+    <span>Painel Inicial - Favoritos (simulação)</span>
+  </div>
+
+  <div class="tutorial-sim-grid">
+    <section class="tutorial-sim-card" id="sim-favoritos-lista-processos">
+      <h3>Seção da lista de processos</h3>
+      <div class="tutorial-processo-linha">
+        <span class="tutorial-pill">5060222-34.2024.4.02.5101</span>
+        <button type="button" class="tutorial-icon-btn" id="sim-favoritos-estrela" aria-label="Adicionar favorito">
+          <img src="../assets/icones/favoritar.png" alt="Favoritar" />
+        </button>
+      </div>
+    </section>
+
+    <section class="tutorial-sim-card" id="sim-favoritos-painel-estrela">
+      <h3>Painel da estrela</h3>
+      <p class="tutorial-caption">Escolha como salvar o favorito.</p>
+      <div class="tutorial-row">
+        <button type="button" class="tutorial-action" id="sim-favoritos-sem-pasta">Sem pasta</button>
+        <button type="button" class="tutorial-action" id="sim-favoritos-com-pasta">Selecionar pasta</button>
+        <button type="button" class="tutorial-icon-btn" id="sim-favoritos-add-pasta" aria-label="Adicionar pasta">
+          <img src="../assets/icones/adicionarpasta.png" alt="Adicionar pasta" />
+        </button>
+      </div>
+    </section>
+
+    <section class="tutorial-sim-card" id="sim-favoritos-resultado">
+      <h3>Painel de favoritos</h3>
+      <div class="tutorial-folder-tree" id="sim-favoritos-arvore">
+        <div class="tutorial-folder-row">
+          <span class="tutorial-folder-label">Pasta Execução Fiscal</span>
+          <button type="button" class="tutorial-icon-btn tutorial-icon-btn-sm" id="sim-favoritos-excluir-pasta" aria-label="Excluir pasta">
+            <img src="../assets/icones/excluir.png" alt="Excluir" />
+          </button>
+        </div>
+        <div class="tutorial-folder-row tutorial-folder-row-child">
+          <span class="tutorial-fav-label">Favorito Processo 5060222-34...</span>
+        </div>
+      </div>
+    </section>
+  </div>
+</div>

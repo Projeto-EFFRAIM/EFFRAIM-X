@@ -1,0 +1,278 @@
+.effraim-fav-menu {
+	position: absolute;
+	background: #fff;
+	border: 1px solid #c0c0c0;
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+	border-radius: 4px;
+	min-width: 180px;
+	z-index: 99999;
+	padding: 4px 0;
+	font-family: "Segoe UI", sans-serif;
+	color: #222;
+}
+
+.effraim-fav-menu .item {
+	padding: 6px 12px;
+	cursor: pointer;
+	white-space: nowrap;
+}
+
+.effraim-fav-menu .item:hover {
+	background: #eef6ff;
+}
+
+.effraim-fav-menu .item.titulo {
+	font-weight: 600;
+	cursor: default;
+	display: flex;
+	align-items: center;
+	gap: 6px;
+}
+
+.effraim-fav-menu .item.titulo:hover {
+	background: transparent;
+}
+
+.effraim-fav-menu .item.titulo img {
+	width: 32px !important;
+	height: 32px !important;
+	flex-shrink: 0;
+	display: block;
+}
+
+/* Estrela de favoritar/desfavoritar nas listas originais do painel inicial */
+fieldset[id^="fld"]:not(#fldFavoritosPainel) td.effraim-fav-cell {
+	width: 30px;
+	padding: 0 2px !important;
+	text-align: center;
+	vertical-align: middle;
+}
+
+fieldset[id^="fld"]:not(#fldFavoritosPainel) td.effraim-fav-cell .effraim-fav-icon {
+	width: 24px;
+	height: 24px;
+	display: inline-block;
+	vertical-align: middle;
+	cursor: pointer;
+}
+
+.effraim-fav-menu .item.folder-row {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+}
+
+.effraim-fav-menu .folder-label {
+	flex: 1;
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.effraim-fav-menu .folder-actions {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	flex-shrink: 0;
+}
+
+.effraim-fav-menu .folder-actions img {
+	width: 20px;
+	height: 20px;
+	cursor: pointer;
+	opacity: 0.9;
+}
+
+.effraim-fav-menu .folder-actions img:hover {
+	opacity: 1;
+}
+
+.effraim-fav-menu .sep {
+	margin: 4px 0;
+	border-top: 1px solid #e0e0e0;
+}
+
+.effraim-fav-empty {
+	color: #777;
+}
+
+.effraim-mover-menu {
+	position: absolute;
+	background: #fff;
+	border: 1px solid #c0c0c0;
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+	border-radius: 4px;
+	min-width: 180px;
+	z-index: 99999;
+	padding: 4px 0;
+	font-family: "Segoe UI", sans-serif;
+	color: #222;
+}
+
+.effraim-mover-menu.wide {
+	min-width: 240px;
+}
+
+.effraim-mover-menu .item {
+	padding: 6px 12px;
+	cursor: pointer;
+	white-space: nowrap;
+}
+
+.effraim-mover-menu .item:hover {
+	background: #eef6ff;
+}
+
+.effraim-mover-menu-label {
+	font-weight: 600;
+	padding: 6px 12px;
+}
+
+.effraim-painel-deslizante.fav {
+	position: absolute;
+	background: #fff;
+	border: 1px solid #c0c0c0;
+	border-radius: 8px;
+	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
+	padding: 12px 14px;
+	font-family: "Segoe UI", sans-serif;
+	color: #222;
+	min-width: 340px;
+	max-width: 520px;
+	max-height: 70vh;
+	overflow: auto;
+	display: none;
+	opacity: 0;
+	transition: opacity 0.2s ease, transform 0.2s ease;
+	z-index: 1000;
+	transform: translateY(-6px);
+}
+
+.effraim-fav-panel-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+}
+
+.effraim-fav-panel-title {
+	margin: 0;
+}
+
+.effraim-fav-panel-actions {
+	display: flex;
+	align-items: center;
+}
+
+.effraim-fav-panel-close {
+	margin-left: 8px;
+}
+
+.effraim-fav-add-folder-icon {
+	cursor: pointer;
+}
+
+.effraim-fav-add-folder-icon.root {
+	width: 22px;
+	height: 22px;
+}
+
+.effraim-fav-add-folder-icon.sub {
+	width: 20px;
+	height: 20px;
+	margin-left: 8px;
+}
+
+.effraim-tree {
+	list-style: none;
+	padding-left: 14px;
+	margin: 0;
+}
+
+.effraim-tree-item,
+.effraim-tree-folder-header {
+	padding: 4px 6px;
+	border-radius: 4px;
+	cursor: pointer;
+}
+
+.effraim-tree-item:hover,
+.effraim-tree-folder-header:hover {
+	background: #eef6ff;
+}
+
+.effraim-tree-folder {
+	margin: 2px 0;
+}
+
+.effraim-tree-folder > ul.fechado {
+	display: none;
+}
+
+.effraim-fav-legend-icon {
+	width: 20px;
+	height: 20px;
+	margin-right: 6px;
+}
+
+.effraim-fav-empty-box {
+	padding: 8px;
+	color: #555;
+}
+
+.effraim-pasta-header:hover {
+	background: #eef6ff;
+	cursor: pointer;
+}
+
+.effraim-folder-action-icon {
+	cursor: pointer;
+	margin-left: 8px;
+}
+
+.effraim-folder-action-icon.add {
+	width: 20px;
+	height: 20px;
+}
+
+.effraim-folder-action-icon.delete {
+	width: 16px;
+	height: 16px;
+}
+
+.effraim-pasta-conteudo {
+	display: block;
+}
+
+.effraim-pasta-container {
+	margin: 4px 0;
+}
+
+.effraim-pasta-container.nested {
+	margin-left: 14px;
+	padding-left: 10px;
+	border-left: 1px solid #d9e5ee;
+}
+
+.effraim-action-icon {
+	cursor: pointer;
+	width: 24px;
+	height: 24px;
+}
+
+.effraim-fav-star-icon {
+	width: 24px;
+	height: 24px;
+}
+
+.effraim-handle {
+	cursor: grab;
+	width: 24px;
+	height: 24px;
+}
+
+#fldFavoritosPainel td.effraim-fav-cell img {
+	width: 24px;
+	height: 24px;
+}

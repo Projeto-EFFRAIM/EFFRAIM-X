@@ -1,0 +1,40 @@
+.effraim-acao-flutuante-aviso {
+  padding: 8px;
+  margin-bottom: 8px;
+  border: 1px solid #c8dbe8;
+  border-radius: 6px;
+  background: #f8fcff;
+  color: #14364f;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.effraim-acao-flutuante-status {
+  padding: 8px;
+  margin-bottom: 8px;
+  border: 1px solid #c8dbe8;
+  border-radius: 6px;
+  background: #f8fcff;
+  color: #14364f;
+  font-size: 13px;
+}
+
+.effraim-acao-flutuante-status[data-status="erro"] {
+  border-color: #e0b4b4;
+  background: #fff6f6;
+  color: #7f1d1d;
+}
+
+.effraim-acao-flutuante-status[data-status="ok"] {
+  border-color: #b8d8ba;
+  background: #f5fff5;
+  color: #1f5130;
+}
+
+.effraim-iframe-acao-flutuante {
+  width: 50vw;
+  height: 80vh;
+  border: none;
+  background: #fff;
+  display: block;
+}

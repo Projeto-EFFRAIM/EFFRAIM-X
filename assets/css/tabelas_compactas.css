@@ -1,0 +1,74 @@
+.effraim-tabelas-compactas-colapsavel {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+}
+
+.effraim-tabelas-compactas-celula-conteudo {
+	max-height: var(--effraim-tabelas-compactas-max-height, 50px);
+	overflow: hidden;
+	line-height: 1.3;
+	flex: 1;
+	min-width: 0;
+}
+
+.effraim-tabelas-compactas-colapsavel[data-expandido="1"] .effraim-tabelas-compactas-celula-conteudo {
+	max-height: 250px;
+	max-width: calc(100vw - 24px);
+	overflow: auto;
+}
+
+tr.effraim-tabelas-compactas-linha-hover {
+	position: relative;
+	z-index: 5;
+}
+
+.effraim-tabelas-compactas-aviso {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	margin: 8px 0;
+	padding: 6px 10px;
+	border: 1px solid #b9dec2;
+	border-radius: 6px;
+	background: #e9f8ee;
+	color: #1f4d2c;
+	font-size: 12px;
+}
+
+.effraim-tabelas-compactas-aviso-logo {
+	width: 18px;
+	height: 18px;
+	flex: 0 0 auto;
+}
+
+.effraim-tabelas-compactas-aviso-toggle-wrap {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	margin-left: 4px;
+	user-select: none;
+}
+
+.effraim-tabelas-compactas-aviso-toggle-texto {
+	font-size: 12px;
+	color: #1f4d2c;
+}
+
+.effraim-tabelas-compactas-aviso-toggle {
+	width: 16px;
+	height: 16px;
+	cursor: pointer;
+	margin: 0;
+}
+
+.effraim-tabelas-compactas-medidor {
+	position: absolute;
+	left: -99999px;
+	top: -99999px;
+	visibility: hidden;
+	pointer-events: none;
+	white-space: normal;
+	line-height: 1.3;
+}
+

@@ -1,0 +1,84 @@
+function copiarParaColarNoExcel(el) {
+  var MSG_ERRO = "Não foi possível copiar automaticamente";
+
+  if (!document.queryCommandSupported("copy")) {
+    mostrarTooltip(MSG_ERRO, true);
+    return;
+  }
+
+  try {
+    var paginacao = document.getElementById("infraAjaxCarregarPaginasNormal");
+    if (paginacao && paginacao.style.display !== "none") {
+      infraExibirAviso(false);
+      carregarTodasPaginas(infraOcultarAviso);
+      // Após carregamento das páginas seguintes, usuário terá que clicar
+      // novamente para copiar, pois navegadores não permitem execução deste
+      // comando após uma ação assíncrona.
+    } else {
+      preencherECopiar();
+      mostrarTooltip("Dados copiados");
+    }
+  } catch (err) {
+    mostrarTooltip(MSG_ERRO, true);
+  }
+
+  function preencherECopiar() {
+    var celulaDthSentenca = document.getElementById("copiarExcelDthSentenca");
+    var eventoSentenca = document.querySelectorAll(
+      "tr.infraEventoMuitoImportante"
+    );
+    if (eventoSentenca.length === 1) {
+      celulaDthSentenca.textContent = eventoSentenca[0].cells[2].textContent;
+    }
+
+    var celulaDthAutuacao = document.getElementById("copiarExcelDthAutuacao");
+    var txtAutuacao = document.getElementById("txtAutuacao");
+    if (txtAutuacao) {
+      celulaDthAutuacao.textContent = txtAutuacao.textContent;
+    }
+
+    var citacoes = document.querySelectorAll("[data-abertura-prazo]");
+    citacoes.forEach(function (citacao) {
+      var dados = citacao.dataset.aberturaPrazo.split("|");
+      var celulaParte = document.querySelector(
+        '.copiarExcelDthCitacao[data-id-pessoa="' + dados[0] + '"]'
+      );
+      if (celulaParte) celulaParte.textContent = dados[1];
+    });
+
+    var table = document.getElementById("tblCopiarExcel");
+    var range = new Range();
+    range.selectNode(table);
+    var selection = window.getSelection();
+    selection.removeAllRanges();
+    selection.addRange(range);
+    document.execCommand("copy");
+  }
+
+  function mostrarTooltip(mensagem, erro = false) {
+    ocultarTooltip();
+
+    var tooltipWrap = document.createElement("div");
+    tooltipWrap.className = "tooltipAutoSelecionar";
+    tooltipWrap.textContent = mensagem;
+    document.body.insertAdjacentElement("afterbegin", tooltipWrap);
+
+    if (erro) {
+      tooltipWrap.classList.add("erro");
+    }
+
+    window.setTimeout(ocultarTooltip, 5000);
+
+    var padding = 5;
+    var linkProps = el.getBoundingClientRect();
+    var tooltipProps = tooltipWrap.getBoundingClientRect();
+    var topPos =
+      window.scrollY + linkProps.top - (tooltipProps.height + padding);
+    tooltipWrap.style.top = topPos + "px";
+    tooltipWrap.style.left = linkProps.left + "px";
+  }
+
+  function ocultarTooltip() {
+    $(".tooltipAutoSelecionar").remove();
+  }
+}

@@ -1,0 +1,32 @@
+.tutorial-runner-wrap {
+  max-width: 1320px;
+}
+
+.tutorial-runner-header {
+  margin-bottom: 10px;
+}
+
+.tutorial-runner-card {
+  margin-bottom: 12px;
+}
+
+.tutorial-runner-meta {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.tutorial-runner-meta code {
+  background: rgba(255, 255, 255, 0.68);
+  border: 1px solid #9bc0cb;
+  border-radius: 6px;
+  padding: 1px 6px;
+}
+
+.tutorial-runner-frame {
+  width: 100%;
+  min-height: 760px;
+  border: 1px solid #8db7c4;
+  border-radius: 10px;
+  background: #fff;
+}

@@ -1,0 +1,20 @@
+/**
+ * Adaptado de InfraString.php
+ * @param strNome
+ * @returns {string}
+ */
+function formatarNome(strNome) {
+    var arrNome = strNome.trim().toLowerCase().split(' ');
+    var strTemp = '';
+    var arrParticulas = {'da': 'da', 'das': 'das', 'de': 'de', 'do': 'do', 'dos': 'dos', 'e': 'e'};
+    arrNome.forEach(function (parte) {
+        if (!(arrParticulas[parte])) {
+            parte = parte.substring(0, 1).toUpperCase() + parte.substring(1);
+        }
+        if (strTemp != '') {
+            strTemp += ' ';
+        }
+        strTemp += parte;
+    });
+    return strTemp;
+}

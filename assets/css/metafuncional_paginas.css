@@ -1,0 +1,186 @@
+body.effraim-meta-page {
+  margin: 0;
+  background: linear-gradient(180deg, #c8f1ec 0%, #b3e5fc 100%);
+  font-family: "Segoe UI", Roboto, sans-serif;
+  color: #083b44;
+}
+
+.effraim-meta-wrap {
+  max-width: 980px;
+  margin: 0 auto;
+  min-height: 100vh;
+  padding: 18px;
+  background:
+    url("../icones/logo_effraim.svg") center center no-repeat fixed,
+    rgba(255, 255, 255, 0.9);
+  background-size: contain;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+.effraim-meta-page h1 {
+  font-size: 20px;
+  margin-bottom: 12px;
+  color: #06424a;
+  text-align: center;
+}
+
+.effraim-meta-page q {
+  display: block;
+  text-align: center;
+  margin-bottom: 14px;
+}
+
+.effraim-meta-page .intro {
+  text-align: center;
+  margin-bottom: 16px;
+}
+
+.effraim-meta-page .secao-preferencia {
+  border: 1px solid #99d6cc;
+  border-radius: 10px;
+  margin-bottom: 16px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  background: #d8f5f0;
+  opacity: 0.92;
+}
+
+.effraim-meta-page .cabecalho-secao {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #a8e0da;
+  padding: 8px 12px;
+}
+
+.effraim-meta-page .cabecalho-secao h2 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: #063c44;
+}
+
+.effraim-meta-page .corpo-secao {
+  padding: 10px 14px;
+}
+
+.effraim-meta-note {
+  border: 1px solid #99d6cc;
+  border-radius: 10px;
+  background: #d8f5f0;
+  opacity: 0.95;
+  padding: 10px 12px;
+  margin-bottom: 14px;
+}
+
+.effraim-form-contato {
+  display: grid;
+  gap: 8px;
+}
+
+.effraim-form-contato label {
+  font-weight: 600;
+}
+
+.effraim-form-contato input,
+.effraim-form-contato textarea {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid #8bc3bc;
+  border-radius: 6px;
+  background: #f2f2f2;
+  color: #000;
+  padding: 8px 10px;
+  font-size: 13px;
+}
+
+.effraim-form-contato textarea {
+  resize: vertical;
+}
+
+.effraim-form-contato input:focus,
+.effraim-form-contato textarea:focus {
+  background: #fff;
+  border-color: #4caf50;
+  outline: none;
+}
+
+.effraim-form-contato button {
+  justify-self: start;
+  background: #0066cc;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 14px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.tutorial-acoes {
+  margin-top: 10px;
+}
+
+.tutorial-btn {
+  background: #0066cc;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 7px 12px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.effraim-tour-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  z-index: 2147483000;
+}
+
+.effraim-tour-tooltip {
+  position: absolute;
+  max-width: 320px;
+  background: #ffffff;
+  color: #183749;
+  border: 1px solid #9bc6d6;
+  border-radius: 10px;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.28);
+  padding: 10px 12px;
+  z-index: 2147483001;
+}
+
+.effraim-tour-titulo {
+  margin: 0 0 6px;
+  font-size: 14px;
+}
+
+.effraim-tour-texto {
+  margin: 0;
+  font-size: 13px;
+}
+
+.effraim-tour-acoes {
+  margin-top: 10px;
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.effraim-tour-btn {
+  border: 1px solid #7caec2;
+  background: #e7f5fb;
+  color: #0e3f55;
+  border-radius: 6px;
+  padding: 5px 10px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.effraim-tour-highlight {
+  position: relative !important;
+  z-index: 2147483002 !important;
+  outline: 3px solid #ffd54f !important;
+  outline-offset: 2px !important;
+  border-radius: 8px !important;
+}

@@ -1,0 +1,13 @@
+.effraim-paginacao-icone {
+	width: 16px;
+	height: 16px;
+	vertical-align: text-bottom;
+}
+
+#divPaginacao label[for$="Effraim"] .effraim-paginacao-icone {
+	margin-right: 4px;
+}
+
+.effraim-paginacao-option-icone {
+	font-weight: 600;
+}

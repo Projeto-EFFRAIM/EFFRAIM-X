@@ -1,0 +1,277 @@
+//OBSERVACAO: Se fizer modificacoes nesse arquivo, é necessário modificar o PaginaEproc.php,
+//incrementando o último número da constante NR_VERSAO_EPROC. Essa constante é utilizada na funcao adicionarJavascript(),
+//bem como na funcao getNumVersao(), e evita problemas que ocorrem quando o cache do navegador nao atualiza o javascript.
+
+// Encapsulamento da lógica em uma função anônima para evitar a persistência
+// das variáveis locais
+(function(){
+
+	var documentosAbertos = window.documentosAbertos = {};
+	var monitoresVerificados = false;
+
+	$(function() {
+		analisarDocs();
+		if (FECHAR_DOCUMENTOS_AO_SAIR) {
+			$(window).on('beforeunload', verificarDocumentosAbertos);
+		}
+	});
+
+	var analisarDocs = window.analisarDocs = function analisarDocs() {
+		$('a[data-doc]').each(adicionarObservador);
+		$('button[data-lista-documentos]').each(adicionarObservadorDeLista);
+		if (ABRIR_DOCUMENTOS_EM_JANELAS) {
+			verificarConfiguracaoMonitores();
+		}
+	}
+
+	function verificarDocumentosAbertos() {
+		var quantidadeAbertos = 0;
+		$.each(documentosAbertos, function(id, abaOuJanela) {
+			if (abaOuJanela && !abaOuJanela.closed) quantidadeAbertos++;
+			else delete documentosAbertos[id];
+		});
+		if (quantidadeAbertos == 0) return;
+		confirmarFechamento(documentosAbertos, quantidadeAbertos);
+	}
+
+	function verificarConfiguracaoMonitores() {
+		if (monitoresVerificados) return;
+		if (typeof NUM_MONITORES == 'undefined') return;
+		switch (NUM_MONITORES) {
+			case 0: // Não configurado
+				try {
+					adicionarLinkConfiguracaoMonitores();
+					monitoresVerificados = true;
+				} catch (err) {
+					// Não foi possível criar o link.
+				}
+				break;
+
+			case 1: // Monitor único
+			case 2: // Múltiplos monitores
+				monitoresVerificados = true;
+				break;
+
+		}
+	}
+
+	function adicionarLinkConfiguracaoMonitores() {
+		var link = criarLinkNaTabelaDeEventos($('#lnkConfiguracaoSistema').attr('href'), 'Configurar monitores');
+		link.on('click', confirmarAbrirTelaConfiguracao);
+	}
+
+	function criarLinkNaTabelaDeEventos(url, texto) {
+		var link = null;
+		$('table[summary="Eventos"]').each(function(id, tabela) {
+			link = $('<a class="infraLink" href="' + url + '">' + texto + '</a>');
+			var caption = $('<caption class="infraCaption"></caption>');
+			caption.append(link);
+			$(tabela).prepend(caption);
+		});
+		if (link === null) {
+			throw new Error('Não há tabela de eventos.');
+		}
+		return link;
+	}
+
+	function confirmarAbrirTelaConfiguracao(e) {
+			if (e.shiftKey || e.ctrlKey || e.metaKey) {
+				return;
+			} else if (confirm('Abrir a tela de configuração do sistema? A página atual será fechada.')) {
+				// Deixar o navegador redirecionar a página
+			} else {
+				e.preventDefault();
+			}
+	}
+
+	function confirmarFechamento(documentosAbertos, quantidadeAbertos) {
+		var tentativa = tentarPerguntarSeUsuarioQuerFechar(quantidadeAbertos);
+		tentativa.done(function(resposta) {
+			// Usuário conseguiu responder
+			if (resposta === true) {
+				fecharDocumentosAbertos(documentosAbertos);
+			}
+		});
+		tentativa.fail(function() {
+			// Navegador não deixou usuário responder.
+			// Geralmente acontece quando o usuário fecha a aba/janela ou navega
+			// para outro domínio
+			fecharDocumentosAbertos(documentosAbertos);
+		});
+	}
+
+	function fecharDocumentosAbertos(documentosAbertos) {
+		$.each(documentosAbertos, function(id, abaOuJanela) {
+			if (abaOuJanela && !abaOuJanela.closed) abaOuJanela.close();
+		});
+	}
+
+	function tentarPerguntarSeUsuarioQuerFechar(qtd) {
+		var pergunta = adequarPlural('Há %d documento(s) aberto(s). Deseja ' +
+			'fechá-lo(s)?', qtd);
+
+		var defer = new jQuery.Deferred(function setup() {
+			var tentativas = 0;
+
+			this.tentarPerguntar = function() {
+				tentativas++;
+				try {
+					var resposta = fazerPergunta(pergunta);
+					this.resolve(resposta);
+				} catch (err) {
+					this.notify(tentativas);
+				}
+			};
+		});
+		defer.progress(function(tentativas) {
+			if (tentativas == 1) {
+				// Webkit (Chrome e Safari) e versões recentes do Firefox
+				// rejeitam a tentativa de bloqueio da página.
+				// Tenta novamente assincronamente.
+				// No entanto, a partir do Firefox Quantum (57), não é possível
+				// verificar a resposta do usuário, ainda que o diálogo seja exibido.
+				// Assim, para evitar confusões, os documentos abertos são fechados sem
+				// confirmação.
+				if (infraVersaoFirefox() !== 0 && infraVersaoFirefox() >= 57) {
+					defer.reject();
+				} else {
+					window.setTimeout(function() { defer.tentarPerguntar(); }, 0);
+				}
+			} else if (tentativas == 2) {
+				// Versões recentes do Firefox sempre rejeitam a segunda
+				// tentativa. Tenta uma última vez.
+				defer.tentarPerguntar();
+			} else {
+				// Se foi rejeitada novamente, é porque o usuário navegou para
+				// uma página de outro domínio ou fechou a aba/janela. Manda o
+				// aviso para o handler fail().
+				defer.reject(tentativas);
+			}
+		});
+		defer.tentarPerguntar();
+		return defer;
+	}
+
+	function adequarPlural(frase, num) {
+		frase = frase.replace(/%d/g, num);
+		var re = /\(([^\)]+)\)/g,
+				subs = num == 1 ? '' : '$1';
+		for (var expr; expr = re.exec(frase);) {
+			frase = frase.replace(re, subs);
+		}
+		return frase;
+	}
+
+	function fazerPergunta(pergunta) {
+		var tempoInicial = new Date();
+		var resposta = window.confirm.call(window, pergunta);
+		var tempoFinal = new Date();
+		var tempoParaResponder = tempoFinal - tempoInicial;
+		if (tempoParaResponder <= 500) {
+			//Não houve tempo suficiente para o usuário responder,
+			//então provavelmente o navegador não fez a pergunta.
+			//Este é o comportamento do Chrome e Safari para
+			//eventos onbeforeunload.
+			throw new Error('Tempo insuficiente para resposta');
+		}
+		return resposta;
+	}
+
+	function adicionarObservador(indice, elemento) {
+		$(elemento).on('click', abrirAbaOuJanela);
+	}
+	function adicionarObservadorDeLista(indice, elemento) { // abrindo lista
+		$(elemento).on('click', abrirListaEmAbaOuJanela);
+	}
+
+	function abrirListaEmAbaOuJanela(evento){
+    	let b64Documentos = $(evento.currentTarget).data('listaDocumentos'); // pegando as listas de documentos
+
+    	let objDocs = atob(b64Documentos); // lista recebida em base64, decodificando
+    	// o json nao é valido, necessário fazer uma regex
+
+        let regex = /i:(\d+);s:(\d+):"(.*?)";/g;
+        let match;
+        let arrayDesestruturado = [];
+
+        while ((match = regex.exec(objDocs)) !== null) {
+          let index = parseInt(match[1]);
+          let length = parseInt(match[2]);
+          let elementoSerializado = match[3];
+
+          arrayDesestruturado[index] = {id:elementoSerializado, href:'controlador.php?acao=acessar_documento&'+elementoSerializado};
+        }
+
+        for(let i = 0; i < arrayDesestruturado.length; i++){
+            // abrindo em nova tela/aba
+            abrirLinkEmAbaOuJanela(arrayDesestruturado[i], false);
+        }
+	}
+
+	function abrirAbaOuJanela(evento) {
+		if (deixarEventoEmPaz(evento)) return;
+
+		try {
+			var linkDocumento = evento.currentTarget;
+			abrirLinkEmAbaOuJanela(linkDocumento);
+		} catch (ex) {
+			// Se houve algum erro, retorna para permitir que o navegador processe o
+			// clique normalmente.
+			return;
+		}
+		// Se tudo correu bem, previne que o navegador abra o link novamente.
+		evento.preventDefault();
+	}
+
+	function deixarEventoEmPaz(evento) {
+		// Quando o usuário manteve alguma tecla modificadora pressionada durante o
+		// clique, deixar o navegador lidar com o evento.
+		return evento.ctrlKey || evento.shiftKey || evento.metaKey;
+	}
+
+	function abrirLinkEmAbaOuJanela(link, real = true) { // padrão, recebendo link real
+		if(real){ // o padrão, recebendo  direto do link
+		    var id = $(link).attr('data-doc');
+		} else { // recebendo de outro lugar, de uma lista de documentos
+			var id = link.id;
+		}
+		if (ABRIR_DOCUMENTOS_EM_JANELAS) {
+			// Tenta trazer para o primeiro plano a janela do documento, caso já
+			// tenha sido aberta.
+			if (! focarJanelaExistente(id)) {
+				var opcoesPadrao = 'resizable=yes,scrollbars=yes,status=yes';
+				var posicaoMonitorPadrao = unescape(infraLerCookiePrivado('posicaoMonitorPadrao'));
+				if (posicaoMonitorPadrao != '') {
+					opcoesPadrao += ',' + posicaoMonitorPadrao;
+				}
+				documentosAbertos[id] = window.open(
+					link.href,
+					'doc' + id,
+					opcoesPadrao
+				);
+			}
+		} else {
+			// Não é possível trazer uma aba existente para primeiro plano, por isso
+			// a fechamos e reabrimos.
+			fecharAbaExistente(id);
+			documentosAbertos[id] = window.open(link.href);
+		}
+	}
+
+	function focarJanelaExistente(id) {
+		var janela = documentosAbertos[id];
+		if (janela && !janela.closed) {
+			janela.focus();
+			return true;
+		}
+		return false;
+	}
+
+	function fecharAbaExistente(id) {
+		var aba = documentosAbertos[id];
+		if (aba && !aba.closed) {
+			aba.close();
+		}
+	}
+
+})();

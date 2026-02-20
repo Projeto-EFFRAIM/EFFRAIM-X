@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <title>Tutorial - EFFRAIM</title>
+  <link rel="stylesheet" href="../assets/css/metafuncional_paginas.css" />
+</head>
+<body class="effraim-meta-page">
+  <main class="effraim-meta-wrap">
+    <h1>Tutorial EFFRAIM</h1>
+    <p class="effraim-meta-note" id="tutorial-intro">
+      Tutorial = fluxo guiado completo. Esta página reúne como usar cada funcionalidade e suas limitações.
+    </p>
+
+    <section class="secao-preferencia" id="tutorial-card-como-usar">
+      <div class="cabecalho-secao"><h2>Como usar esta área</h2></div>
+      <div class="corpo-secao">
+        <p>Escolha a funcionalidade e siga as etapas em ordem. Quando houver configuração relevante, ela aparecerá na seção da funcionalidade.</p>
+      </div>
+    </section>
+
+    <section class="secao-preferencia" id="tutorial-card-favoritos">
+      <div class="cabecalho-secao"><h2>Painel Inicial - Favoritos</h2></div>
+      <div class="corpo-secao">
+        <p>Use a estrela nas listas do painel inicial para adicionar ou remover favoritos. Você pode salvar na raiz, criar pastas e subpastas (até nível 2), arrastar para reordenar e mover entre pastas.</p>
+        <p>O botão abaixo abre uma janela de treino por página-tipo, com flag de rota de tutorial ativa.</p>
+        <p>Limitação atual: máximo de 50 entradas no total (favoritos + pastas) para manter o desempenho e a sincronização.</p>
+        <div class="tutorial-acoes">
+          <button type="button" class="tutorial-btn btn-iniciar-tutorial" id="btn-iniciar-favoritos" data-tutorial="favoritos">Iniciar Tutorial Guiado</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="secao-preferencia" id="tutorial-card-consulta-flutuante">
+      <div class="cabecalho-secao"><h2>Consulta Flutuante</h2></div>
+      <div class="corpo-secao">
+        <p>Mostra como abrir o painel da Consulta Flutuante, usar os atalhos e trazer uma seção para frente.</p>
+        <div class="tutorial-acoes">
+          <button type="button" class="tutorial-btn btn-iniciar-tutorial" id="btn-iniciar-consulta-flutuante" data-tutorial="consulta_flutuante">Iniciar Tutorial Guiado</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="secao-preferencia" id="tutorial-card-sisbajud">
+      <div class="cabecalho-secao"><h2>SISBAJUD</h2></div>
+      <div class="corpo-secao">
+        <p>Mostra abertura do painel deslizante, seleção de tipo de consulta e como as opções mudam conforme a escolha.</p>
+        <div class="tutorial-acoes">
+          <button type="button" class="tutorial-btn btn-iniciar-tutorial" id="btn-iniciar-sisbajud" data-tutorial="sisbajud">Iniciar Tutorial Guiado</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="secao-preferencia" id="tutorial-card-renajud">
+      <div class="cabecalho-secao"><h2>RENAJUD</h2></div>
+      <div class="corpo-secao">
+        <p>Mostra abertura do painel, seleção de consultados, preenchimento de valor de penhora e avanço do fluxo.</p>
+        <div class="tutorial-acoes">
+          <button type="button" class="tutorial-btn btn-iniciar-tutorial" id="btn-iniciar-renajud" data-tutorial="renajud">Iniciar Tutorial Guiado</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="secao-preferencia" id="tutorial-card-requisitorios">
+      <div class="cabecalho-secao"><h2>Requisitórios</h2></div>
+      <div class="corpo-secao">
+        <p>Mostra o botão de Requisitórios, o badge de resultado e o painel com a busca automática já processando/exibindo retorno.</p>
+        <p>Limitação atual: o disparo automático depende dos localizadores configurados.</p>
+        <div class="tutorial-acoes">
+          <button type="button" class="tutorial-btn btn-iniciar-tutorial" id="btn-iniciar-requisitorios" data-tutorial="requisitorios">Iniciar Tutorial Guiado</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="secao-preferencia" id="tutorial-card-lista-partes-aprimorada">
+      <div class="cabecalho-secao"><h2>Lista de Partes Aprimorada</h2></div>
+      <div class="corpo-secao">
+        <p>Mostra o aviso da funcionalidade, o colapsável "Abrir demais..." e o controle de altura máxima da tabela com rolagem automática.</p>
+        <div class="tutorial-acoes">
+          <button type="button" class="tutorial-btn btn-iniciar-tutorial" id="btn-iniciar-lista-partes-aprimorada" data-tutorial="lista_partes_aprimorada">Iniciar Tutorial Guiado</button>
+        </div>
+      </div>
+    </section>
+  </main>
+  <script src="tutorial.js"></script>
+</body>
+</html>

@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tutorial Runner - EFFRAIM</title>
+  <link rel="stylesheet" href="../assets/css/metafuncional_paginas.css" />
+  <link rel="stylesheet" href="../assets/css/tutorial_runner.css" />
+</head>
+<body class="effraim-meta-page">
+  <main class="effraim-meta-wrap tutorial-runner-wrap">
+    <header class="tutorial-runner-header">
+      <h1 id="runner-title">Tutorial - Página de Treino</h1>
+      <p class="effraim-meta-note" id="runner-note">Modo de tutorial ativo.</p>
+    </header>
+
+    <section class="secao-preferencia tutorial-runner-card" id="tutorial-runner-info">
+      <div class="cabecalho-secao"><h2>Contexto</h2></div>
+      <div class="corpo-secao tutorial-runner-meta">
+        <span><strong>Tipo:</strong> <code id="runner-tipo">-</code></span>
+        <span><strong>Flag:</strong> <code id="runner-flag">-</code></span>
+        <span><strong>Status:</strong> <code id="runner-status">Carregando...</code></span>
+      </div>
+    </section>
+
+    <section class="secao-preferencia tutorial-runner-card" id="tutorial-runner-canvas">
+      <div class="cabecalho-secao"><h2>Página-base do tutorial</h2></div>
+      <div class="corpo-secao">
+        <iframe id="tutorial-runner-frame" class="tutorial-runner-frame" title="Página de tutorial"></iframe>
+      </div>
+    </section>
+  </main>
+
+  <script type="module" src="tutorial_runner.js"></script>
+</body>
+</html>

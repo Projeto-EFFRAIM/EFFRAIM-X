@@ -1,0 +1,19 @@
+*** Begin Patch
+*** Update File: modules/utils/configuracoes.js
+@@
+ export async function carregarConfiguracoes() {
+ 	const existentes = await lerConfiguracoes();
+ 
+-	// carrega padrão da versão atual
+-	const resposta = await fetch(chrome.runtime.getURL("configuracoes.json"));
+-	const padrao = await resposta.json();
++	// carrega padrão da versão atual (tolerando context invalidated)
++	let padrao = {};
++	try {
++		const resposta = await fetch(chrome.runtime.getURL("configuracoes.json"));
++		padrao = await resposta.json();
++	} catch (e) {
++		console.warn("[EFFRAIM] Não foi possível ler configuracoes.json, usando armazenado.", e);
++		return existentes;
++	}
+*** End Patch

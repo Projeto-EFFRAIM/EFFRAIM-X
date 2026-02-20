@@ -1,0 +1,187 @@
+.tutorial-demo-wrap {
+  max-width: 1180px;
+}
+
+.tutorial-demo-header {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.tutorial-demo-card .corpo-secao {
+  min-height: 520px;
+}
+
+.tutorial-sim-page {
+  border: 1px solid #9ec5cf;
+  border-radius: 10px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.tutorial-sim-topbar {
+  background: linear-gradient(90deg, #1d6178, #2f8397);
+  color: #fff;
+  padding: 10px 12px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tutorial-topbar-icon {
+  width: 18px;
+  height: 18px;
+  object-fit: contain;
+}
+
+.tutorial-sim-grid {
+  display: grid;
+  gap: 12px;
+  padding: 12px;
+}
+
+.tutorial-sim-card {
+  border: 1px solid #9fc7d1;
+  border-radius: 8px;
+  background: rgba(233, 247, 252, 0.78);
+  padding: 10px;
+}
+
+.tutorial-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.tutorial-pill {
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid #7eb0c1;
+  background: #fff;
+  color: #174b60;
+  font-size: 13px;
+}
+
+.tutorial-icon-btn {
+  width: 36px;
+  height: 36px;
+  border: 1px solid #7daebf;
+  border-radius: 8px;
+  background: #fff;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+.tutorial-icon-btn img {
+  width: 18px;
+  height: 18px;
+  object-fit: contain;
+}
+
+.tutorial-icon-btn-sm {
+  width: 28px;
+  height: 28px;
+}
+
+.tutorial-input {
+  border: 1px solid #7daebf;
+  border-radius: 6px;
+  padding: 6px 8px;
+  min-width: 260px;
+  background: #fff;
+}
+
+.tutorial-action {
+  border: 1px solid #689fb3;
+  border-radius: 6px;
+  background: #eaf6fb;
+  color: #17475b;
+  padding: 6px 12px;
+  font-weight: 700;
+}
+
+.tutorial-action-icon {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.tutorial-action-icon img {
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+}
+
+.tutorial-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.tutorial-table th,
+.tutorial-table td {
+  border: 1px solid #9fc5cf;
+  padding: 6px;
+  text-align: left;
+}
+
+.tutorial-badge {
+  display: inline-block;
+  min-width: 22px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: #0f556d;
+  color: #fff;
+  text-align: center;
+  font-weight: 700;
+}
+
+.tutorial-processo-linha {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.tutorial-caption {
+  margin-top: 6px;
+  margin-bottom: 8px;
+}
+
+.tutorial-folder-tree {
+  margin-top: 8px;
+  border: 1px solid #97bfca;
+  border-radius: 8px;
+  background: #f8fdff;
+}
+
+.tutorial-folder-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 10px;
+  border-bottom: 1px solid #d3e8ef;
+}
+
+.tutorial-folder-row:last-child {
+  border-bottom: 0;
+}
+
+.tutorial-folder-row-child {
+  padding-left: 20px;
+}
+
+.tutorial-folder-label {
+  color: #124255;
+  font-weight: 700;
+}
+
+.tutorial-fav-label {
+  color: #1a4c61;
+}

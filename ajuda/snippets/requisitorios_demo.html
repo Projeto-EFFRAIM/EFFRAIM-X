@@ -1,0 +1,50 @@
+<div class="tutorial-sim-page tutorial-req-snippet" id="sim-req-page" aria-label="Tela simulada de requisitórios">
+  <div class="tutorial-sim-topbar" id="sim-req-topbar">
+    <img class="tutorial-topbar-icon" src="../assets/icones/requisitorio.png" alt="" aria-hidden="true" />
+    <span>Consulta Flutuante - Requisitórios (simulação)</span>
+  </div>
+
+  <div class="tutorial-sim-grid">
+    <section class="tutorial-sim-card" id="sim-req-botoes-flutuantes">
+      <h3>Painel deslizante</h3>
+      <div class="tutorial-row">
+        <button type="button" class="tutorial-action tutorial-action-icon" id="sim-req-botao" aria-label="Abrir Requisitórios">
+          <img src="../assets/icones/requisitorio.png" alt="" aria-hidden="true" />
+          <span>Requisitórios</span>
+        </button>
+        <span>Resultado:</span>
+        <span class="tutorial-badge" id="sim-req-badge">1</span>
+      </div>
+    </section>
+
+    <section class="tutorial-sim-card" id="sim-req-form-busca">
+      <h3>Busca por número do processo</h3>
+      <div class="tutorial-row">
+        <input class="tutorial-input" id="sim-req-processo" value="5060222-34.2024.4.02.5101" />
+        <button type="button" class="tutorial-action" id="sim-req-pesquisar">Pesquisar</button>
+      </div>
+    </section>
+
+    <section class="tutorial-sim-card" id="sim-req-resultado">
+      <h3>Resultado da consulta</h3>
+      <table class="tutorial-table">
+        <thead>
+          <tr>
+            <th>Nº Processo</th>
+            <th>Nº Requisição</th>
+            <th>Status</th>
+            <th>Ação</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>5060222-34.2024.4.02.5101</td>
+            <td>25510064397</td>
+            <td>Processada</td>
+            <td><a href="#" role="button">Visualizar</a></td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+  </div>
+</div>
