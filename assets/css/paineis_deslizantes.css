@@ -19,3 +19,54 @@
 		min-width: 0;
 	}
 }
+
+.effraim-painel-flutuante-grade {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+	gap: 0;
+	align-items: stretch;
+	width: 100%;
+}
+
+.effraim-painel-flutuante-botao {
+	width: 100% !important;
+	height: 22px !important;
+	min-height: 22px !important;
+	display: flex !important;
+	align-items: center !important;
+	justify-content: center !important;
+	text-align: center !important;
+	line-height: 1 !important;
+	white-space: nowrap !important;
+	overflow: hidden !important;
+	text-overflow: ellipsis !important;
+	padding: 0 1px !important;
+	margin: 0 !important;
+	border: 1px solid #c3c9cf !important;
+	border-radius: 2px !important;
+	background: #eef1f4 !important;
+	color: #2f3438 !important;
+	font-size: 12px !important;
+	font-family: inherit !important;
+	cursor: pointer !important;
+	box-sizing: border-box !important;
+}
+
+.effraim-painel-flutuante-botao:hover {
+	background: #e2e7eb !important;
+}
+
+.effraim-painel-flutuante-botao.active {
+	background: #d6ecff !important;
+	border-color: #7fb2de !important;
+}
+
+.effraim-painel-deslizante--forcado {
+	width: min(900px, 92vw) !important;
+	min-width: min(900px, 92vw) !important;
+	max-width: 92vw !important;
+	min-height: 72vh !important;
+	max-height: 88vh !important;
+	overflow-y: auto !important;
+	overflow-x: hidden !important;
+}

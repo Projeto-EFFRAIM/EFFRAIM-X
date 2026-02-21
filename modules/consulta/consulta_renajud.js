@@ -1,4 +1,4 @@
-import { criarPainelDeslizantePadrao } from "../utils/interface.js";
+import { criarPainelDeslizantePadrao, forcarAberturaPainelDeslizante } from "../utils/interface.js";
 import { consulta_dados_processo } from "../../funcoes.js";
 
 const RENAJUD_URL = "https://renajud.pdpj.jus.br/veiculo/pesquisa";
@@ -26,9 +26,7 @@ export function init() {
 	painel.appendChild(conteudo);
 
 	const abrirPainel = () => {
-		painel.style.display = "inline-block";
-		painel.style.opacity = "1";
-		painel.style.pointerEvents = "auto";
+		forcarAberturaPainelDeslizante(painel);
 	};
 
 	botao.addEventListener("click", () => {

@@ -224,6 +224,10 @@ export function criarPainelFlutuante({ botao, secoes, id="effraim-painel-flutuan
   if (!id || !botao || !Array.isArray(secoes)) return null;
 
   const painel = criarPainelDeslizantePadrao(id, botao);
+  painel.classList.add("effraim-painel-flutuante");
+  const gradeSecoes = document.createElement("div");
+  gradeSecoes.className = "effraim-painel-flutuante-grade";
+  painel.appendChild(gradeSecoes);
 
   let secaoAtiva = null;
   let placeholder = null;
@@ -292,7 +296,7 @@ export function criarPainelFlutuante({ botao, secoes, id="effraim-painel-flutuan
 
   secoes.forEach(secao => {
     const b = document.createElement("button");
-    b.className = "btn btn-sm btn-light border";
+    b.className = "effraim-painel-flutuante-botao";
     b.accessKey = secao.chave;
     b.textContent = `${secao.nome} (${b.accessKey})`;
     b.title = `Atalho: Alt + ${b.accessKey}`;
@@ -309,7 +313,7 @@ export function criarPainelFlutuante({ botao, secoes, id="effraim-painel-flutuan
       mostrarSecaoFlutuante(secao.id);
     });
 
-    painel.appendChild(b);
+    gradeSecoes.appendChild(b);
   });
 
   return painel;
@@ -473,6 +477,18 @@ function ajustarPainelPorProporcao(painel) {
   const alturaMax = Math.max(220, Math.round(vh * 0.88));
   const larguraMin = Math.min(300, larguraMax);
   const proporcaoLimite = 1.6;
+  const ehForcado = painel.classList.contains("effraim-painel-deslizante--forcado");
+
+  if (ehForcado) {
+    Object.assign(painel.style, {
+      maxWidth: `${larguraMax}px`,
+      maxHeight: `${alturaMax}px`,
+      overflowX: "hidden",
+      overflowY: "auto",
+      whiteSpace: "normal"
+    });
+    return alturaMax;
+  }
 
   Object.assign(painel.style, {
     width: "auto",
@@ -515,6 +531,17 @@ function ajustarPainelPorProporcao(painel) {
   painel.style.maxHeight = `${alturaAtual}px`;
   painel.style.overflowY = "hidden";
   return alturaAtual;
+}
+
+export function forcarAberturaPainelDeslizante(painel) {
+  if (!painel) return;
+  painel.classList.add("effraim-painel-deslizante--forcado");
+  mostrarPainel(painel);
+}
+
+export function removerForcamentoPainelDeslizante(painel) {
+  if (!painel) return;
+  painel.classList.remove("effraim-painel-deslizante--forcado");
 }
 
 function mostrarPainel(painel) {

@@ -208,9 +208,9 @@ async function ativarFuncionalidades(rotasAtivas, { tutorial = false } = {}) {
 	console.log("Ativando funcionalidades:", rotasAtivas.map(r => r.nome));
 
 	let infra =
+		document.querySelector("#navbar") ||
 		document.querySelector("#divInfraBarraLocalizacao") ||
 		document.querySelector("#divInfraBarraComandosSuperior") ||
-		document.querySelector("#navbar") ||
 		document.body;
 
 	if (tutorial) {

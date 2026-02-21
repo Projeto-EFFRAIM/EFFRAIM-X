@@ -1,4 +1,4 @@
-import { criarPainelDeslizantePadrao, atualizarBadgeRequisitorioBotao } from "../utils/interface.js";
+import { criarPainelDeslizantePadrao, atualizarBadgeRequisitorioBotao, forcarAberturaPainelDeslizante } from "../utils/interface.js";
 import { consulta_dados_processo } from "../../funcoes.js";
 
 let iframeRequisitorioCompartilhado = null;
@@ -403,26 +403,14 @@ export function init() {
 		renderMockRequisitorio(conteudo, botao);
 		console.log("[REQUISITORIOS] Modo tutorial detectado. Renderizando mock de requisitorios.");
 		botao.addEventListener("click", () => {
-			painel.style.display = "inline-block";
-			painel.style.opacity = "1";
-			painel.style.pointerEvents = "auto";
-			requestAnimationFrame(() => {
-				const altura = painel.scrollHeight || 0;
-				painel.style.maxHeight = `${altura}px`;
-			});
+			forcarAberturaPainelDeslizante(painel);
 		});
 		console.log("Painel Requisitorios inicializado (tutorial/mock).");
 		return;
 	}
 
 	const abrirPainel = () => {
-		painel.style.display = "inline-block";
-		painel.style.opacity = "1";
-		painel.style.pointerEvents = "auto";
-		requestAnimationFrame(() => {
-			const altura = painel.scrollHeight || 0;
-			painel.style.maxHeight = `${altura}px`;
-		});
+		forcarAberturaPainelDeslizante(painel);
 	};
 
 	botao.addEventListener("click", () => {
