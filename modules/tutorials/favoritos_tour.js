@@ -10,7 +10,7 @@ export async function iniciarTutorial() {
 		{
 			selector: "#tutorial-card-favoritos",
 			titulo: "Favoritos do Painel Inicial",
-			texto: "Esta seção explica como salvar itens importantes para acesso rápido."
+			texto: "Esta seção explica como salvar itens importantes, organizar por pastas e usar cores para destacar itens."
 		},
 		{
 			selector: "#btn-iniciar-favoritos",

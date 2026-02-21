@@ -1,5 +1,5 @@
 const MAPA_PAGINA_TIPO = {
-  painel_inicial: "ajuda/mock_pages/painel_inicial.html",
+  painel_inicial: "ajuda/mock_pages/painel_inicial_secretaria/painel_inicial_secretaria.html",
   consulta_processual: "ajuda/mock_pages/consulta_processual/consulta_processual.html",
   lista_processos: "ajuda/mock_pages/lista_processos.html"
 };

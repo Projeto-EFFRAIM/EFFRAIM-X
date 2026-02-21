@@ -5,7 +5,7 @@ Objetivo
 - O tutorial runner carrega estes arquivos com a flag de rota: ?effraim_tutorial=1.
 
 Arquivos esperados
-- painel_inicial.html
+- painel_inicial_secretaria/painel_inicial_secretaria.html
 - consulta_processual/consulta_processual.html (+ pasta consulta_processual_files ao lado, se existir)
 - lista_processos.html
 

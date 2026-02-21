@@ -1,5 +1,6 @@
 import {
 	obterFavoritos,
+	salvarFavoritos,
 	removerFavorito,
 	reordenarItens,
 	moverItem,
@@ -50,6 +51,11 @@ export async function renderizarSecaoFavoritos(tentativa = 1) {
 	ensureFavoritosCss();
 	ensureMenuHandlers();
 	const favs = ordenarSeNecessario(await obterFavoritos());
+	const favoritosAusentes = limparFavoritosAusentesDaPagina(favs);
+	if (favoritosAusentes.length > 0) {
+		await salvarFavoritos(favs);
+		notificarLimpezaFavoritosAusentes(favoritosAusentes);
+	}
 	document.querySelectorAll("fieldset.infraFieldset[id^='fldFavoritosPainel']").forEach(fs => fs.remove());
 
 	const fieldsets = Array.from(document.querySelectorAll("fieldset.infraFieldset[id^='fld']")).filter(
@@ -104,6 +110,60 @@ export async function renderizarSecaoFavoritos(tentativa = 1) {
 	fieldset.append(legend, conteudo);
 	parent.insertBefore(fieldset, referencia);
 	window.dispatchEvent(new CustomEvent("effraim:atualizar_coloracao"));
+}
+
+function limparFavoritosAusentesDaPagina(favs) {
+	const ausentes = [];
+	const chave = item => `${item.secaoId}::${item.id}`;
+	const chavesAusentes = new Set();
+
+	const registrarSeAusente = item => {
+		if (!item?.secaoId || !item?.id) return;
+		if (localizarLinhaOriginal(item)) return;
+		const key = chave(item);
+		if (chavesAusentes.has(key)) return;
+		chavesAusentes.add(key);
+		ausentes.push(item);
+	};
+
+	(favs.itens_soltos || []).forEach(registrarSeAusente);
+
+	const visitarPastas = pastas => {
+		(pastas || []).forEach(pasta => {
+			(pasta.itens || []).forEach(registrarSeAusente);
+			visitarPastas(pasta.pastas || []);
+		});
+	};
+	visitarPastas(favs.pastas || []);
+
+	if (chavesAusentes.size === 0) return [];
+
+	const manter = item => !chavesAusentes.has(chave(item));
+	favs.itens_soltos = (favs.itens_soltos || []).filter(manter);
+
+	const limparPastas = pastas => {
+		(pastas || []).forEach(pasta => {
+			pasta.itens = (pasta.itens || []).filter(manter);
+			limparPastas(pasta.pastas || []);
+		});
+	};
+	limparPastas(favs.pastas || []);
+
+	return ausentes;
+}
+
+function notificarLimpezaFavoritosAusentes(ausentes) {
+	if (!Array.isArray(ausentes) || ausentes.length === 0) return;
+	const limiteTitulos = 6;
+	const titulos = ausentes
+		.map(item => item?.titulo || item?.id || "item sem título")
+		.filter(Boolean);
+	const exibidos = titulos.slice(0, limiteTitulos);
+	const restantes = Math.max(0, titulos.length - exibidos.length);
+	const sufixo = restantes > 0 ? `\n... e mais ${restantes} item(ns).` : "";
+	const mensagem = `Favorito não encontrado na página e removido automaticamente dos favoritos:\n- ${exibidos.join("\n- ")}${sufixo}`;
+	inserir_aviso_effraim("Favoritos ausentes foram removidos automaticamente.", 7000);
+	alert(mensagem);
 }
 
 function hasFavoritos(favs) {

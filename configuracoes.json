@@ -43,7 +43,7 @@
       "valor": true,
       "_meta": {
         "nome": "Painel Inicial Favoritos",
-        "explicacao": "Ativa os favoritos no painel inicial."
+        "explicacao": "Ativa favoritos e coloração de itens no painel inicial, com organização por pastas."
       }
     },
     "consulta_flutuante": {
