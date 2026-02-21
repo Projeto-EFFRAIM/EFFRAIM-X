@@ -1,7 +1,7 @@
 const MAPA_PAGINA_TIPO = {
   painel_inicial: "ajuda/mock_pages/painel_inicial_secretaria/painel_inicial_secretaria.html",
   consulta_processual: "ajuda/mock_pages/consulta_processual/consulta_processual.html",
-  lista_processos: "ajuda/mock_pages/lista_processos.html"
+  lista_processos: "ajuda/mock_pages/lista_processos/lista_processos.html"
 };
 const LOG_PREFIX = "[EFFRAIM tutorial_runner]";
 
@@ -42,6 +42,8 @@ function getTutorialStartSelector(tutorialId) {
   if (id === "renajud") return "#btn-renajud";
   if (id === "favoritos") return "#btn-painel_inicial_favoritos";
   if (id === "lista_partes_aprimorada") return "#fldPartes";
+  if (id === "tabelas_compactas") return "#effraim-tabelas-compactas-aviso";
+  if (id === "paginacao_aprimorada") return "#divPaginacao, #tblProcessoLista_length";
   return "#effraim-funcionalidades-container";
 }
 

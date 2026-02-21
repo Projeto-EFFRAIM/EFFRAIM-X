@@ -181,7 +181,9 @@ window.addEventListener("message", async (event) => {
 		sisbajud: "modules/tutorials/live_sisbajud_tour.js",
 		renajud: "modules/tutorials/live_renajud_tour.js",
 		requisitorios: "modules/tutorials/live_requisitorios_tour.js",
-		lista_partes_aprimorada: "modules/tutorials/live_lista_partes_aprimorada_tour.js"
+		lista_partes_aprimorada: "modules/tutorials/live_lista_partes_aprimorada_tour.js",
+		tabelas_compactas: "modules/tutorials/live_tabelas_compactas_tour.js",
+		paginacao_aprimorada: "modules/tutorials/live_paginacao_aprimorada_tour.js"
 	};
 	const moduloPath = mapa[tutorialId];
 	if (!moduloPath) {

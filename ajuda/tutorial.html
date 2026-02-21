@@ -4,18 +4,63 @@
   <meta charset="UTF-8" />
   <title>Tutorial - EFFRAIM</title>
   <link rel="stylesheet" href="../assets/css/metafuncional_paginas.css" />
+  <style>
+    .tutorial-busca-wrap {
+      position: sticky;
+      top: 0;
+      z-index: 5;
+      background: #eef5f8;
+      border: 1px solid #c8dbe4;
+      border-radius: 10px;
+      padding: 10px;
+      margin: 10px 0 14px;
+    }
+    .tutorial-busca-label {
+      display: block;
+      font-weight: 700;
+      margin-bottom: 6px;
+      color: #12374a;
+    }
+    .tutorial-busca-input {
+      width: 100%;
+      box-sizing: border-box;
+      border: 1px solid #8eb3c6;
+      border-radius: 8px;
+      padding: 8px 10px;
+      font-size: 14px;
+      color: #12374a;
+      background: #fff;
+    }
+    .tutorial-busca-vazio {
+      margin: 6px 0 0;
+      font-size: 13px;
+      color: #345a6c;
+      display: none;
+    }
+  </style>
 </head>
 <body class="effraim-meta-page">
   <main class="effraim-meta-wrap">
     <h1>Tutorial EFFRAIM</h1>
     <p class="effraim-meta-note" id="tutorial-intro">
-      Tutorial = fluxo guiado completo. Esta página reúne como usar cada funcionalidade e suas limitações.
+      Aqui você encontra o passo a passo de uso e os limites de cada recurso.
     </p>
+    <section class="tutorial-busca-wrap" aria-label="Pesquisar tutorial">
+      <label class="tutorial-busca-label" for="tutorial-search">Pesquisar recurso</label>
+      <input
+        id="tutorial-search"
+        class="tutorial-busca-input"
+        type="search"
+        placeholder="Ex.: favoritos, paginação, sisbajud..."
+        autocomplete="off"
+      />
+      <p id="tutorial-search-empty" class="tutorial-busca-vazio">Nenhum bloco encontrado com esse termo.</p>
+    </section>
 
     <section class="secao-preferencia" id="tutorial-card-como-usar">
       <div class="cabecalho-secao"><h2>Como usar esta área</h2></div>
       <div class="corpo-secao">
-        <p>Escolha a funcionalidade e siga as etapas em ordem. Quando houver configuração relevante, ela aparecerá na seção da funcionalidade.</p>
+        <p>Escolha um recurso e siga os passos na ordem. Se houver algum ajuste importante, ele será explicado no próprio bloco.</p>
       </div>
     </section>
 
@@ -23,7 +68,7 @@
       <div class="cabecalho-secao"><h2>Painel Inicial - Favoritos</h2></div>
       <div class="corpo-secao">
         <p>Use a estrela nas listas do painel inicial para adicionar ou remover favoritos. Você pode salvar na raiz, criar pastas e subpastas (até nível 2), arrastar para reordenar e mover entre pastas.</p>
-        <p>Use também o ícone de colorir para destacar pastas e itens. A cor pode ser aplicada mesmo sem favoritar o item: nesse caso, ele é salvo silenciosamente apenas para manter a cor.</p>
+        <p>Use também o ícone de colorir para destacar pastas e itens. A cor pode ser aplicada mesmo sem marcar a estrela: nesse caso, o item fica guardado só para manter a cor.</p>
         <p>O botão abaixo abre uma tela de treino com o passo a passo de uso em um ambiente seguro para praticar.</p>
         <p>Limitação atual: máximo de 50 entradas no total (favoritos + pastas) para manter o desempenho e a sincronização.</p>
         <p>Limitação de coloração silenciosa: até 50 itens coloridos fora dos favoritos visíveis.</p>
@@ -46,8 +91,8 @@
     <section class="secao-preferencia" id="tutorial-card-sisbajud">
       <div class="cabecalho-secao"><h2>SISBAJUD</h2></div>
       <div class="corpo-secao">
-        <p>Mostra abertura do painel deslizante, seleção de tipo de consulta e como as opções mudam conforme a escolha.</p>
-        <p>Em Preferências, o órgão padrão pode ser buscado por código (ex.: 88065) ou por parte do nome, com opções em ordem crescente de código.</p>
+        <p>Mostra como abrir o painel lateral, escolher o tipo de consulta e ver as opções mudando conforme a escolha.</p>
+        <p>Nas Preferências, o órgão padrão pode ser encontrado pelo número (ex.: 88065) ou por parte do nome.</p>
         <div class="tutorial-acoes">
           <button type="button" class="tutorial-btn btn-iniciar-tutorial" id="btn-iniciar-sisbajud" data-tutorial="sisbajud">Iniciar Tutorial Guiado</button>
         </div>
@@ -57,7 +102,7 @@
     <section class="secao-preferencia" id="tutorial-card-renajud">
       <div class="cabecalho-secao"><h2>RENAJUD</h2></div>
       <div class="corpo-secao">
-        <p>Mostra abertura do painel, seleção de consultados, preenchimento de valor de penhora e avanço do fluxo.</p>
+        <p>Mostra como abrir o painel, escolher quem será consultado, preencher valor e seguir para a próxima etapa.</p>
         <div class="tutorial-acoes">
           <button type="button" class="tutorial-btn btn-iniciar-tutorial" id="btn-iniciar-renajud" data-tutorial="renajud">Iniciar Tutorial Guiado</button>
         </div>
@@ -67,8 +112,8 @@
     <section class="secao-preferencia" id="tutorial-card-requisitorios">
       <div class="cabecalho-secao"><h2>Requisitórios</h2></div>
       <div class="corpo-secao">
-        <p>Mostra o botão de Requisitórios, o badge de resultado e o painel com a busca automática já processando/exibindo retorno.</p>
-        <p>Limitação atual: o disparo automático depende dos localizadores configurados.</p>
+        <p>Mostra o botão de Requisitórios, o aviso de resultado e o painel com busca automática em andamento.</p>
+        <p>Limite atual: a busca automática depende dos localizadores já definidos.</p>
         <div class="tutorial-acoes">
           <button type="button" class="tutorial-btn btn-iniciar-tutorial" id="btn-iniciar-requisitorios" data-tutorial="requisitorios">Iniciar Tutorial Guiado</button>
         </div>
@@ -78,9 +123,31 @@
     <section class="secao-preferencia" id="tutorial-card-lista-partes-aprimorada">
       <div class="cabecalho-secao"><h2>Lista de Partes Aprimorada</h2></div>
       <div class="corpo-secao">
-        <p>Mostra o aviso da funcionalidade, o colapsável "Abrir demais..." e o controle de altura máxima da tabela com rolagem automática.</p>
+        <p>Mostra o aviso de uso, o botão "Abrir demais..." e o limite de altura da lista com rolagem automática.</p>
         <div class="tutorial-acoes">
           <button type="button" class="tutorial-btn btn-iniciar-tutorial" id="btn-iniciar-lista-partes-aprimorada" data-tutorial="lista_partes_aprimorada">Iniciar Tutorial Guiado</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="secao-preferencia" id="tutorial-card-tabelas-compactas">
+      <div class="cabecalho-secao"><h2>Tabelas Compactas</h2></div>
+      <div class="corpo-secao">
+        <p>Mostra como textos longos da lista ficam recolhidos para facilitar a leitura e como expandir ao passar o mouse.</p>
+        <p>Você também verá o comando "Expandir todos" para abrir tudo de uma vez.</p>
+        <div class="tutorial-acoes">
+          <button type="button" class="tutorial-btn btn-iniciar-tutorial" id="btn-iniciar-tabelas-compactas" data-tutorial="tabelas_compactas">Iniciar Tutorial Guiado</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="secao-preferencia" id="tutorial-card-paginacao-aprimorada">
+      <div class="cabecalho-secao"><h2>Paginação Aprimorada</h2></div>
+      <div class="corpo-secao">
+        <p>Mostra as opções extras de quantidade por página (5, 10 e 200) e como manter sua escolha.</p>
+        <p>Esse recurso funciona tanto nos botões de paginação quanto no campo de escolha da tabela.</p>
+        <div class="tutorial-acoes">
+          <button type="button" class="tutorial-btn btn-iniciar-tutorial" id="btn-iniciar-paginacao-aprimorada" data-tutorial="paginacao_aprimorada">Iniciar Tutorial Guiado</button>
         </div>
       </div>
     </section>
