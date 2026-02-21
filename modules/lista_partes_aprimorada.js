@@ -1,6 +1,7 @@
 const LOG_PREFIXO = "[EFFRAIM lista_partes_aprimorada]";
 const CSS_ID = "effraim-lista-partes-aprimorada-css";
 const AVISO_ID = "effraim-lista-partes-aprimorada-aviso";
+const EVENTO_LISTA_PARTES_PRONTA = "EFFRAIM_LISTA_PARTES_PRONTA";
 const SCROLL_TABELA_CLASS = "effraim-lista-partes-scroll-tabela";
 const ALTURA_PADRAO = 150;
 const TIMEOUT_CARGA_MS = 5000;
@@ -508,6 +509,13 @@ function compactarTabelaPartes() {
 	return { alterados, totalGrupos: grupos.length };
 }
 
+function sinalizarListaPartesPronta(detalhe = {}) {
+	window.__EFFRAIM_LISTA_PARTES_PRONTA = true;
+	window.__EFFRAIM_LISTA_PARTES_DETALHE = detalhe;
+	window.dispatchEvent(new CustomEvent(EVENTO_LISTA_PARTES_PRONTA, { detail: detalhe }));
+	logInfo("Evento de lista de partes pronta emitido.", detalhe);
+}
+
 async function aplicarListaPartesAprimorada() {
 	pausado = true;
 	try {
@@ -520,6 +528,12 @@ async function aplicarListaPartesAprimorada() {
 		await expandirPartesOcultas();
 		const { alterados, totalGrupos } = compactarTabelaPartes();
 		logInfo("Compactação aplicada.", { gruposAlterados: alterados, gruposAnalisados: totalGrupos });
+		sinalizarListaPartesPronta({
+			canceladoPeloUsuario,
+			gruposAlterados: alterados,
+			gruposAnalisados: totalGrupos,
+			timestamp: Date.now()
+		});
 	} finally {
 		pausado = false;
 	}

@@ -16,7 +16,6 @@ let listenersPosicao = false;
 let manipuladorAtual = null;
 let ultimoAlvoChave = "";
 let timeoutFechamentoMouse = null;
-const LARGURA_PADRAO_PAINEL = "55vw";
 
 function cancelarFechamentoPorMouse() {
 	if (timeoutFechamentoMouse) {
@@ -93,15 +92,14 @@ function atualizarStatus(texto, tipo = "normal") {
 
 function aplicarConfiguracaoPainelPorAcao(manipulador) {
 	if (!painel) return;
-	const largura = manipulador?.configuracaoPainel?.largura || LARGURA_PADRAO_PAINEL;
-	const larguraMaxima = manipulador?.configuracaoPainel?.larguraMaxima || LARGURA_PADRAO_PAINEL;
-	painel.style.width = largura;
-	painel.style.maxWidth = larguraMaxima;
-	logInfo("Configuracao de largura do painel aplicada.", {
-		manipulador: manipulador?.id || "padrao",
-		largura,
-		larguraMaxima
-	});
+	// O tamanho do painel deslizante agora e centralizado no CSS compartilhado.
+	painel.style.width = "";
+	painel.style.maxWidth = "";
+	if (manipulador?.configuracaoPainel?.largura || manipulador?.configuracaoPainel?.larguraMaxima) {
+		logInfo("Configuracao de largura do manipulador ignorada para manter padrao visual unificado.", {
+			manipulador: manipulador?.id || "padrao"
+		});
+	}
 }
 
 async function aplicarComportamentoDoManipuladorNoIframe() {
@@ -223,10 +221,6 @@ function garantirPainel(anchor) {
 	Object.assign(novoPainel.style, {
 		background: "#f5fbff",
 		color: "#0f314a",
-		width: LARGURA_PADRAO_PAINEL,
-		maxWidth: LARGURA_PADRAO_PAINEL,
-		maxHeight: "80vh",
-		overflowY: "auto",
 		paddingRight: "12px",
 		zIndex: "2147481000"
 	});

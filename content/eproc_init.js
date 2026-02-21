@@ -39,6 +39,13 @@ function getRuntimeUrl(path) {
 	const rotas = [
 		{
 			cond: () => window.location.href.includes("acao=processo_selecionar") || (isTutorialRoute && tutorialTipo === "consulta_processual"),
+			modulo: "modules/dados_processo_window.js",
+			nome: "dados_processo_window",
+			titulo: "Dados do Processo (Window)",
+			ocultarNoPainel: true
+		},
+		{
+			cond: () => window.location.href.includes("acao=processo_selecionar") || (isTutorialRoute && tutorialTipo === "consulta_processual"),
 			modulo: "modules/consulta/consulta_flutuante.js",
 			nome: "consulta_flutuante",
 			titulo: "Consulta Flutuante"

@@ -26,7 +26,7 @@ function renderMockRequisitorio(conteudo, botao) {
 	img.id = "effraim-mock-requisitorio-img";
 	img.src = chrome.runtime.getURL("ajuda/mock_pages/consulta_processual/mockreq.png");
 	img.alt = "Mock da consulta de requisitorios";
-	img.style.cssText = "width:50vw;max-width:50vw;height:auto;border:1px solid #cdd9e4;border-radius:6px;background:#fff;";
+	img.style.cssText = "width:100%;max-width:100%;height:auto;border:1px solid #cdd9e4;border-radius:6px;background:#fff;";
 	img.addEventListener("error", () => {
 		img.style.display = "none";
 		const aviso = document.createElement("div");
@@ -57,8 +57,9 @@ function aplicarEstiloIframe(iframe, silencioso = false) {
 	if (!iframe) return;
 
 	Object.assign(iframe.style, {
-		width: "50vw",
-		height: "80vh",
+		width: "100%",
+		height: "100%",
+		minHeight: "320px",
 		border: "none",
 		background: "#fff",
 		position: "",
@@ -389,10 +390,6 @@ export function init() {
 	Object.assign(painel.style, {
 		background: "#f6fbff",
 		color: "#0d2f4f",
-		width: "55vw",
-		maxWidth: "55vw",
-		maxHeight: "80vh",
-		overflowY: "auto",
 		paddingRight: "12px"
 	});
 

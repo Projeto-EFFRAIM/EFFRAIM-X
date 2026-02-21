@@ -16,11 +16,9 @@ export function init() {
 	Object.assign(painel.style, {
 		background: "#f0f8ff",
 		color: "#002244",
-		width: "55vw",
-		maxWidth: "55vw",
-		height: "auto", // deixa ajustar ao conteúdo
-		maxHeight: "80vh",
-		overflowY: "auto",
+		height: "",
+		maxHeight: "",
+		overflowY: "",
 		paddingRight: "12px"
 	});
 
@@ -34,11 +32,6 @@ export function init() {
 		painel.style.display = "inline-block";
 		painel.style.opacity = "1";
 		painel.style.pointerEvents = "auto";
-		// recalcula altura após reflow
-		requestAnimationFrame(() => {
-			const altura = painel.scrollHeight || 0;
-			painel.style.maxHeight = `${altura}px`;
-		});
 	};
 
 	botao.addEventListener("click", () => {
@@ -71,8 +64,9 @@ async function inserir_sisbajud_no_painel(painel, conteudo) {
 			: "https://sisbajud.cnj.jus.br/";
 		iframe.src = destino;
 		Object.assign(iframe.style, {
-			width: "50vw",
-			height: "80vh",
+			width: "100%",
+			height: "100%",
+			minHeight: "320px",
 			border: "none",
 			background: "#fff",
 		});

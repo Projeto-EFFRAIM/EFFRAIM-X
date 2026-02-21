@@ -96,6 +96,15 @@ function ensureMetafuncionalCss() {
     (document.head || document.documentElement).appendChild(link);
 }
 
+function ensurePaineisDeslizantesCss() {
+    if (document.getElementById("effraim-paineis-deslizantes-css")) return;
+    const link = document.createElement("link");
+    link.id = "effraim-paineis-deslizantes-css";
+    link.rel = "stylesheet";
+    link.href = chrome.runtime.getURL("assets/css/paineis_deslizantes.css");
+    (document.head || document.documentElement).appendChild(link);
+}
+
 function obterLabelOpcao(nome) {
     const mapa = {
       configs: "Configurações",
@@ -309,6 +318,7 @@ export function criarPainelFlutuante({ botao, secoes, id="effraim-painel-flutuan
 
 //cria o painel deslizante ligado ao botão
 export function criarPainelDeslizantePadrao(id, botaoReferencia, titulo = "") {
+  ensurePaineisDeslizantesCss();
     // remove painel anterior se existir
   const existente = document.getElementById(id);
   if (existente) {mostrarPainel(existente);}else{
@@ -326,8 +336,6 @@ export function criarPainelDeslizantePadrao(id, botaoReferencia, titulo = "") {
       border: "1px solid #ccc",
       borderRadius: "6px",
       boxShadow: "0 2px 6px rgba(0,0,0,0.2)",
-      overflow: "hidden",
-      whiteSpace: "nowrap",
       opacity: "0",
       maxHeight: "0",
       transition: "all 0.25s ease-out",
@@ -335,10 +343,6 @@ export function criarPainelDeslizantePadrao(id, botaoReferencia, titulo = "") {
       padding: "4px 6px",
       // layout: todos os botões em uma linha horizontal
       display: "none",
-      overflowX: "auto",
-      overflowY: "hidden",
-      minWidth: "200px",
-      maxWidth: "90vw",
       pointerEvents: "none"
     });
 
@@ -364,7 +368,7 @@ export function criarPainelDeslizantePadrao(id, botaoReferencia, titulo = "") {
     botaoReferencia.addEventListener("mouseenter", () => mostrarPainel(painel));
     botaoReferencia.addEventListener("mouseleave", e => ocultarPainelSeFora(painel, e));
     painel.addEventListener("mouseleave", () => iniciarOcultarComDelay(painel));
-    painel.addEventListener("mouseenter", cancelarOcultar);
+    painel.addEventListener("mouseenter", () => cancelarOcultar(painel));
 
     console.log("Painel padrão criado");
   return painel;
@@ -434,31 +438,90 @@ export function atualizarBadgeRequisitorioBotao(botao, status, quantidade = 0) {
   badge.title = "Falha na consulta de requisitorios.";
 }
 
-// --- controle de delay para esconder painel ---
-let ocultarTimeout = null;
+// --- orquestrador de visibilidade dos painéis deslizantes ---
+let painelDeslizanteAtivo = null;
+const mapaTimeoutOcultar = new WeakMap();
 
-function iniciarOcultarComDelay(painel, delay = 500) {
-	if (ocultarTimeout) clearTimeout(ocultarTimeout);
-	ocultarTimeout = setTimeout(() => ocultarPainel(painel), delay);
-}
-
-function cancelarOcultar() {
-	if (ocultarTimeout) {
-		clearTimeout(ocultarTimeout);
-		ocultarTimeout = null;
+function limparTimeoutOcultar(painel) {
+	if (!painel) return;
+	const timeout = mapaTimeoutOcultar.get(painel);
+	if (timeout) {
+		clearTimeout(timeout);
+		mapaTimeoutOcultar.delete(painel);
 	}
 }
 
+function iniciarOcultarComDelay(painel, delay = 500) {
+	limparTimeoutOcultar(painel);
+	const timeout = setTimeout(() => ocultarPainel(painel), delay);
+	mapaTimeoutOcultar.set(painel, timeout);
+}
+
+function cancelarOcultar(painel) {
+	limparTimeoutOcultar(painel);
+}
+
+function fecharPainelAtivoSeDiferente(painelAtual) {
+	if (!painelDeslizanteAtivo || painelDeslizanteAtivo === painelAtual) return;
+	ocultarPainel(painelDeslizanteAtivo);
+}
+
+function ajustarPainelPorProporcao(painel) {
+  const vw = window.innerWidth || document.documentElement.clientWidth || 1280;
+  const vh = window.innerHeight || document.documentElement.clientHeight || 720;
+  const larguraMax = Math.max(260, Math.round(vw * 0.92));
+  const alturaMax = Math.max(220, Math.round(vh * 0.88));
+  const larguraMin = Math.min(300, larguraMax);
+  const proporcaoLimite = 1.6;
+
+  Object.assign(painel.style, {
+    width: "auto",
+    minWidth: `${larguraMin}px`,
+    maxWidth: `${larguraMax}px`,
+    maxHeight: "none",
+    overflowX: "hidden",
+    overflowY: "hidden",
+    whiteSpace: "normal"
+  });
+
+  let larguraAtual = painel.scrollWidth || painel.offsetWidth || 0;
+  let alturaAtual = painel.scrollHeight || painel.offsetHeight || 0;
+
+  if (alturaAtual > 0 && larguraAtual / alturaAtual > proporcaoLimite) {
+    const larguraAlvo = Math.max(
+      larguraMin,
+      Math.min(larguraMax, Math.round(alturaAtual * proporcaoLimite))
+    );
+    painel.style.width = `${larguraAlvo}px`;
+    larguraAtual = painel.scrollWidth || painel.offsetWidth || larguraAlvo;
+    alturaAtual = painel.scrollHeight || painel.offsetHeight || 0;
+  }
+
+  if (larguraAtual > larguraMax) {
+    painel.style.width = `${larguraMax}px`;
+    painel.style.overflowX = "auto";
+    larguraAtual = larguraMax;
+    alturaAtual = painel.scrollHeight || painel.offsetHeight || alturaAtual;
+  } else {
+    painel.style.overflowX = "hidden";
+  }
+
+  if (alturaAtual > alturaMax) {
+    painel.style.maxHeight = `${alturaMax}px`;
+    painel.style.overflowY = "auto";
+    return alturaMax;
+  }
+
+  painel.style.maxHeight = `${alturaAtual}px`;
+  painel.style.overflowY = "hidden";
+  return alturaAtual;
+}
 
 function mostrarPainel(painel) {
+  fecharPainelAtivoSeDiferente(painel);
+  cancelarOcultar(painel);
   const ajustarAltura = () => {
-    const altura = (() => {
-      const prevMax = painel.style.maxHeight;
-      painel.style.maxHeight = "none"; // libera para medir o tamanho real
-      const medida = painel.scrollHeight || painel.offsetHeight || 0;
-      painel.style.maxHeight = prevMax;
-      return medida;
-    })();
+    const altura = ajustarPainelPorProporcao(painel);
     painel.style.maxHeight = `${altura}px`;
   };
 
@@ -468,15 +531,18 @@ function mostrarPainel(painel) {
 
   ajustarAltura(); // mede no mesmo tick
   requestAnimationFrame(ajustarAltura); // mede de novo após qualquer ajuste de conteúdo
+  painelDeslizanteAtivo = painel;
 }
 
 function ocultarPainel(painel) {
+  limparTimeoutOcultar(painel);
   Object.assign(painel.style, {
     opacity: "0",
     maxHeight: "0",
     pointerEvents: "none",
     display: "none"
   });
+  if (painelDeslizanteAtivo === painel) painelDeslizanteAtivo = null;
 }
 
 
@@ -485,7 +551,7 @@ function ocultarPainelSeFora(painel, e) {
 
 	// se o mouse ainda está dentro do painel, cancela o fechamento
 	if (painel.contains(related)) {
-		cancelarOcultar();
+		cancelarOcultar(painel);
 		return;
 	}
 

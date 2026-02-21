@@ -14,10 +14,8 @@ export function init() {
 	Object.assign(painel.style, {
 		background: "#f7fbff",
 		color: "#0b2e4b",
-		width: "55vw",
-		maxWidth: "55vw",
-		maxHeight: "80vh",
-		overflowY: "auto",
+		maxHeight: "",
+		overflowY: "",
 		paddingRight: "12px"
 	});
 
@@ -31,10 +29,6 @@ export function init() {
 		painel.style.display = "inline-block";
 		painel.style.opacity = "1";
 		painel.style.pointerEvents = "auto";
-		requestAnimationFrame(() => {
-			const altura = painel.scrollHeight || 0;
-			painel.style.maxHeight = `${altura}px`;
-		});
 	};
 
 	botao.addEventListener("click", () => {
@@ -47,7 +41,7 @@ export function init() {
 
 async function montarPainel(conteudo) {
 	try {
-		const dados_processo = consulta_dados_processo();
+		const dados_processo = window.__EFFRAIM_DADOS_PROCESSO || consulta_dados_processo();
 		conteudo.innerHTML = "";
 
 		const html = gerarPainelRenajud(dados_processo);
@@ -151,8 +145,9 @@ function injetarIframe(conteudo, payload) {
 	iframe.id = "effraim-iframe-renajud";
 	iframe.src = RENAJUD_URL;
 	Object.assign(iframe.style, {
-		width: "50vw",
-		height: "80vh",
+		width: "100%",
+		height: "100%",
+		minHeight: "320px",
 		border: "none",
 		background: "#fff",
 	});
