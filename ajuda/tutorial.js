@@ -1,4 +1,5 @@
 const MAPA_TIPO_TUTORIAL = {
+	painel_inicial_flutuante: "painel_inicial",
 	favoritos: "painel_inicial",
 	consulta_flutuante: "consulta_processual",
 	sisbajud: "consulta_processual",

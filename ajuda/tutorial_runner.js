@@ -38,6 +38,7 @@ function getTutorialStartSelector(tutorialId) {
   const id = String(tutorialId || "").toLowerCase();
   if (id === "requisitorios") return "#btn-requisitorio";
   if (id === "consulta_flutuante") return "#btn-consulta_flutuante";
+  if (id === "painel_inicial_flutuante") return "#btn-painel_inicial_flutuante";
   if (id === "sisbajud") return "#btn-sisbajud";
   if (id === "renajud") return "#btn-renajud";
   if (id === "favoritos") return "#btn-painel_inicial_favoritos";

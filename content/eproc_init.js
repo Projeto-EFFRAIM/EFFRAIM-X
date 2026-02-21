@@ -177,6 +177,7 @@ window.addEventListener("message", async (event) => {
 
 	const mapa = {
 		favoritos: "modules/tutorials/live_favoritos_tour.js",
+		painel_inicial_flutuante: "modules/tutorials/live_painel_inicial_flutuante_tour.js",
 		consulta_flutuante: "modules/tutorials/live_consulta_flutuante_tour.js",
 		sisbajud: "modules/tutorials/live_sisbajud_tour.js",
 		renajud: "modules/tutorials/live_renajud_tour.js",
