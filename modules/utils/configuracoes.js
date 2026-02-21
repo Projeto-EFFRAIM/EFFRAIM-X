@@ -5,6 +5,7 @@
 import { writeChunkedObject } from "./sync_chunk_storage.js";
 
 const FAVORITOS_SYNC_KEY = "effraim_painel_favoritos_v1";
+export const CHAVE_SYNC_FAVORITOS = FAVORITOS_SYNC_KEY;
 
 async function separarFavoritosDoBlobConfiguracoes(cfg) {
 	if (!cfg || typeof cfg !== "object" || !cfg.painel_favoritos) return { cfg, alterado: false };
@@ -70,10 +71,97 @@ async function lerConfiguracoes() {
 	return cfg;
 }
 
-export async function zerarConfiguracoes() {
-	return new Promise(resolve => {
-		chrome.storage.sync.remove("effraim_configuracoes", resolve);
-		console.log('[EFFRAIM]Configurações zeradas.')
+function normalizarListaPreservacao(preservarOuOpcoes) {
+	if (Array.isArray(preservarOuOpcoes)) return preservarOuOpcoes;
+	if (preservarOuOpcoes && typeof preservarOuOpcoes === "object") {
+		if (Array.isArray(preservarOuOpcoes.preservar)) return preservarOuOpcoes.preservar;
+		if (Array.isArray(preservarOuOpcoes.manter)) return preservarOuOpcoes.manter;
+	}
+	return [];
+}
+
+function normalizarTokenPreservacao(token) {
+	return String(token || "").trim();
+}
+
+/**
+ * Zera o storage sync da extensao, com opcao de preservar dados especificos.
+ *
+ * Parametro:
+ * - `preservarOuOpcoes` pode ser:
+ *   - `string[]`: lista de identificadores a preservar
+ *   - `{ preservar: string[] }` ou `{ manter: string[] }`
+ *
+ * Regras aceitas para cada identificador:
+ * - Alias de secoes conhecidas:
+ *   - `"favoritos"`: preserva favoritos + coloridos (toda a familia de chaves chunkadas)
+ *   - `"requisitorios"`: preserva a secao `opcoes_requisitorio` dentro de `effraim_configuracoes`
+ * - Chave raiz de configuracao (dentro de `effraim_configuracoes`):
+ *   - Ex.: `"opcoes_requisitorio"`, `"opcoes_renajud"`, `"funcionalidades_ativas"`
+ * - Chave/base do `chrome.storage.sync`:
+ *   - Se houver chave exata, ela eh preservada
+ *   - Se houver familia chunkada (`base__0`, `base__1`...), ela tambem eh preservada
+ *
+ * Exemplo para NAO zerar favoritos (inclui coloridos):
+ * - `await zerarConfiguracoes(["favoritos"])`
+ * - `await zerarConfiguracoes([CHAVE_SYNC_FAVORITOS])`
+ */
+export async function zerarConfiguracoes(preservarOuOpcoes = []) {
+	const lista = normalizarListaPreservacao(preservarOuOpcoes)
+		.map(normalizarTokenPreservacao)
+		.filter(Boolean);
+
+	const aliasesSecao = {
+		requisitorios: "opcoes_requisitorio"
+	};
+
+	const tokens = new Set(lista);
+	const tokensLower = new Set(lista.map((x) => x.toLowerCase()));
+
+	const dadosAtuais = await new Promise((resolve) => chrome.storage.sync.get(null, resolve));
+	const restaurar = {};
+
+	// Preserva chaves/familias de chaves diretas do sync.
+	const tokensSyncDiretos = new Set([...tokens]);
+	if (tokensLower.has("favoritos")) tokensSyncDiretos.add(FAVORITOS_SYNC_KEY);
+
+	for (const token of tokensSyncDiretos) {
+		for (const [chave, valor] of Object.entries(dadosAtuais || {})) {
+			if (chave === token || chave.startsWith(`${token}__`)) {
+				restaurar[chave] = valor;
+			}
+		}
+	}
+
+	// Preserva secoes especificas dentro de effraim_configuracoes.
+	const cfgAtual = dadosAtuais?.effraim_configuracoes;
+	if (cfgAtual && typeof cfgAtual === "object") {
+		const secoesSolicitadas = new Set();
+		for (const token of tokens) {
+			if (cfgAtual[token] !== undefined) secoesSolicitadas.add(token);
+		}
+		for (const tokenLower of tokensLower) {
+			const secaoAlias = aliasesSecao[tokenLower];
+			if (secaoAlias && cfgAtual[secaoAlias] !== undefined) secoesSolicitadas.add(secaoAlias);
+		}
+
+		if (secoesSolicitadas.size) {
+			const cfgPreservado = {};
+			for (const secao of secoesSolicitadas) {
+				cfgPreservado[secao] = cfgAtual[secao];
+			}
+			restaurar.effraim_configuracoes = cfgPreservado;
+		}
+	}
+
+	await new Promise((resolve) => chrome.storage.sync.clear(resolve));
+	if (Object.keys(restaurar).length) {
+		await new Promise((resolve) => chrome.storage.sync.set(restaurar, resolve));
+	}
+
+	console.log("[EFFRAIM] Configuracoes zeradas.", {
+		preservadosSolicitados: lista,
+		chavesRestauradas: Object.keys(restaurar)
 	});
 }
 
@@ -147,6 +235,17 @@ export async function gravarConfiguracao(caminho, novoValor) {
 console.log("[EFFRAIM] configuracoes.js carregado");
 
 let promessaDadosPadraoSisbajud = null;
+const OPCOES_RAMO_JUSTICA_RENAJUD = [
+	"CONSELHO NACIONAL DE JUSTICA",
+	"JUSTICA DO TRABALHO",
+	"JUSTICA ELEITORAL",
+	"JUSTICA ESTADUAL",
+	"JUSTICA FEDERAL",
+	"JUSTICA MILITAR DA UNIAO",
+	"JUSTICA MILITAR ESTADUAL",
+	"SUPERIOR TRIBUNAL DE JUSTICA",
+	"SUPREMO TRIBUNAL FEDERAL"
+];
 
 async function carregarDadosPadraoSisbajud() {
 	if (promessaDadosPadraoSisbajud) return promessaDadosPadraoSisbajud;
@@ -361,6 +460,43 @@ function aplicarMigracoesConfiguracao(cfg, padrao) {
 		}
 	}
 
+	// Migracao v4: move opcoes_renajud_novo/antigo para dentro de opcoes_renajud.
+	// Executa tambem se as chaves antigas ainda existirem, mesmo em versao >= 4.
+	if (versaoAtual < 4 || cfg?.opcoes_renajud_novo || cfg?.opcoes_renajud_antigo) {
+		if (!cfg.opcoes_renajud || typeof cfg.opcoes_renajud !== "object") cfg.opcoes_renajud = {};
+		if (!cfg.opcoes_renajud.novo || typeof cfg.opcoes_renajud.novo !== "object") cfg.opcoes_renajud.novo = {};
+		if (!cfg.opcoes_renajud.antigo || typeof cfg.opcoes_renajud.antigo !== "object") cfg.opcoes_renajud.antigo = {};
+
+		const antigoNovo = cfg.opcoes_renajud_novo;
+		const antigoAntigo = cfg.opcoes_renajud_antigo;
+
+		if (antigoNovo && typeof antigoNovo === "object") {
+			const camposNovo = ["acao_padrao", "parametro_pesquisa_padrao", "ramo_justica_padrao", "tribunal_preferido", "orgao_preferido"];
+			for (const campo of camposNovo) {
+				// Na migracao, valor antigo do usuario sempre tem prioridade.
+				if (typeof antigoNovo[campo] !== "undefined") {
+					cfg.opcoes_renajud.novo[campo] = antigoNovo[campo];
+					cfg._atualizado = true;
+				}
+			}
+			delete cfg.opcoes_renajud_novo;
+			cfg._atualizado = true;
+		}
+
+		if (antigoAntigo && typeof antigoAntigo === "object") {
+			const camposAntigo = ["acao_padrao", "parametro_pesquisa_padrao"];
+			for (const campo of camposAntigo) {
+				// Na migracao, valor antigo do usuario sempre tem prioridade.
+				if (typeof antigoAntigo[campo] !== "undefined") {
+					cfg.opcoes_renajud.antigo[campo] = antigoAntigo[campo];
+					cfg._atualizado = true;
+				}
+			}
+			delete cfg.opcoes_renajud_antigo;
+			cfg._atualizado = true;
+		}
+	}
+
 	if (!cfg._interno || typeof cfg._interno !== "object") cfg._interno = {};
 	cfg._interno.versao_config = versaoPadrao;
 	cfg._atualizado = true;
@@ -529,7 +665,7 @@ async function adicionarCampos(container, prefixo, objeto) {
 						input.appendChild(o);
 					});
 					linha.append(label, input);
-				} else if (caminho === "opcoes_renajud_novo.acao_padrao" || caminho === "opcoes_renajud_antigo.acao_padrao") {
+				} else if (caminho === "opcoes_renajud.novo.acao_padrao" || caminho === "opcoes_renajud.antigo.acao_padrao") {
 					input = document.createElement("select");
 					const opcoes = ["inserir", "retirar", "consultar"];
 					const atual = String(valor.valor || "inserir").toLowerCase();
@@ -542,8 +678,8 @@ async function adicionarCampos(container, prefixo, objeto) {
 					});
 					linha.append(label, input);
 				} else if (
-					caminho === "opcoes_renajud_novo.parametro_pesquisa_padrao" ||
-					caminho === "opcoes_renajud_antigo.parametro_pesquisa_padrao"
+					caminho === "opcoes_renajud.novo.parametro_pesquisa_padrao" ||
+					caminho === "opcoes_renajud.antigo.parametro_pesquisa_padrao"
 				) {
 					input = document.createElement("select");
 					const opcoes = [
@@ -560,6 +696,20 @@ async function adicionarCampos(container, prefixo, objeto) {
 						if (opt.valor === atual) o.selected = true;
 						input.appendChild(o);
 					});
+					linha.append(label, input);
+				} else if (caminho === "opcoes_renajud.novo.ramo_justica_padrao") {
+					input = document.createElement("select");
+					const atual = String(valor.valor || "JUSTICA DO TRABALHO").trim().toUpperCase();
+					OPCOES_RAMO_JUSTICA_RENAJUD.forEach((opt) => {
+						const o = document.createElement("option");
+						o.value = opt;
+						o.textContent = opt;
+						if (opt === atual) o.selected = true;
+						input.appendChild(o);
+					});
+					if (!OPCOES_RAMO_JUSTICA_RENAJUD.includes(atual)) {
+						input.value = "JUSTICA DO TRABALHO";
+					}
 					linha.append(label, input);
 				} else {
 					if (caminho === "opcoes_lista_partes_aprimorada.altura_maxima_tabela") {
@@ -613,16 +763,20 @@ async function adicionarCampos(container, prefixo, objeto) {
 						const v = String(novoValor || "").toLowerCase();
 						novoValor = v === "antigo" ? "antigo" : "novo";
 						input.value = novoValor;
-					} else if (caminho === "opcoes_renajud_novo.acao_padrao" || caminho === "opcoes_renajud_antigo.acao_padrao") {
+					} else if (caminho === "opcoes_renajud.novo.acao_padrao" || caminho === "opcoes_renajud.antigo.acao_padrao") {
 						const v = String(novoValor || "").toLowerCase();
 						novoValor = ["inserir", "retirar", "consultar"].includes(v) ? v : "inserir";
 						input.value = novoValor;
 					} else if (
-						caminho === "opcoes_renajud_novo.parametro_pesquisa_padrao" ||
-						caminho === "opcoes_renajud_antigo.parametro_pesquisa_padrao"
+						caminho === "opcoes_renajud.novo.parametro_pesquisa_padrao" ||
+						caminho === "opcoes_renajud.antigo.parametro_pesquisa_padrao"
 					) {
 						const v = String(novoValor || "").toLowerCase();
 						novoValor = ["numero_processo", "placa", "chassi", "cpf_cnpj"].includes(v) ? v : "cpf_cnpj";
+						input.value = novoValor;
+					} else if (caminho === "opcoes_renajud.novo.ramo_justica_padrao") {
+						const v = String(novoValor || "").trim().toUpperCase();
+						novoValor = OPCOES_RAMO_JUSTICA_RENAJUD.includes(v) ? v : "JUSTICA DO TRABALHO";
 						input.value = novoValor;
 					}
 					await gravarConfiguracao(caminho, novoValor);
@@ -977,7 +1131,7 @@ document.addEventListener("DOMContentLoaded", () => {
 		btnReset.addEventListener("click", async () => {
 			try {
 				btnReset.disabled = true;
-				await zerarConfiguracoes();
+				await zerarConfiguracoes(["favoritos"]);
 				const cfg = await carregarConfiguracoes(); // repõe padrão
 				aplicarTemaEFonte(cfg);
 				await montarPreferencias();

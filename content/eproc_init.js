@@ -26,7 +26,7 @@ function getRuntimeUrl(path) {
 	
 	const { zerarConfiguracoes, carregarConfiguracoes, prepararDOM, verificarRotasAtivas, verificarUsoSync } = await import(getRuntimeUrl("funcoes.js"));
 	//Comentar em produção! Zera para o padrão json
-	//await zerarConfiguracoes();
+	//await zerarConfiguracoes(["favoritos"]);
 	
 	window.EFFRAIM_CONFIGURACOES = await carregarConfiguracoes();
 	const effraim_configuracoes = window.EFFRAIM_CONFIGURACOES;
@@ -286,4 +286,3 @@ async function ativarFuncionalidades(rotasAtivas, { tutorial = false } = {}) {
 		}
 	}
 }
-

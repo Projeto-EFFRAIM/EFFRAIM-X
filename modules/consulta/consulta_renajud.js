@@ -59,13 +59,13 @@ async function carregarPreferenciasRenajud() {
 		orgaoNovo
 	] = await Promise.all([
 		obterConfiguracao("opcoes_renajud.ambiente_padrao"),
-		obterConfiguracao("opcoes_renajud_novo.acao_padrao"),
-		obterConfiguracao("opcoes_renajud_antigo.acao_padrao"),
-		obterConfiguracao("opcoes_renajud_novo.parametro_pesquisa_padrao"),
-		obterConfiguracao("opcoes_renajud_antigo.parametro_pesquisa_padrao"),
-		obterConfiguracao("opcoes_renajud_novo.ramo_justica_padrao"),
-		obterConfiguracao("opcoes_renajud_novo.tribunal_preferido"),
-		obterConfiguracao("opcoes_renajud_novo.orgao_preferido")
+		obterConfiguracao("opcoes_renajud.novo.acao_padrao"),
+		obterConfiguracao("opcoes_renajud.antigo.acao_padrao"),
+		obterConfiguracao("opcoes_renajud.novo.parametro_pesquisa_padrao"),
+		obterConfiguracao("opcoes_renajud.antigo.parametro_pesquisa_padrao"),
+		obterConfiguracao("opcoes_renajud.novo.ramo_justica_padrao"),
+		obterConfiguracao("opcoes_renajud.novo.tribunal_preferido"),
+		obterConfiguracao("opcoes_renajud.novo.orgao_preferido")
 	]);
 
 	return {

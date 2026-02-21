@@ -86,6 +86,12 @@ export async function executar(dados) {
 		const seletor = CAMPOS_PESQUISA[parametro];
 		let valor = obterValorPesquisa(dados, parametro);
 		valor = sanitizarValorPesquisa(valor, parametro);
+		console.log("[renajud/pesquisa] Inicio.", {
+			url: window.location.href,
+			parametro,
+			seletor,
+			valor
+		});
 
 		if (!valor) {
 			console.warn("[renajud/pesquisa] Sem valor para parametro selecionado.", { parametro });
@@ -97,8 +103,13 @@ export async function executar(dados) {
 			console.warn("[renajud/pesquisa] Campo de pesquisa nao encontrado.", { parametro, seletor });
 			return;
 		}
+		console.log("[renajud/pesquisa] Campo localizado. Preenchendo...", {
+			id: input.id || null,
+			name: input.name || null
+		});
 
 		await preencherCampo(input, valor);
+		console.log("[renajud/pesquisa] Campo preenchido.");
 
 		const botao = await esperarCampo(
 			"button[type='submit'], button.btn-primary, input[type='submit']",
@@ -111,6 +122,9 @@ export async function executar(dados) {
 			return;
 		}
 
+		console.log("[renajud/pesquisa] Botao encontrado. Acionando clique...", {
+			texto: String(botaoPesquisar.textContent || botaoPesquisar.value || "").trim()
+		});
 		botaoPesquisar.click();
 		console.log("[renajud/pesquisa] Pesquisa acionada.", { parametro, valor });
 	} catch (e) {

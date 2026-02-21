@@ -142,68 +142,66 @@
         "nome": "Ambiente padrão",
         "explicacao": "Define se o painel abre com RENAJUD Novo ou RENAJUD Antigo selecionado."
       }
-    }
-  },
-
-  "opcoes_renajud_novo": {
-    "_meta": {
-      "nome": "Opções RENAJUD Novo",
-      "explicacao": "Preferências usadas na automação do RENAJUD Novo."
     },
-    "acao_padrao": {
-      "valor": "inserir",
+    "novo": {
       "_meta": {
-        "nome": "Tipo de consulta padrão",
-        "explicacao": "Define o tipo de consulta inicial: inserir, retirar ou consultar."
+        "nome": "Opções RENAJUD Novo",
+        "explicacao": "Preferências usadas na automação do RENAJUD Novo."
+      },
+      "acao_padrao": {
+        "valor": "inserir",
+        "_meta": {
+          "nome": "Tipo de consulta padrão",
+          "explicacao": "Define o tipo de consulta inicial: inserir, retirar ou consultar."
+        }
+      },
+      "parametro_pesquisa_padrao": {
+        "valor": "cpf_cnpj",
+        "_meta": {
+          "nome": "Parâmetro de pesquisa padrão",
+          "explicacao": "Define se a pesquisa inicia por processo, placa, chassi ou CPF/CNPJ."
+        }
+      },
+      "ramo_justica_padrao": {
+        "valor": "JUSTICA DO TRABALHO",
+        "_meta": {
+          "nome": "Ramo da justiça padrão",
+          "explicacao": "Preenchido automaticamente na tela de inclusão. Valor inicial: JUSTIÇA DO TRABALHO."
+        }
+      },
+      "tribunal_preferido": {
+        "valor": "",
+        "_meta": {
+          "nome": "Tribunal preferido",
+          "explicacao": "Salvo automaticamente no primeiro clique em Inserir. Para alterar, limpe este campo."
+        }
+      },
+      "orgao_preferido": {
+        "valor": "",
+        "_meta": {
+          "nome": "Órgão judiciário preferido",
+          "explicacao": "Salvo automaticamente no primeiro clique em Inserir. Para alterar, limpe este campo."
+        }
       }
     },
-    "parametro_pesquisa_padrao": {
-      "valor": "cpf_cnpj",
+    "antigo": {
       "_meta": {
-        "nome": "Parâmetro de pesquisa padrão",
-        "explicacao": "Define se a pesquisa inicia por processo, placa, chassi ou CPF/CNPJ."
-      }
-    },
-    "ramo_justica_padrao": {
-      "valor": "JUSTICA DO TRABALHO",
-      "_meta": {
-        "nome": "Ramo da justiça padrão",
-        "explicacao": "Preenchido automaticamente na tela de inclusão. Valor inicial: JUSTIÇA DO TRABALHO."
-      }
-    },
-    "tribunal_preferido": {
-      "valor": "",
-      "_meta": {
-        "nome": "Tribunal preferido",
-        "explicacao": "Salvo automaticamente no primeiro clique em Inserir. Para alterar, limpe este campo."
-      }
-    },
-    "orgao_preferido": {
-      "valor": "",
-      "_meta": {
-        "nome": "Órgão judiciário preferido",
-        "explicacao": "Salvo automaticamente no primeiro clique em Inserir. Para alterar, limpe este campo."
-      }
-    }
-  },
-
-  "opcoes_renajud_antigo": {
-    "_meta": {
-      "nome": "Opções RENAJUD Antigo",
-      "explicacao": "Preferências usadas na automação do RENAJUD Antigo."
-    },
-    "acao_padrao": {
-      "valor": "inserir",
-      "_meta": {
-        "nome": "Tipo de consulta padrão",
-        "explicacao": "Define o tipo de consulta inicial: inserir, retirar ou consultar."
-      }
-    },
-    "parametro_pesquisa_padrao": {
-      "valor": "cpf_cnpj",
-      "_meta": {
-        "nome": "Parâmetro de pesquisa padrão",
-        "explicacao": "Define se a pesquisa inicia por processo, placa, chassi ou CPF/CNPJ."
+        "nome": "Opções RENAJUD Antigo",
+        "explicacao": "Preferências usadas na automação do RENAJUD Antigo."
+      },
+      "acao_padrao": {
+        "valor": "inserir",
+        "_meta": {
+          "nome": "Tipo de consulta padrão",
+          "explicacao": "Define o tipo de consulta inicial: inserir, retirar ou consultar."
+        }
+      },
+      "parametro_pesquisa_padrao": {
+        "valor": "cpf_cnpj",
+        "_meta": {
+          "nome": "Parâmetro de pesquisa padrão",
+          "explicacao": "Define se a pesquisa inicia por processo, placa, chassi ou CPF/CNPJ."
+        }
       }
     }
   },
@@ -282,7 +280,7 @@
   },
 
   "_interno": {
-    "versao_config": 3,
+    "versao_config": 4,
     "opções": {
       "ajuda": "ajuda/ajuda.html",
       "tutorial": "ajuda/tutorial.html",

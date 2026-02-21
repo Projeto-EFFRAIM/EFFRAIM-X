@@ -21,7 +21,6 @@
 		return "https://renajud.denatran.serpro.gov.br/renajud/restrito/restricoes-insercao.jsf";
 	}
 
-	// recebe dados do Eproc (ou cache de sessão)
 	const dadosProntos = new Promise((resolve) => {
 		if (window.__EFFRAIM_DADOS_RENAJUD) {
 			console.log("[RENAJUD] Dados carregados da janela.");
@@ -57,7 +56,6 @@
 		};
 		window.addEventListener("message", handler);
 
-		// Prioriza mensagem nova; usa cache apenas como fallback.
 		setTimeout(() => {
 			window.removeEventListener("message", handler);
 			if (dadosCache) {
@@ -76,68 +74,104 @@
 
 	const dados = await dadosProntos;
 	if (!dados) {
-		console.warn("[RENAJUD] Sem dados do Eproc apos aguardo; abortando automação.");
+		console.warn("[RENAJUD] Sem dados do Eproc apos aguardo; abortando automacao.");
 		return;
 	}
 
 	const ambiente = obterAmbiente(dados);
 	const acao = obterAcao(dados);
-	const urlAtual = window.location.href;
+	const execMap = (window.__EFFRAIM_RENAJUD_EXEC_MAP = window.__EFFRAIM_RENAJUD_EXEC_MAP || {});
+	let emExecucao = false;
 
-	if (window.__EFFRAIM_RENAJUD_EXECUTED) {
-		console.log("[RENAJUD] Automacao ja executada nesta pagina; ignorando duplicacao.");
-		return;
+	function assinaturaExecucao(url) {
+		return `${ambiente}|${acao}|${url}`;
 	}
 
-	try {
-		// Fluxo do RENAJUD antigo
-		if (ambiente === "antigo") {
-			if (urlAtual.startsWith("https://renajud.denatran.serpro.gov.br/renajud/restrito/index.jsf")) {
-				const destino = destinoAntigoPorAcao(acao);
-				if (urlAtual !== destino) {
-					console.log("[RENAJUD] Login detectado no antigo. Redirecionando para tela da acao.", { acao, destino });
-					window.location.href = destino;
+	async function executarParaRotaAtual() {
+		if (emExecucao) return;
+		const urlAtual = window.location.href;
+		const assinatura = assinaturaExecucao(urlAtual);
+		if (execMap[assinatura]) return;
+
+		emExecucao = true;
+		try {
+			// Fluxo do RENAJUD antigo
+			if (ambiente === "antigo") {
+				if (urlAtual.startsWith("https://renajud.denatran.serpro.gov.br/renajud/restrito/index.jsf")) {
+					const destino = destinoAntigoPorAcao(acao);
+					if (urlAtual !== destino) {
+						console.log("[RENAJUD] Login detectado no antigo. Redirecionando para tela da acao.", { acao, destino });
+						window.location.href = destino;
+						return;
+					}
+				}
+
+				const rotasAntigasAcao = [
+					"https://renajud.denatran.serpro.gov.br/renajud/restrito/restricoes-insercao.jsf",
+					"https://renajud.denatran.serpro.gov.br/renajud/restrito/restricoes-retirar.jsf",
+					"https://renajud.denatran.serpro.gov.br/renajud/restrito/restricoes-consultar.jsf"
+				];
+				if (rotasAntigasAcao.some((rota) => urlAtual.startsWith(rota))) {
+					const { executar } = await import(chrome.runtime.getURL("modules/juds/renajud/pesquisa_antigo.js"));
+					await executar(dados);
+					execMap[assinatura] = true;
+					return;
+				}
+
+				if (urlAtual.startsWith("https://renajud.denatran.serpro.gov.br/renajud/login.jsf")) {
+					console.log("[RENAJUD] Aguardando login no RENAJUD antigo ate /renajud/restrito/index.jsf");
 					return;
 				}
 			}
 
-			const rotasAntigasAcao = [
-				"https://renajud.denatran.serpro.gov.br/renajud/restrito/restricoes-insercao.jsf",
-				"https://renajud.denatran.serpro.gov.br/renajud/restrito/restricoes-retirar.jsf",
-				"https://renajud.denatran.serpro.gov.br/renajud/restrito/restricoes-consultar.jsf"
-			];
-			if (rotasAntigasAcao.some((rota) => urlAtual.startsWith(rota))) {
-				const { executar } = await import(chrome.runtime.getURL("modules/juds/renajud/pesquisa_antigo.js"));
+			// Fluxo do RENAJUD novo: tela de pesquisa
+			if (
+				urlAtual.startsWith("https://renajud.pdpj.jus.br/veiculo/pesquisa") ||
+				urlAtual.startsWith("https://renajud.pdpj.jus.br/veiculo/restricao/pesquisa")
+			) {
+				const { executar } = await import(chrome.runtime.getURL("modules/juds/renajud/pesquisa.js"));
 				await executar(dados);
-				window.__EFFRAIM_RENAJUD_EXECUTED = true;
+				execMap[assinatura] = true;
 				return;
 			}
 
-			if (urlAtual.startsWith("https://renajud.denatran.serpro.gov.br/renajud/login.jsf")) {
-				console.log("[RENAJUD] Aguardando login no RENAJUD antigo ate /renajud/restrito/index.jsf");
+			// Fluxo do RENAJUD novo: tela de inclusao de restricao
+			if (urlAtual.startsWith("https://renajud.pdpj.jus.br/veiculo/restricao/inclusao")) {
+				const { executar } = await import(chrome.runtime.getURL("modules/juds/renajud/inclusao.js"));
+				await executar(dados);
+				execMap[assinatura] = true;
 				return;
 			}
+		} catch (e) {
+			console.error("[RENAJUD] Erro ao acionar rota atual:", e);
+		} finally {
+			emExecucao = false;
 		}
-
-		// Fluxo do RENAJUD novo: tela de pesquisa
-		if (
-			urlAtual.startsWith("https://renajud.pdpj.jus.br/veiculo/pesquisa") ||
-			urlAtual.startsWith("https://renajud.pdpj.jus.br/veiculo/restricao/pesquisa")
-		) {
-			const { executar } = await import(chrome.runtime.getURL("modules/juds/renajud/pesquisa.js"));
-			await executar(dados);
-			window.__EFFRAIM_RENAJUD_EXECUTED = true;
-			return;
-		}
-
-		// Fluxo do RENAJUD novo: tela de inclusao de restricao
-		if (urlAtual.startsWith("https://renajud.pdpj.jus.br/veiculo/restricao/inclusao")) {
-			const { executar } = await import(chrome.runtime.getURL("modules/juds/renajud/inclusao.js"));
-			await executar(dados);
-			window.__EFFRAIM_RENAJUD_EXECUTED = true;
-			return;
-		}
-	} catch (e) {
-		console.error("[RENAJUD] Erro ao acionar rota atual:", e);
 	}
+
+	let lastHref = window.location.href;
+	const monitorarMudancaUrl = () => {
+		const atual = window.location.href;
+		if (atual === lastHref) return;
+		lastHref = atual;
+		console.log("[RENAJUD] Mudanca de URL detectada:", atual);
+		void executarParaRotaAtual();
+	};
+
+	const patchHistory = (fnName) => {
+		const original = history[fnName];
+		if (typeof original !== "function") return;
+		history[fnName] = function (...args) {
+			const out = original.apply(this, args);
+			setTimeout(monitorarMudancaUrl, 0);
+			return out;
+		};
+	};
+
+	patchHistory("pushState");
+	patchHistory("replaceState");
+	window.addEventListener("popstate", monitorarMudancaUrl);
+	setInterval(monitorarMudancaUrl, 700);
+
+	await executarParaRotaAtual();
 })();
