@@ -115,6 +115,61 @@ export async function gravarConfiguracao(caminho, novoValor) {
 
 console.log("[EFFRAIM] configuracoes.js carregado");
 
+let promessaDadosPadraoSisbajud = null;
+
+async function carregarDadosPadraoSisbajud() {
+	if (promessaDadosPadraoSisbajud) return promessaDadosPadraoSisbajud;
+	promessaDadosPadraoSisbajud = (async () => {
+		try {
+			const resposta = await fetch(
+				chrome.runtime.getURL("assets/preferencias/dados/sisbajud_dados_padrao.html"),
+				{ cache: "no-store" }
+			);
+			if (!resposta.ok) throw new Error(`HTTP ${resposta.status}`);
+			const html = await resposta.text();
+			const doc = new DOMParser().parseFromString(html, "text/html");
+			const opcoesOrgao = [...doc.querySelectorAll("#effraim-sisbajud-orgaos option")]
+				.map((opt) => ({
+					codigo: String(opt.getAttribute("value") || "").trim(),
+					rotulo: String(opt.textContent || "").trim()
+				}))
+				.filter((x) => x.codigo)
+				.sort((a, b) => {
+					const na = Number.parseInt(a.codigo, 10);
+					const nb = Number.parseInt(b.codigo, 10);
+					if (Number.isFinite(na) && Number.isFinite(nb)) return na - nb;
+					if (Number.isFinite(na)) return -1;
+					if (Number.isFinite(nb)) return 1;
+					return a.codigo.localeCompare(b.codigo, "pt-BR");
+				});
+			const tiposAcao = [...doc.querySelectorAll("#effraim-sisbajud-tipos-acao option")]
+				.map((opt) => String(opt.getAttribute("value") || opt.textContent || "").trim())
+				.filter(Boolean);
+			console.info("[EFFRAIM] Dados padrão SISBAJUD carregados.", {
+				orgaos: opcoesOrgao.length,
+				tiposAcao: tiposAcao.length
+			});
+			return {
+				opcoesOrgao,
+				tiposAcao
+			};
+		} catch (erro) {
+			console.warn("[EFFRAIM] Falha ao carregar dados padrão SISBAJUD.", erro);
+			return {
+				opcoesOrgao: [],
+				tiposAcao: [
+					"Ação Cível",
+					"Ação Criminal",
+					"Ação Trabalhista",
+					"Execução Fiscal",
+					"Execução de Alimentos"
+				]
+			};
+		}
+	})();
+	return promessaDadosPadraoSisbajud;
+}
+
 export async function montarPreferencias() {
 	console.log("[EFFRAIM] iniciar montagem de preferências");
 
@@ -148,7 +203,7 @@ export async function montarPreferencias() {
 		const corpo = document.createElement("div");
 		corpo.className = "corpo-secao";
 
-		adicionarCampos(corpo, secao, dados);
+		await adicionarCampos(corpo, secao, dados);
 
 		toggle.addEventListener("click", () => {
 			const visivel = corpo.style.display !== "none";
@@ -177,6 +232,14 @@ function filtrarInternos(obj) {
 
 function formatarChave(chave) {
 	return chave.replaceAll("_", " ").replace(/\b\w/g, l => l.toUpperCase());
+}
+
+function normalizarTextoBusca(valor = "") {
+	return String(valor)
+		.normalize("NFD")
+		.replace(/[\u0300-\u036f]/g, "")
+		.toLowerCase()
+		.trim();
 }
 
 // inclui no objeto destino apenas as chaves que existem no padrão e não estão salvas
@@ -273,7 +336,7 @@ function aplicarMigracoesConfiguracao(cfg, padrao) {
 	return cfg;
 }
 
-function adicionarCampos(container, prefixo, objeto) {
+async function adicionarCampos(container, prefixo, objeto) {
 	for (const [chave, valor] of Object.entries(objeto)) {
 		if (chave.startsWith("_")) continue;
 
@@ -289,12 +352,14 @@ function adicionarCampos(container, prefixo, objeto) {
 			label.title = valor._meta?.explicacao || "";
 
 			if (caminho === "opcoes_requisitorio.localizadores_disparo") {
+				linha.classList.add("linha-preferencia-coluna-unica");
 				montarEditorLocalizadoresDisparo(linha, label, valor, caminho);
 				container.appendChild(linha);
 				continue;
 			}
 
 			if (caminho === "opcoes_acao_flutuante.enviar_email_flutuante.textos_padrao_email") {
+				linha.classList.add("linha-preferencia-coluna-unica");
 				montarEditorTextosPadraoEmail(linha, label, valor, caminho);
 				container.appendChild(linha);
 				continue;
@@ -302,35 +367,37 @@ function adicionarCampos(container, prefixo, objeto) {
 
 			let input;
 			if (typeof valor.valor === "boolean") {
-				label.classList.add("toggle-label");
 				input = document.createElement("input");
 				input.type = "checkbox";
 				input.checked = valor.valor;
 				if (caminho === "aparencia.mostrar_tutorial") {
 					label.textContent += " (ainda não implementado)";
 				}
+				const controle = document.createElement("div");
+				controle.className = "effraim-pref-controle";
 				const slider = document.createElement("span");
 				slider.className = "slider";
-				label.append(input, slider);
-				linha.appendChild(label);
+				controle.append(input, slider);
+				linha.append(label, controle);
 			} else {
 				// Caso especial: tema claro/escuro como toggle
 				if (caminho === "aparencia.tema") {
 					input = document.createElement("input");
 					input.type = "checkbox";
 					input.checked = String(valor.valor || "").toLowerCase() === "escuro";
+					const controle = document.createElement("div");
+					controle.className = "effraim-pref-controle";
 					const slider = document.createElement("span");
 					slider.className = "slider";
-					label.append(input, slider);
 					const texto = document.createElement("small");
 					texto.textContent = input.checked ? "Escuro" : "Claro";
-					texto.style.marginLeft = "8px";
+					texto.style.marginLeft = "6px";
 					texto.style.color = "#333";
-					label.appendChild(texto);
 					input.addEventListener("change", () => {
 						texto.textContent = input.checked ? "Escuro" : "Claro";
 					});
-					linha.appendChild(label);
+					controle.append(input, slider, texto);
+					linha.append(label, controle);
 				}
 				// Caso especial: tamanho da fonte como range 3 passos
 				else if (caminho === "aparencia.tamanho_fonte") {
@@ -351,16 +418,49 @@ function adicionarCampos(container, prefixo, objeto) {
 					});
 					linha.append(label, input, labelValor);
 				}
+				// Caso especial: Órgão Julgador SISBAJUD com busca digitável
+				else if (caminho === "opcoes_sisbajud.favoritos.orgaoJulgador") {
+					const inputWrap = document.createElement("div");
+					inputWrap.style.display = "flex";
+					inputWrap.style.flexDirection = "column";
+					inputWrap.style.gap = "4px";
+					inputWrap.style.width = "100%";
+
+					input = document.createElement("input");
+					input.type = "text";
+					input.value = String(valor.valor ?? "");
+					input.placeholder = "Digite para buscar (ex.: 88065)";
+					input.autocomplete = "off";
+
+					const datalistId = "effraim-sisbajud-orgao-list";
+					input.setAttribute("list", datalistId);
+
+					let datalist = document.getElementById(datalistId);
+					if (!datalist) {
+						datalist = document.createElement("datalist");
+						datalist.id = datalistId;
+						const dadosPadrao = await carregarDadosPadraoSisbajud();
+						dadosPadrao.opcoesOrgao.forEach((op) => {
+							const option = document.createElement("option");
+							option.value = op.codigo;
+							option.label = op.rotulo;
+							datalist.appendChild(option);
+						});
+						document.body.appendChild(datalist);
+					}
+
+					const dica = document.createElement("small");
+					dica.textContent = "Você pode digitar o código (ex.: 88065) ou parte do nome do órgão. A preferência salva apenas o código numérico do órgão.";
+					dica.style.color = "#555";
+
+					inputWrap.append(input, dica);
+					linha.append(label, inputWrap);
+				}
 				// Caso especial: select para tipo de ação SISBAJUD
 				else if (caminho === "opcoes_sisbajud.favoritos.tipoAcao") {
 					input = document.createElement("select");
-					const opcoes = [
-						"Ação Cível",
-						"Ação Criminal",
-						"Ação Trabalhista",
-						"Execução Fiscal",
-						"Execução de Alimentos"
-					];
+					const dadosPadrao = await carregarDadosPadraoSisbajud();
+					const opcoes = dadosPadrao.tiposAcao;
 					opcoes.forEach(opt => {
 						const o = document.createElement("option");
 						o.value = opt;
@@ -384,12 +484,24 @@ function adicionarCampos(container, prefixo, objeto) {
 					});
 					linha.append(label, input);
 				} else {
+					if (caminho === "opcoes_lista_partes_aprimorada.altura_maxima_tabela") {
+						input = document.createElement("input");
+						input.type = "number";
+						input.min = "100";
+						input.step = "1";
+						input.inputMode = "numeric";
+						input.value = Number.isFinite(Number(valor.valor))
+							? String(Math.max(100, Number.parseInt(valor.valor, 10)))
+							: "300";
+						linha.append(label, input);
+					} else {
 					input = document.createElement("input");
 					input.type = "text";
 					input.value = valor.valor ?? "";
 					input.disabled = false;
 					input.title = valor._meta?.explicacao || "";
 					linha.append(label, input);
+					}
 				}
 			}
 
@@ -398,7 +510,28 @@ function adicionarCampos(container, prefixo, objeto) {
 				if (input.disabled) return;
 				clearTimeout(timer);
 				timer = setTimeout(async () => {
-					const novoValor = input.type === "checkbox" ? input.checked : input.value;
+					let novoValor = input.type === "checkbox" ? input.checked : input.value;
+					if (caminho === "opcoes_sisbajud.favoritos.orgaoJulgador") {
+						const texto = String(novoValor || "").trim();
+						const m = texto.match(/^(\d{4,6})\b/);
+						if (m?.[1]) {
+							novoValor = m[1];
+						} else if (texto) {
+							const dadosPadrao = await carregarDadosPadraoSisbajud();
+							const alvo = normalizarTextoBusca(texto);
+							const encontrado = dadosPadrao.opcoesOrgao.find((op) =>
+								normalizarTextoBusca(op.rotulo).includes(alvo)
+							);
+							novoValor = encontrado?.codigo || texto;
+						} else {
+							novoValor = "";
+						}
+						input.value = String(novoValor || "");
+					} else if (caminho === "opcoes_lista_partes_aprimorada.altura_maxima_tabela") {
+						const numero = Number.parseInt(String(novoValor || "").trim(), 10);
+						novoValor = Number.isFinite(numero) ? Math.max(100, numero) : 300;
+						input.value = String(novoValor);
+					}
 					await gravarConfiguracao(caminho, novoValor);
 					console.log("[EFFRAIM] atualizado:", caminho, "=", novoValor);
 					if (caminho === "aparencia.tema" || caminho === "aparencia.tamanho_fonte") {
@@ -420,7 +553,7 @@ function adicionarCampos(container, prefixo, objeto) {
 			subtitulo.textContent = valor._meta?.nome || formatarChave(chave);
 			subtitulo.title = valor._meta?.explicacao || "";
 			sub.appendChild(subtitulo);
-			adicionarCampos(sub, caminho, valor);
+			await adicionarCampos(sub, caminho, valor);
 			container.appendChild(sub);
 		}
 	}
