@@ -1,4 +1,3 @@
-import { carregarConfiguracoes } from "../../utils/configuracoes.js";
 import {
 	obterBucketPorCaminho,
 	garantirCaminhoPastas,
@@ -7,8 +6,10 @@ import {
 	removerPastaPorCaminho,
 	renomearPastaPorCaminho
 } from "../../utils/gestao_pastas.js";
+import { readChunkedObject, writeChunkedObject } from "../../utils/sync_chunk_storage.js";
 
 export const FAVORITOS_PATH = "painel_favoritos";
+const FAVORITOS_SYNC_KEY = "effraim_painel_favoritos_v1";
 export const FAVORITOS_LIMITE_TOTAL = 50;
 export const COLORIDOS_SILENCIOSOS_LIMITE_TOTAL = 50;
 
@@ -112,15 +113,20 @@ function obterCorEfetivaItemEmMemoria(fav, secaoId, itemId) {
 }
 
 export async function obterFavoritos() {
-	const cfg = await carregarConfiguracoes();
-	const fav = cfg[FAVORITOS_PATH];
+	const fav = await readChunkedObject(FAVORITOS_SYNC_KEY);
 	return normalizarEstruturaFavoritos(fav);
 }
 
 export async function salvarFavoritos(fav) {
-	const cfg = await carregarConfiguracoes();
-	cfg[FAVORITOS_PATH] = normalizarEstruturaFavoritos(fav);
-	await chrome.storage.sync.set({ effraim_configuracoes: cfg });
+	try {
+		await writeChunkedObject(FAVORITOS_SYNC_KEY, normalizarEstruturaFavoritos(fav));
+		return { ok: true };
+	} catch (e) {
+		if (e?.code === "sync_fixed_chunks_limit_exceeded") {
+			return { ok: false, motivo: "limite-storage" };
+		}
+		throw e;
+	}
 }
 
 function contarPastasRecursivo(pastas = []) {
@@ -211,7 +217,8 @@ export async function adicionarFavorito(meta, path = []) {
 		if (!bucket.ordenacao_manual && bucket.sort) {
 			bucket.sort((a, b) => (a.titulo || "").localeCompare(b.titulo || ""));
 		}
-		await salvarFavoritos(fav);
+		const salvo = await salvarFavoritos(fav);
+		if (!salvo?.ok) return salvo;
 		return { ok: true, adicionado: true };
 	}
 	return { ok: true, adicionado: false };
@@ -245,7 +252,10 @@ export async function removerFavorito(secaoId, itemId) {
 	if (changed && corRemovida) {
 		upsertColoridoSilencioso(fav, { secaoId, id: itemId }, corRemovida);
 	}
-	if (changed) await salvarFavoritos(fav);
+	if (changed) {
+		const salvo = await salvarFavoritos(fav);
+		if (!salvo?.ok) return false;
+	}
 	return changed;
 }
 
@@ -267,7 +277,8 @@ export async function reordenarItens(path, novaOrdemIds) {
 	} else {
 		bucket.ordenacao_manual = true;
 	}
-	await salvarFavoritos(fav);
+	const salvo = await salvarFavoritos(fav);
+	if (!salvo?.ok) return false;
 	return true;
 }
 
@@ -275,7 +286,8 @@ export async function reordenarPastas(path, novaOrdemNomes) {
 	const fav = normalizarEstruturaFavoritos(await obterFavoritos());
 	const ok = reordenarPastasNoCaminho(fav, path, novaOrdemNomes);
 	if (!ok) return false;
-	await salvarFavoritos(fav);
+	const salvo = await salvarFavoritos(fav);
+	if (!salvo?.ok) return false;
 	return true;
 }
 
@@ -283,7 +295,8 @@ export async function moverItem(meta, fromPath, toPath) {
 	const fav = normalizarEstruturaFavoritos(await obterFavoritos());
 	const ok = moverItemEntreCaminhos(fav, meta, fromPath, toPath);
 	if (!ok) return false;
-	await salvarFavoritos(fav);
+	const salvo = await salvarFavoritos(fav);
+	if (!salvo?.ok) return false;
 	return true;
 }
 
@@ -291,7 +304,8 @@ export async function removerPasta(path, moverParaRaiz = false) {
 	const fav = normalizarEstruturaFavoritos(await obterFavoritos());
 	const ok = removerPastaPorCaminho(fav, path, moverParaRaiz);
 	if (!ok) return false;
-	await salvarFavoritos(fav);
+	const salvo = await salvarFavoritos(fav);
+	if (!salvo?.ok) return false;
 	return true;
 }
 
@@ -299,7 +313,8 @@ export async function renomearPasta(path, novoNome) {
 	const fav = normalizarEstruturaFavoritos(await obterFavoritos());
 	const resultado = renomearPastaPorCaminho(fav, path, novoNome);
 	if (!resultado?.ok || !resultado?.alterado) return resultado;
-	await salvarFavoritos(fav);
+	const salvo = await salvarFavoritos(fav);
+	if (!salvo?.ok) return { ok: false, motivo: "limite-storage" };
 	return resultado;
 }
 
@@ -317,7 +332,8 @@ export async function criarPastaRaiz(nome) {
 	}
 
 	fav.pastas.push({ id: crypto.randomUUID(), nome: nomeLimpo, itens: [], pastas: [] });
-	await salvarFavoritos(fav);
+	const salvo = await salvarFavoritos(fav);
+	if (!salvo?.ok) return { ok: false, motivo: "limite-storage" };
 	return { ok: true, criado: true };
 }
 
@@ -341,7 +357,8 @@ export async function criarSubpasta(pathPai, nome) {
 	}
 
 	bucketPai.pastas.push({ id: crypto.randomUUID(), nome: nomeLimpo, itens: [], pastas: [] });
-	await salvarFavoritos(fav);
+	const salvo = await salvarFavoritos(fav);
+	if (!salvo?.ok) return { ok: false, motivo: "limite-storage" };
 	return { ok: true, criado: true };
 }
 
@@ -356,7 +373,8 @@ export async function colorirPasta(path, cor) {
 	if (corNormalizada) pasta.cor_fundo = corNormalizada;
 	else delete pasta.cor_fundo;
 
-	await salvarFavoritos(fav);
+	const salvo = await salvarFavoritos(fav);
+	if (!salvo?.ok) return { ok: false, motivo: "limite-storage" };
 	return { ok: true, alterado: true };
 }
 
@@ -372,13 +390,17 @@ export async function colorirItem(meta, cor) {
 		else delete itemFavorito.cor_fundo;
 		alterado = true;
 		alterado = removerColoridoSilencioso(fav, meta.secaoId, meta.id) || alterado;
-		await salvarFavoritos(fav);
+		const salvo = await salvarFavoritos(fav);
+		if (!salvo?.ok) return { ok: false, motivo: "limite-storage" };
 		return { ok: true, alterado, alvo: "favorito" };
 	}
 
 	const resSilencioso = upsertColoridoSilencioso(fav, meta, corNormalizada);
 	if (!resSilencioso.ok) return resSilencioso;
-	if (resSilencioso.alterado) await salvarFavoritos(fav);
+	if (resSilencioso.alterado) {
+		const salvo = await salvarFavoritos(fav);
+		if (!salvo?.ok) return { ok: false, motivo: "limite-storage" };
+	}
 	return { ok: true, alterado: !!resSilencioso.alterado, alvo: "silencioso" };
 }
 

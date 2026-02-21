@@ -2,35 +2,40 @@
 
 import { esperar } from "/funcoes.js";
 
-export async function executar(dados) {
-	try {
-		console.log("[renajud/pesquisa] Início. Dados:", dados);
+const CAMPOS_PESQUISA = {
+	numero_processo: "input#numeroProcesso, input[formcontrolname='numeroProcesso']",
+	placa: "input#placa, input[formcontrolname='placa']",
+	chassi: "input#chassi, input[formcontrolname='chassi']",
+	cpf_cnpj: "input#documentoIdentificacao, input[formcontrolname='documentoIdentificacao']"
+};
 
-		// aguarda campo CPF/CNPJ
-		const inputDoc = await esperarCampo("input#documentoIdentificacao, input[formcontrolname='documentoIdentificacao']");
-		if (!inputDoc) {
-			console.warn("[renajud/pesquisa] Campo documentoIdentificacao não encontrado.");
-			return;
-		}
-
-		const consultados = dados?.consultados || dados?.dados_consulta?.consultados || [];
-		const alvo = consultados[0];
-		if (!alvo?.cpf) {
-			console.warn("[renajud/pesquisa] Nenhum CPF de consultado disponível.");
-			return;
-		}
-
-		await preencherCPF(inputDoc, alvo.cpf);
-		console.log("[renajud/pesquisa] CPF preenchido:", alvo.cpf);
-
-		await acionarPesquisa(valorDoc => preencherCPF(inputDoc, valorDoc), alvo.cpf);
-	} catch (e) {
-		console.error("[renajud/pesquisa] Erro:", e);
-	}
+function normalizarParametro(dados) {
+	const valor = String(dados?.opcoes?.parametro_pesquisa || "cpf_cnpj").toLowerCase();
+	if (valor in CAMPOS_PESQUISA) return valor;
+	return "cpf_cnpj";
 }
 
-async function esperarCampo(seletor, tentativas = 20, delay = 200) {
-	for (let i = 0; i < tentativas; i++) {
+function obterValorPesquisa(dados, parametro) {
+	const processo = String(dados?.dados_processo?.capa?.numProcesso || "").trim();
+	const consultado = (dados?.consultados || [])[0] || {};
+	const documento = String(consultado?.cpf || "").trim();
+	const valorManual = String(dados?.opcoes?.valor_manual_pesquisa || "").trim();
+
+	if (parametro === "numero_processo") return processo;
+	if (parametro === "placa") return valorManual;
+	if (parametro === "chassi") return valorManual;
+	return documento;
+}
+
+function sanitizarValorPesquisa(valor, parametro) {
+	if (parametro === "cpf_cnpj") return String(valor || "").replace(/\D/g, "").slice(0, 14);
+	if (parametro === "placa") return String(valor || "").replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
+	if (parametro === "chassi") return String(valor || "").replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
+	return String(valor || "").trim();
+}
+
+async function esperarCampo(seletor, tentativas = 25, delay = 200) {
+	for (let i = 0; i < tentativas; i += 1) {
 		const el = document.querySelector(seletor);
 		if (el) return el;
 		await esperar(delay);
@@ -38,50 +43,77 @@ async function esperarCampo(seletor, tentativas = 20, delay = 200) {
 	return null;
 }
 
-async function preencherCPF(el, valor) {
-	const soDigitos = String(valor ?? "").replace(/\D/g, "").slice(0, 14);
-	el.focus();
-	el.value = "";
-	el.dispatchEvent(new Event("input", { bubbles: true }));
+async function preencherCampo(input, valor) {
+	input.focus();
+	input.value = "";
+	input.dispatchEvent(new Event("input", { bubbles: true }));
 
-	for (const char of soDigitos) {
-		el.dispatchEvent(new KeyboardEvent("keydown", { key: char, bubbles: true }));
-		el.dispatchEvent(new KeyboardEvent("keypress", { key: char, bubbles: true }));
-		el.value += char;
-		el.dispatchEvent(new Event("input", { bubbles: true }));
-		el.dispatchEvent(new KeyboardEvent("keyup", { key: char, bubbles: true }));
-		await esperar(60);
+	for (const char of String(valor || "")) {
+		input.dispatchEvent(new KeyboardEvent("keydown", { key: char, bubbles: true }));
+		input.dispatchEvent(new KeyboardEvent("keypress", { key: char, bubbles: true }));
+		input.value += char;
+		input.dispatchEvent(new Event("input", { bubbles: true }));
+		input.dispatchEvent(new KeyboardEvent("keyup", { key: char, bubbles: true }));
+		await esperar(35);
 	}
 
-	el.classList.remove("ng-pristine");
-	el.classList.add("ng-dirty");
-	el.classList.add("ng-touched");
-
-	el.dispatchEvent(new Event("change", { bubbles: true }));
-	el.dispatchEvent(new Event("blur", { bubbles: true }));
-	// evento custom para reactive forms, se existir
-	el.dispatchEvent(new Event("input", { bubbles: true }));
+	input.classList.remove("ng-pristine");
+	input.classList.remove("ng-untouched");
+	input.classList.add("ng-dirty");
+	input.classList.add("ng-touched");
+	input.dispatchEvent(new Event("change", { bubbles: true }));
+	input.dispatchEvent(new Event("blur", { bubbles: true }));
 }
 
-async function acionarPesquisa(preencherFn, documento) {
-	const tentar = async () => {
-		const input = await esperarCampo("input#documentoIdentificacao, input[formcontrolname='documentoIdentificacao']");
-		if (!input) return false;
-		await preencherFn(documento);
-		const btn = await esperarCampo("button[type='submit'].btn-primary");
-		if (!btn) return false;
-		btn.click();
-		console.log("[renajud/pesquisa] Botão 'Pesquisar' acionado.");
-		return true;
-	};
-
-	// primeira tentativa
-	if (await tentar()) return;
-
-	// se falhar (ex.: redirecionou para login), rechecamos por alguns segundos
-	for (let i = 0; i < 15; i++) {
-		await esperar(400);
-		if (await tentar()) return;
+function encontrarBotaoPesquisar() {
+	const seletor = [
+		"button[type='submit'].btn-primary",
+		"button[type='submit']",
+		"button.btn-primary",
+		"input[type='submit']"
+	].join(", ");
+	const candidatos = [...document.querySelectorAll(seletor)];
+	for (const el of candidatos) {
+		const texto = String(el.textContent || el.value || "").toLowerCase();
+		if (texto.includes("pesquisar")) return el;
 	}
-	console.warn("[renajud/pesquisa] Não foi possível acionar a pesquisa após múltiplas tentativas.");
+	return candidatos[0] || null;
+}
+
+export async function executar(dados) {
+	try {
+		const parametro = normalizarParametro(dados);
+		const seletor = CAMPOS_PESQUISA[parametro];
+		let valor = obterValorPesquisa(dados, parametro);
+		valor = sanitizarValorPesquisa(valor, parametro);
+
+		if (!valor) {
+			console.warn("[renajud/pesquisa] Sem valor para parametro selecionado.", { parametro });
+			return;
+		}
+
+		const input = await esperarCampo(seletor);
+		if (!input) {
+			console.warn("[renajud/pesquisa] Campo de pesquisa nao encontrado.", { parametro, seletor });
+			return;
+		}
+
+		await preencherCampo(input, valor);
+
+		const botao = await esperarCampo(
+			"button[type='submit'], button.btn-primary, input[type='submit']",
+			20,
+			180
+		);
+		const botaoPesquisar = botao || encontrarBotaoPesquisar();
+		if (!botaoPesquisar) {
+			console.warn("[renajud/pesquisa] Botao de pesquisar nao encontrado.");
+			return;
+		}
+
+		botaoPesquisar.click();
+		console.log("[renajud/pesquisa] Pesquisa acionada.", { parametro, valor });
+	} catch (e) {
+		console.error("[renajud/pesquisa] Erro:", e);
+	}
 }

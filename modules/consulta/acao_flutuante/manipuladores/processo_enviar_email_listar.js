@@ -47,6 +47,7 @@ async function obterTextosPadrao() {
 
 async function salvarTextosPadrao(lista) {
 	const cfg = await lerConfiguracoes();
+	delete cfg.painel_favoritos;
 	if (!cfg[CAMINHO_CFG[0]]) cfg[CAMINHO_CFG[0]] = {};
 	if (!cfg[CAMINHO_CFG[0]][CAMINHO_CFG[1]]) {
 		cfg[CAMINHO_CFG[0]][CAMINHO_CFG[1]] = {};

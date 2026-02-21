@@ -239,6 +239,11 @@ function criarFieldsetPasta(folder, pathAtual, corHerdada) {
 				alert("Limite de favoritos atingido");
 				return;
 			}
+			if (!res?.ok && res?.motivo === "limite-storage") {
+				inserir_aviso_effraim("Limite de armazenamento dos favoritos atingido (3 chaves).", 7000);
+				alert("Limite de armazenamento dos favoritos atingido (3 chaves).");
+				return;
+			}
 			if (res?.ok && res?.criado) {
 				await renderizarSecaoFavoritos();
 			}
@@ -256,7 +261,12 @@ function criarFieldsetPasta(folder, pathAtual, corHerdada) {
 	btnColorir.onclick = e => {
 		e.stopPropagation();
 		abrirPaletaCores(btnColorir, async corSelecionada => {
-			await colorirPasta(caminhoCompleto, corSelecionada);
+			const res = await colorirPasta(caminhoCompleto, corSelecionada);
+			if (!res?.ok && res?.motivo === "limite-storage") {
+				inserir_aviso_effraim("Limite de armazenamento dos favoritos atingido (3 chaves).", 7000);
+				alert("Limite de armazenamento dos favoritos atingido (3 chaves).");
+				return;
+			}
 			await renderizarSecaoFavoritos();
 		});
 	};
@@ -394,6 +404,11 @@ function criarLinhaFavorito(meta, path, corHerdada) {
 			if (!res?.ok && res?.motivo === "limite-coloridos") {
 				inserir_aviso_effraim(`Limite de ${COLORIDOS_SILENCIOSOS_LIMITE_TOTAL} coloridos atingido`, 7000);
 				alert(`Limite de ${COLORIDOS_SILENCIOSOS_LIMITE_TOTAL} coloridos atingido`);
+				return;
+			}
+			if (!res?.ok && res?.motivo === "limite-storage") {
+				inserir_aviso_effraim("Limite de armazenamento dos favoritos atingido (3 chaves).", 7000);
+				alert("Limite de armazenamento dos favoritos atingido (3 chaves).");
 				return;
 			}
 			await renderizarSecaoFavoritos();

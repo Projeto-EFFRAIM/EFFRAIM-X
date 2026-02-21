@@ -84,6 +84,11 @@ function inserirIcones(secaoId, rowMatcher) {
 					alert(`Limite de ${COLORIDOS_SILENCIOSOS_LIMITE_TOTAL} coloridos atingido`);
 					return;
 				}
+				if (!res?.ok && res?.motivo === "limite-storage") {
+					inserir_aviso_effraim("Limite de armazenamento dos favoritos atingido (3 chaves).", 7000);
+					alert("Limite de armazenamento dos favoritos atingido (3 chaves).");
+					return;
+				}
 				const cor = await obterCorEfetivaItem(secaoId, meta.id);
 				aplicarColoracaoLinha(row, cor);
 				await renderizarSecaoFavoritos();
@@ -239,6 +244,10 @@ function abrirMenuFavorito(meta, anchorEl) {
 					avisarLimite();
 					return;
 				}
+				if (!res?.ok && res?.motivo === "limite-storage") {
+					avisarLimiteStorage();
+					return;
+				}
 				atualizarIcone(anchorEl, true);
 				await renderizarSecaoFavoritos();
 				fecharMenu();
@@ -259,11 +268,19 @@ function abrirMenuFavorito(meta, anchorEl) {
 		inserir_aviso_effraim("Limite de favoritos atingido", 6000);
 		alert("Limite de favoritos atingido");
 	};
+	const avisarLimiteStorage = () => {
+		inserir_aviso_effraim("Limite de armazenamento dos favoritos atingido (3 chaves).", 7000);
+		alert("Limite de armazenamento dos favoritos atingido (3 chaves).");
+	};
 
 	addItem("Sem pasta (raiz)", async () => {
 		const res = await adicionarFavorito(meta, []);
 		if (!res?.ok && res?.motivo === "limite") {
 			avisarLimite();
+			return;
+		}
+		if (!res?.ok && res?.motivo === "limite-storage") {
+			avisarLimiteStorage();
 			return;
 		}
 		atualizarIcone(anchorEl, true);
@@ -276,6 +293,10 @@ function abrirMenuFavorito(meta, anchorEl) {
 		const res = await adicionarFavorito(meta, caminho);
 		if (!res?.ok && res?.motivo === "limite") {
 			avisarLimite();
+			return;
+		}
+		if (!res?.ok && res?.motivo === "limite-storage") {
+			avisarLimiteStorage();
 			return;
 		}
 		atualizarIcone(anchorEl, true);
@@ -300,6 +321,10 @@ function abrirMenuFavorito(meta, anchorEl) {
 					const res = await adicionarFavorito(meta, path);
 					if (!res?.ok && res?.motivo === "limite") {
 						avisarLimite();
+						return;
+					}
+					if (!res?.ok && res?.motivo === "limite-storage") {
+						avisarLimiteStorage();
 						return;
 					}
 					atualizarIcone(anchorEl, true);

@@ -12,45 +12,46 @@ export async function iniciarTutorial() {
 	iniciarTour([
 		{
 			selector: "#btn-renajud",
-			titulo: "Botão RENAJUD",
-			texto: "Este botão abre o painel deslizante do RENAJUD."
+			titulo: "Botao RENAJUD",
+			texto: "Este botao abre o painel deslizante do RENAJUD."
 		},
 		{
 			selector: "#painel-renajud",
 			onEnter: abrirRenajud,
-			titulo: "Painel Deslizante",
-			texto: "No painel, você define consultados e valores de penhora."
+			titulo: "Painel RENAJUD",
+			texto: "No painel, voce define ambiente, tipo de consulta e parametro de pesquisa."
 		},
 		{
-			selectorFn: () => document.querySelector('input[name=\"consultado\"]'),
+			selector: 'input[name="renajud-ambiente"]',
+			onEnter: abrirRenajud,
+			titulo: "Ambiente",
+			texto: "Escolha entre RENAJUD Novo e RENAJUD Antigo."
+		},
+		{
+			selector: 'input[name="renajud-acao"]',
+			titulo: "Tipo de Consulta",
+			texto: "Escolha se deseja inserir, retirar ou consultar."
+		},
+		{
+			selector: 'input[name="renajud-parametro"]',
+			titulo: "Parametro de Pesquisa",
+			texto: "Escolha se a busca sera por processo, placa, chassi ou CPF/CNPJ."
+		},
+		{
+			selectorFn: () => document.querySelector('input[name="consultado"]'),
 			onEnter: async () => {
 				await abrirRenajud();
-				const chk = document.querySelector('input[name=\"consultado\"]');
-				if (chk && !chk.checked) chk.click();
+				const radio = document.querySelector('input[name="consultado"]');
+				if (radio && !radio.checked) radio.click();
 				await esperar(120);
 			},
-			titulo: "Selecionar Consultado",
-			texto: "Primeiro, marque quem será consultado no RENAJUD."
-		},
-		{
-			selectorFn: () => document.querySelector(".valor_consultado"),
-			onEnter: async () => {
-				const campo = document.querySelector(".valor_consultado");
-				if (campo) {
-					campo.focus();
-					campo.value = "1000,00";
-					campo.dispatchEvent(new Event("input", { bubbles: true }));
-				}
-				await esperar(120);
-			},
-			titulo: "Preencher Valor",
-			texto: "Em seguida, informe o valor de penhora para cada consultado."
+			titulo: "Consultado Unico",
+			texto: "No RENAJUD, apenas um consultado pode ser selecionado por vez."
 		},
 		{
 			selector: "#btn-prosseguir-renajud",
 			titulo: "Prosseguir",
-			texto: "Com os dados preenchidos, prossiga para abrir o sistema RENAJUD."
+			texto: "Com os dados definidos, use este botao para seguir para o RENAJUD escolhido."
 		}
 	]);
 }
-

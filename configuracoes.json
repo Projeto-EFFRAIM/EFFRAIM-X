@@ -131,6 +131,83 @@
     }
   },
 
+  "opcoes_renajud": {
+    "_meta": {
+      "nome": "Opções RENAJUD",
+      "explicacao": "Preferências gerais de ambiente para o painel RENAJUD."
+    },
+    "ambiente_padrao": {
+      "valor": "antigo",
+      "_meta": {
+        "nome": "Ambiente padrão",
+        "explicacao": "Define se o painel abre com RENAJUD Novo ou RENAJUD Antigo selecionado."
+      }
+    }
+  },
+
+  "opcoes_renajud_novo": {
+    "_meta": {
+      "nome": "Opções RENAJUD Novo",
+      "explicacao": "Preferências usadas na automação do RENAJUD Novo."
+    },
+    "acao_padrao": {
+      "valor": "inserir",
+      "_meta": {
+        "nome": "Tipo de consulta padrão",
+        "explicacao": "Define o tipo de consulta inicial: inserir, retirar ou consultar."
+      }
+    },
+    "parametro_pesquisa_padrao": {
+      "valor": "cpf_cnpj",
+      "_meta": {
+        "nome": "Parâmetro de pesquisa padrão",
+        "explicacao": "Define se a pesquisa inicia por processo, placa, chassi ou CPF/CNPJ."
+      }
+    },
+    "ramo_justica_padrao": {
+      "valor": "JUSTICA DO TRABALHO",
+      "_meta": {
+        "nome": "Ramo da justiça padrão",
+        "explicacao": "Preenchido automaticamente na tela de inclusão. Valor inicial: JUSTIÇA DO TRABALHO."
+      }
+    },
+    "tribunal_preferido": {
+      "valor": "",
+      "_meta": {
+        "nome": "Tribunal preferido",
+        "explicacao": "Salvo automaticamente no primeiro clique em Inserir. Para alterar, limpe este campo."
+      }
+    },
+    "orgao_preferido": {
+      "valor": "",
+      "_meta": {
+        "nome": "Órgão judiciário preferido",
+        "explicacao": "Salvo automaticamente no primeiro clique em Inserir. Para alterar, limpe este campo."
+      }
+    }
+  },
+
+  "opcoes_renajud_antigo": {
+    "_meta": {
+      "nome": "Opções RENAJUD Antigo",
+      "explicacao": "Preferências usadas na automação do RENAJUD Antigo."
+    },
+    "acao_padrao": {
+      "valor": "inserir",
+      "_meta": {
+        "nome": "Tipo de consulta padrão",
+        "explicacao": "Define o tipo de consulta inicial: inserir, retirar ou consultar."
+      }
+    },
+    "parametro_pesquisa_padrao": {
+      "valor": "cpf_cnpj",
+      "_meta": {
+        "nome": "Parâmetro de pesquisa padrão",
+        "explicacao": "Define se a pesquisa inicia por processo, placa, chassi ou CPF/CNPJ."
+      }
+    }
+  },
+
   "opcoes_requisitorio": {
     "_meta": {
       "nome": "Opções Requisitório",

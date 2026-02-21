@@ -2,6 +2,27 @@
 // Configurações (EFFRAIM)
 // ==========================================================
 
+import { writeChunkedObject } from "./sync_chunk_storage.js";
+
+const FAVORITOS_SYNC_KEY = "effraim_painel_favoritos_v1";
+
+async function separarFavoritosDoBlobConfiguracoes(cfg) {
+	if (!cfg || typeof cfg !== "object" || !cfg.painel_favoritos) return { cfg, alterado: false };
+	let gravado = false;
+	try {
+		await writeChunkedObject(FAVORITOS_SYNC_KEY, cfg.painel_favoritos);
+		gravado = true;
+	} catch (e) {
+		console.warn("[EFFRAIM] Falha ao separar painel_favoritos em chunks.", e);
+		return { cfg, alterado: false };
+	}
+	if (gravado) {
+		delete cfg.painel_favoritos;
+		return { cfg, alterado: true };
+	}
+	return { cfg, alterado: false };
+}
+
 export async function carregarConfiguracoes() {
 	const existentes = await lerConfiguracoes();
 
@@ -33,11 +54,20 @@ export async function carregarConfiguracoes() {
 }
 
 async function lerConfiguracoes() {
-	return new Promise(resolve => {
+	const dados = await new Promise(resolve => {
 		chrome.storage.sync.get("effraim_configuracoes", dados => {
 			resolve(dados.effraim_configuracoes || {});
 		});
 	});
+	const { cfg, alterado } = await separarFavoritosDoBlobConfiguracoes(dados);
+	if (alterado) {
+		try {
+			await new Promise((resolve) => chrome.storage.sync.set({ effraim_configuracoes: cfg }, resolve));
+		} catch (e) {
+			console.warn("[EFFRAIM] Falha ao persistir configuracoes sem painel_favoritos.", e);
+		}
+	}
+	return cfg;
 }
 
 export async function zerarConfiguracoes() {
@@ -105,6 +135,7 @@ export async function gravarConfiguracao(caminho, novoValor) {
 		alvo[chaveFinal] = novoValor;
 	}
 
+	delete dados.painel_favoritos;
 	await new Promise(resolve => chrome.storage.sync.set({ effraim_configuracoes: dados }, resolve));
 	return dados;
 }
@@ -483,6 +514,53 @@ async function adicionarCampos(container, prefixo, objeto) {
 						input.appendChild(o);
 					});
 					linha.append(label, input);
+				} else if (caminho === "opcoes_renajud.ambiente_padrao") {
+					input = document.createElement("select");
+					const opcoes = [
+						{ valor: "novo", texto: "Novo" },
+						{ valor: "antigo", texto: "Antigo" }
+					];
+					const atual = String(valor.valor || "novo").toLowerCase();
+					opcoes.forEach((opt) => {
+						const o = document.createElement("option");
+						o.value = opt.valor;
+						o.textContent = opt.texto;
+						if (opt.valor === atual) o.selected = true;
+						input.appendChild(o);
+					});
+					linha.append(label, input);
+				} else if (caminho === "opcoes_renajud_novo.acao_padrao" || caminho === "opcoes_renajud_antigo.acao_padrao") {
+					input = document.createElement("select");
+					const opcoes = ["inserir", "retirar", "consultar"];
+					const atual = String(valor.valor || "inserir").toLowerCase();
+					opcoes.forEach((opt) => {
+						const o = document.createElement("option");
+						o.value = opt;
+						o.textContent = opt[0].toUpperCase() + opt.slice(1);
+						if (opt === atual) o.selected = true;
+						input.appendChild(o);
+					});
+					linha.append(label, input);
+				} else if (
+					caminho === "opcoes_renajud_novo.parametro_pesquisa_padrao" ||
+					caminho === "opcoes_renajud_antigo.parametro_pesquisa_padrao"
+				) {
+					input = document.createElement("select");
+					const opcoes = [
+						{ valor: "numero_processo", texto: "Processo" },
+						{ valor: "placa", texto: "Placa" },
+						{ valor: "chassi", texto: "Chassi" },
+						{ valor: "cpf_cnpj", texto: "CPF/CNPJ" }
+					];
+					const atual = String(valor.valor || "cpf_cnpj").toLowerCase();
+					opcoes.forEach((opt) => {
+						const o = document.createElement("option");
+						o.value = opt.valor;
+						o.textContent = opt.texto;
+						if (opt.valor === atual) o.selected = true;
+						input.appendChild(o);
+					});
+					linha.append(label, input);
 				} else {
 					if (caminho === "opcoes_lista_partes_aprimorada.altura_maxima_tabela") {
 						input = document.createElement("input");
@@ -531,6 +609,21 @@ async function adicionarCampos(container, prefixo, objeto) {
 						const numero = Number.parseInt(String(novoValor || "").trim(), 10);
 						novoValor = Number.isFinite(numero) ? Math.max(100, numero) : 300;
 						input.value = String(novoValor);
+					} else if (caminho === "opcoes_renajud.ambiente_padrao") {
+						const v = String(novoValor || "").toLowerCase();
+						novoValor = v === "antigo" ? "antigo" : "novo";
+						input.value = novoValor;
+					} else if (caminho === "opcoes_renajud_novo.acao_padrao" || caminho === "opcoes_renajud_antigo.acao_padrao") {
+						const v = String(novoValor || "").toLowerCase();
+						novoValor = ["inserir", "retirar", "consultar"].includes(v) ? v : "inserir";
+						input.value = novoValor;
+					} else if (
+						caminho === "opcoes_renajud_novo.parametro_pesquisa_padrao" ||
+						caminho === "opcoes_renajud_antigo.parametro_pesquisa_padrao"
+					) {
+						const v = String(novoValor || "").toLowerCase();
+						novoValor = ["numero_processo", "placa", "chassi", "cpf_cnpj"].includes(v) ? v : "cpf_cnpj";
+						input.value = novoValor;
 					}
 					await gravarConfiguracao(caminho, novoValor);
 					console.log("[EFFRAIM] atualizado:", caminho, "=", novoValor);
