@@ -5,11 +5,16 @@ import {
 	obterFavoritos,
 	contarFavoritosEPastas,
 	FAVORITOS_LIMITE_TOTAL,
-	criarSubpasta
+	COLORIDOS_SILENCIOSOS_LIMITE_TOTAL,
+	criarSubpasta,
+	colorirItem,
+	obterCorEfetivaItem
 } from "./state.js";
 import { renderizarSecaoFavoritos } from "./dom.js";
 import { inserir_aviso_effraim } from "../../utils/interface.js";
 import { ensureFavoritosCss } from "./styles.js";
+import { listarCaminhosPastas } from "../../utils/gestao_pastas.js";
+import { abrirPaletaCores, aplicarColoracaoLinhaTabela } from "./coloracao.js";
 
 export function getSecoesFavoritaveis(secoes) {
 	return secoes.filter(s => s.favoritavel);
@@ -18,6 +23,7 @@ export function getSecoesFavoritaveis(secoes) {
 // ---------- UI principal ----------
 
 export function aplicarFavoritosNasSecoes(secoes) {
+	registrarListenerAtualizacaoColoracao();
 	setTimeout(() => {
 		try {
 			getSecoesFavoritaveis(secoes).forEach(secao => {
@@ -31,6 +37,26 @@ export function aplicarFavoritosNasSecoes(secoes) {
 	}, 300);
 }
 
+let listenerAtualizacaoColoracaoRegistrado = false;
+
+function registrarListenerAtualizacaoColoracao() {
+	if (listenerAtualizacaoColoracaoRegistrado) return;
+	window.addEventListener("effraim:atualizar_coloracao", () => {
+		atualizarColoracaoLinhasVisiveis();
+	});
+	listenerAtualizacaoColoracaoRegistrado = true;
+}
+
+async function atualizarColoracaoLinhasVisiveis() {
+	const botoes = document.querySelectorAll("td.effraim-fav-cell img.effraim-fav-icon[data-id][data-secao]");
+	for (const btn of botoes) {
+		const row = btn.closest("tr");
+		if (!row) continue;
+		const cor = await obterCorEfetivaItem(btn.dataset.secao, btn.dataset.id);
+		aplicarColoracaoLinha(row, cor);
+	}
+}
+
 function inserirIcones(secaoId, rowMatcher) {
 	const secaoEl = document.getElementById(secaoId);
 	if (!secaoEl) return;
@@ -39,12 +65,29 @@ function inserirIcones(secaoId, rowMatcher) {
 		const meta = rowMatcher(row);
 		if (!meta) return;
 		meta.secaoId = secaoId;
-		const btn = adicionarCelulaFav(row, meta);
+		const { btnFavorito, btnColorir } = adicionarCelulaFav(row, meta);
 		const fav = await isFavorito(secaoId, meta.id);
-		atualizarIcone(btn, fav);
-		btn.onclick = e => {
+		atualizarIcone(btnFavorito, fav);
+		const corAtual = await obterCorEfetivaItem(secaoId, meta.id);
+		aplicarColoracaoLinha(row, corAtual);
+
+		btnFavorito.onclick = e => {
 			e.stopPropagation();
-			toggleFavorito(meta, btn);
+			toggleFavorito(meta, btnFavorito, row);
+		};
+		btnColorir.onclick = e => {
+			e.stopPropagation();
+			abrirPaletaCores(btnColorir, async corSelecionada => {
+				const res = await colorirItem(meta, corSelecionada);
+				if (!res?.ok && res?.motivo === "limite-coloridos") {
+					inserir_aviso_effraim(`Limite de ${COLORIDOS_SILENCIOSOS_LIMITE_TOTAL} coloridos atingido`, 7000);
+					alert(`Limite de ${COLORIDOS_SILENCIOSOS_LIMITE_TOTAL} coloridos atingido`);
+					return;
+				}
+				const cor = await obterCorEfetivaItem(secaoId, meta.id);
+				aplicarColoracaoLinha(row, cor);
+				await renderizarSecaoFavoritos();
+			});
 		};
 	});
 }
@@ -66,17 +109,29 @@ function adicionarCelulaFav(row, meta) {
 		td.className = "effraim-fav-cell";
 		row.appendChild(td);
 	}
-	const btn = criarBotao(meta);
+	const btnFavorito = criarBotao(meta);
+	const btnColorir = document.createElement("img");
+	btnColorir.className = "effraim-fav-icon effraim-colorir-icon";
+	btnColorir.alt = "Colorir item";
+	btnColorir.title = "Colorir item";
+	btnColorir.src = chrome.runtime.getURL("assets/icones/colorir.png");
 	td.innerHTML = "";
-	td.appendChild(btn);
-	return btn;
+	td.append(btnFavorito, btnColorir);
+	return { btnFavorito, btnColorir };
 }
 
-async function toggleFavorito(meta, imgEl) {
+function aplicarColoracaoLinha(row, cor) {
+	if (!row) return;
+	aplicarColoracaoLinhaTabela(row, cor, 0.2);
+}
+
+async function toggleFavorito(meta, imgEl, rowEl) {
 	const isFav = await isFavorito(meta.secaoId, meta.id);
 	if (isFav) {
 		await removerFavorito(meta.secaoId, meta.id);
 		atualizarIcone(imgEl, false);
+		const cor = await obterCorEfetivaItem(meta.secaoId, meta.id);
+		aplicarColoracaoLinha(rowEl, cor);
 		await renderizarSecaoFavoritos();
 		return;
 	}
@@ -231,7 +286,7 @@ function abrirMenuFavorito(meta, anchorEl) {
 
 	(async () => {
 		const fav = await obterFavoritos();
-		const paths = listarPastasExistentes(fav);
+		const paths = listarCaminhosPastas(fav);
 		if (!paths.length) {
 			const empty = document.createElement("div");
 			empty.className = "item";
@@ -290,15 +345,4 @@ function abrirMenuFavorito(meta, anchorEl) {
 	fit();
 
 	setTimeout(() => document.addEventListener("click", fecharMenu), 0);
-}
-
-function listarPastasExistentes(fav) {
-	const paths = [];
-	const walk = (folder, path = []) => {
-		const currentPath = [...path, folder.nome];
-		paths.push(currentPath);
-		(folder.pastas || []).forEach(sub => walk(sub, currentPath));
-	};
-	(fav.pastas || []).forEach(p => walk(p, []));
-	return paths;
 }

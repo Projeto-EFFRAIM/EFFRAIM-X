@@ -1,33 +1,126 @@
 import { carregarConfiguracoes } from "../../utils/configuracoes.js";
+import {
+	obterBucketPorCaminho,
+	garantirCaminhoPastas,
+	moverItemEntreCaminhos,
+	reordenarPastasNoCaminho,
+	removerPastaPorCaminho,
+	renomearPastaPorCaminho
+} from "../../utils/gestao_pastas.js";
 
 export const FAVORITOS_PATH = "painel_favoritos";
 export const FAVORITOS_LIMITE_TOTAL = 50;
+export const COLORIDOS_SILENCIOSOS_LIMITE_TOTAL = 50;
+
+function normalizarEstruturaFavoritos(fav) {
+	if (!fav || typeof fav !== "object") return { pastas: [], itens_soltos: [], itens_coloridos: [] };
+	fav.pastas = Array.isArray(fav.pastas) ? fav.pastas : [];
+	fav.itens_soltos = Array.isArray(fav.itens_soltos) ? fav.itens_soltos : [];
+	fav.itens_coloridos = Array.isArray(fav.itens_coloridos) ? fav.itens_coloridos : [];
+	return fav;
+}
+
+function normalizarCor(cor) {
+	const valor = String(cor || "").trim();
+	return valor || null;
+}
+
+function obterListaColoridosSilenciosos(fav) {
+	fav.itens_coloridos = Array.isArray(fav.itens_coloridos) ? fav.itens_coloridos : [];
+	return fav.itens_coloridos;
+}
+
+function localizarIndiceColoridoSilencioso(fav, secaoId, itemId) {
+	const lista = obterListaColoridosSilenciosos(fav);
+	return lista.findIndex(it => it.secaoId === secaoId && it.id === itemId);
+}
+
+function removerColoridoSilencioso(fav, secaoId, itemId) {
+	const idx = localizarIndiceColoridoSilencioso(fav, secaoId, itemId);
+	if (idx < 0) return false;
+	obterListaColoridosSilenciosos(fav).splice(idx, 1);
+	return true;
+}
+
+function upsertColoridoSilencioso(fav, meta, cor) {
+	const corNormalizada = normalizarCor(cor);
+	const lista = obterListaColoridosSilenciosos(fav);
+	const idx = localizarIndiceColoridoSilencioso(fav, meta.secaoId, meta.id);
+
+	if (!corNormalizada) {
+		if (idx < 0) return { ok: true, alterado: false, removido: false };
+		lista.splice(idx, 1);
+		return { ok: true, alterado: true, removido: true };
+	}
+
+	if (idx >= 0) {
+		lista[idx] = {
+			...lista[idx],
+			cor_fundo: corNormalizada,
+			updatedAt: Date.now()
+		};
+		return { ok: true, alterado: true, atualizado: true };
+	}
+
+	if (lista.length >= COLORIDOS_SILENCIOSOS_LIMITE_TOTAL) {
+		return { ok: false, motivo: "limite-coloridos" };
+	}
+
+	lista.push({
+		secaoId: meta.secaoId,
+		id: meta.id,
+		cor_fundo: corNormalizada,
+		updatedAt: Date.now()
+	});
+	return { ok: true, alterado: true, criado: true };
+}
+
+function localizarItemFavoritoNoArvore(fav, secaoId, itemId) {
+	const raiz = fav.itens_soltos?.find(it => it.secaoId === secaoId && it.id === itemId);
+	if (raiz) return raiz;
+	const walk = (pastas = []) => {
+		for (const pasta of pastas) {
+			const item = (pasta.itens || []).find(it => it.secaoId === secaoId && it.id === itemId);
+			if (item) return item;
+			const sub = walk(pasta.pastas || []);
+			if (sub) return sub;
+		}
+		return null;
+	};
+	return walk(fav.pastas || []);
+}
+
+function obterCorEfetivaItemEmMemoria(fav, secaoId, itemId) {
+	const itemRaiz = (fav.itens_soltos || []).find(it => it.secaoId === secaoId && it.id === itemId);
+	if (itemRaiz?.cor_fundo) return itemRaiz.cor_fundo;
+
+	const walk = (pastas = [], corHerdada = null) => {
+		for (const pasta of pastas) {
+			const corAtual = pasta.cor_fundo || corHerdada || null;
+			const item = (pasta.itens || []).find(it => it.secaoId === secaoId && it.id === itemId);
+			if (item) return item.cor_fundo || corAtual || null;
+			const sub = walk(pasta.pastas || [], corAtual);
+			if (sub) return sub;
+		}
+		return null;
+	};
+	const corFavorito = walk(fav.pastas || [], null);
+	if (corFavorito) return corFavorito;
+
+	const silencioso = obterListaColoridosSilenciosos(fav).find(it => it.secaoId === secaoId && it.id === itemId);
+	return silencioso?.cor_fundo || null;
+}
 
 export async function obterFavoritos() {
 	const cfg = await carregarConfiguracoes();
 	const fav = cfg[FAVORITOS_PATH];
-	if (fav) return fav;
-	return { pastas: [], itens_soltos: [] };
+	return normalizarEstruturaFavoritos(fav);
 }
 
 export async function salvarFavoritos(fav) {
 	const cfg = await carregarConfiguracoes();
-	cfg[FAVORITOS_PATH] = fav;
+	cfg[FAVORITOS_PATH] = normalizarEstruturaFavoritos(fav);
 	await chrome.storage.sync.set({ effraim_configuracoes: cfg });
-}
-
-function ensurePath(fav, pathParts) {
-	let node = fav;
-	for (const part of pathParts) {
-		if (!node.pastas) node.pastas = [];
-		let next = node.pastas.find(p => p.nome === part);
-		if (!next) {
-			next = { id: crypto.randomUUID(), nome: part, itens: [], pastas: [] };
-			node.pastas.push(next);
-		}
-		node = next;
-	}
-	return node;
 }
 
 function contarPastasRecursivo(pastas = []) {
@@ -87,11 +180,11 @@ export async function isFavorito(secaoId, itemId) {
 
 export async function adicionarFavorito(meta, path = []) {
 	const caminho = Array.isArray(path) ? path.slice(0, 2) : [];
-	const fav = await obterFavoritos();
+	const fav = normalizarEstruturaFavoritos(await obterFavoritos());
 
 	const bucketExistente = caminho.length === 0
 		? { itens: fav.itens_soltos || [] }
-		: obterBucket(fav, caminho);
+		: obterBucketPorCaminho(fav, caminho);
 	const jaExisteNoDestino = !!bucketExistente?.itens?.some(it => it.secaoId === meta.secaoId && it.id === meta.id);
 	const pastasNovas = caminho.length ? contarPastasNovasNecessarias(fav, caminho) : 0;
 	const incremento = pastasNovas + (jaExisteNoDestino ? 0 : 1);
@@ -104,13 +197,17 @@ export async function adicionarFavorito(meta, path = []) {
 		if (!fav.itens_soltos) fav.itens_soltos = [];
 		bucket = fav.itens_soltos;
 	} else {
-		const folder = ensurePath(fav, caminho);
+		const folder = garantirCaminhoPastas(fav, caminho);
 		if (!folder.itens) folder.itens = [];
 		bucket = folder.itens;
 	}
 
 	if (!bucket.some(it => it.secaoId === meta.secaoId && it.id === meta.id)) {
-		bucket.push(meta);
+		const corSilenciosa = obterListaColoridosSilenciosos(fav)
+			.find(it => it.secaoId === meta.secaoId && it.id === meta.id)?.cor_fundo;
+		const metaComCor = corSilenciosa ? { ...meta, cor_fundo: corSilenciosa } : meta;
+		bucket.push(metaComCor);
+		removerColoridoSilencioso(fav, meta.secaoId, meta.id);
 		if (!bucket.ordenacao_manual && bucket.sort) {
 			bucket.sort((a, b) => (a.titulo || "").localeCompare(b.titulo || ""));
 		}
@@ -121,11 +218,14 @@ export async function adicionarFavorito(meta, path = []) {
 }
 
 export async function removerFavorito(secaoId, itemId) {
-	const fav = await obterFavoritos();
+	const fav = normalizarEstruturaFavoritos(await obterFavoritos());
 	let changed = false;
+	let corRemovida = null;
 
 	if (fav.itens_soltos) {
 		const len = fav.itens_soltos.length;
+		const item = fav.itens_soltos.find(it => it.secaoId === secaoId && it.id === itemId);
+		if (item?.cor_fundo) corRemovida = item.cor_fundo;
 		fav.itens_soltos = fav.itens_soltos.filter(it => !(it.secaoId === secaoId && it.id === itemId));
 		if (fav.itens_soltos.length !== len) changed = true;
 	}
@@ -133,6 +233,8 @@ export async function removerFavorito(secaoId, itemId) {
 	const removeInFolder = folder => {
 		if (folder.itens) {
 			const len = folder.itens.length;
+			const item = folder.itens.find(it => it.secaoId === secaoId && it.id === itemId);
+			if (item?.cor_fundo) corRemovida = item.cor_fundo;
 			folder.itens = folder.itens.filter(it => !(it.secaoId === secaoId && it.id === itemId));
 			if (folder.itens.length !== len) changed = true;
 		}
@@ -140,13 +242,16 @@ export async function removerFavorito(secaoId, itemId) {
 	};
 	(fav.pastas || []).forEach(removeInFolder);
 
+	if (changed && corRemovida) {
+		upsertColoridoSilencioso(fav, { secaoId, id: itemId }, corRemovida);
+	}
 	if (changed) await salvarFavoritos(fav);
 	return changed;
 }
 
 export async function reordenarItens(path, novaOrdemIds) {
-	const fav = await obterFavoritos();
-	const bucket = path.length === 0 ? { itens: fav.itens_soltos } : obterBucket(fav, path);
+	const fav = normalizarEstruturaFavoritos(await obterFavoritos());
+	const bucket = path.length === 0 ? { itens: fav.itens_soltos } : obterBucketPorCaminho(fav, path);
 	if (!bucket || !bucket.itens) return false;
 	const mapa = new Map(bucket.itens.map(it => [it.id, it]));
 	const novaLista = [];
@@ -167,78 +272,42 @@ export async function reordenarItens(path, novaOrdemIds) {
 }
 
 export async function reordenarPastas(path, novaOrdemNomes) {
-	const fav = await obterFavoritos();
-	const bucket = path.length === 0 ? fav : obterBucket(fav, path);
-	if (!bucket || !bucket.pastas) return false;
-	const mapa = new Map(bucket.pastas.map(p => [p.nome, p]));
-	const nova = [];
-	novaOrdemNomes.forEach(n => { if (mapa.has(n)) nova.push(mapa.get(n)); });
-	bucket.pastas = nova;
+	const fav = normalizarEstruturaFavoritos(await obterFavoritos());
+	const ok = reordenarPastasNoCaminho(fav, path, novaOrdemNomes);
+	if (!ok) return false;
 	await salvarFavoritos(fav);
 	return true;
 }
 
-function obterBucket(fav, path = []) {
-	let node = fav;
-	for (const nome of path) {
-		if (!node.pastas) return null;
-		node = node.pastas.find(p => p.nome === nome);
-		if (!node) return null;
-	}
-	return node;
-}
-
 export async function moverItem(meta, fromPath, toPath) {
-	const fav = await obterFavoritos();
-
-	const origem = fromPath.length === 0 ? { itens: fav.itens_soltos } : obterBucket(fav, fromPath);
-	if (!origem || !origem.itens) return false;
-	const item = origem.itens.find(it => it.id === meta.id && it.secaoId === meta.secaoId);
-	if (!item) return false;
-	origem.itens = origem.itens.filter(it => !(it.id === meta.id && it.secaoId === meta.secaoId));
-	if (fromPath.length === 0) fav.itens_soltos = origem.itens;
-
-	let destino;
-	if (toPath.length === 0) {
-		fav.itens_soltos = fav.itens_soltos || [];
-		destino = { itens: fav.itens_soltos };
-	} else {
-		destino = obterBucket(fav, toPath) || ensurePath(fav, toPath);
-		if (!destino.itens) destino.itens = [];
-	}
-	destino.itens.push(item);
-
+	const fav = normalizarEstruturaFavoritos(await obterFavoritos());
+	const ok = moverItemEntreCaminhos(fav, meta, fromPath, toPath);
+	if (!ok) return false;
 	await salvarFavoritos(fav);
 	return true;
 }
 
 export async function removerPasta(path, moverParaRaiz = false) {
-	const fav = await obterFavoritos();
-	const parentPath = path.slice(0, -1);
-	const pastaNome = path[path.length - 1];
-	const parent = path.length === 1 ? fav : obterBucket(fav, parentPath);
-	if (!parent || !parent.pastas) return false;
-	const idx = parent.pastas.findIndex(p => p.nome === pastaNome);
-	if (idx < 0) return false;
-	const pasta = parent.pastas[idx];
-	parent.pastas.splice(idx, 1);
-
-	if (moverParaRaiz) {
-		fav.itens_soltos = fav.itens_soltos || [];
-		if (pasta.itens) fav.itens_soltos.push(...pasta.itens);
-		fav.pastas = fav.pastas || [];
-		if (pasta.pastas) fav.pastas.push(...pasta.pastas);
-	}
-
+	const fav = normalizarEstruturaFavoritos(await obterFavoritos());
+	const ok = removerPastaPorCaminho(fav, path, moverParaRaiz);
+	if (!ok) return false;
 	await salvarFavoritos(fav);
 	return true;
+}
+
+export async function renomearPasta(path, novoNome) {
+	const fav = normalizarEstruturaFavoritos(await obterFavoritos());
+	const resultado = renomearPastaPorCaminho(fav, path, novoNome);
+	if (!resultado?.ok || !resultado?.alterado) return resultado;
+	await salvarFavoritos(fav);
+	return resultado;
 }
 
 export async function criarPastaRaiz(nome) {
 	const nomeLimpo = String(nome || "").trim();
 	if (!nomeLimpo) return { ok: false, motivo: "nome-vazio" };
 
-	const fav = await obterFavoritos();
+	const fav = normalizarEstruturaFavoritos(await obterFavoritos());
 	fav.pastas = fav.pastas || [];
 	if (fav.pastas.some(p => p.nome === nomeLimpo)) {
 		return { ok: true, criado: false, jaExiste: true };
@@ -259,8 +328,8 @@ export async function criarSubpasta(pathPai, nome) {
 	// suporte apenas raiz > nivel1 > nivel2
 	if (pai.length !== 1) return { ok: false, motivo: "nivel-invalido" };
 
-	const fav = await obterFavoritos();
-	const bucketPai = obterBucket(fav, pai);
+	const fav = normalizarEstruturaFavoritos(await obterFavoritos());
+	const bucketPai = obterBucketPorCaminho(fav, pai);
 	if (!bucketPai) return { ok: false, motivo: "pai-inexistente" };
 	bucketPai.pastas = bucketPai.pastas || [];
 
@@ -274,4 +343,46 @@ export async function criarSubpasta(pathPai, nome) {
 	bucketPai.pastas.push({ id: crypto.randomUUID(), nome: nomeLimpo, itens: [], pastas: [] });
 	await salvarFavoritos(fav);
 	return { ok: true, criado: true };
+}
+
+export async function colorirPasta(path, cor) {
+	const caminho = Array.isArray(path) ? path.filter(Boolean) : [];
+	if (!caminho.length) return { ok: false, motivo: "caminho-invalido" };
+	const fav = normalizarEstruturaFavoritos(await obterFavoritos());
+	const pasta = obterBucketPorCaminho(fav, caminho);
+	if (!pasta) return { ok: false, motivo: "pasta-inexistente" };
+
+	const corNormalizada = normalizarCor(cor);
+	if (corNormalizada) pasta.cor_fundo = corNormalizada;
+	else delete pasta.cor_fundo;
+
+	await salvarFavoritos(fav);
+	return { ok: true, alterado: true };
+}
+
+export async function colorirItem(meta, cor) {
+	if (!meta?.secaoId || !meta?.id) return { ok: false, motivo: "meta-invalida" };
+	const fav = normalizarEstruturaFavoritos(await obterFavoritos());
+	const corNormalizada = normalizarCor(cor);
+	const itemFavorito = localizarItemFavoritoNoArvore(fav, meta.secaoId, meta.id);
+	let alterado = false;
+
+	if (itemFavorito) {
+		if (corNormalizada) itemFavorito.cor_fundo = corNormalizada;
+		else delete itemFavorito.cor_fundo;
+		alterado = true;
+		alterado = removerColoridoSilencioso(fav, meta.secaoId, meta.id) || alterado;
+		await salvarFavoritos(fav);
+		return { ok: true, alterado, alvo: "favorito" };
+	}
+
+	const resSilencioso = upsertColoridoSilencioso(fav, meta, corNormalizada);
+	if (!resSilencioso.ok) return resSilencioso;
+	if (resSilencioso.alterado) await salvarFavoritos(fav);
+	return { ok: true, alterado: !!resSilencioso.alterado, alvo: "silencioso" };
+}
+
+export async function obterCorEfetivaItem(secaoId, itemId) {
+	const fav = normalizarEstruturaFavoritos(await obterFavoritos());
+	return obterCorEfetivaItemEmMemoria(fav, secaoId, itemId);
 }

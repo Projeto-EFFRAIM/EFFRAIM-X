@@ -4,11 +4,16 @@ import {
 	reordenarItens,
 	moverItem,
 	removerPasta,
-	criarSubpasta
+	criarSubpasta,
+	renomearPasta,
+	colorirPasta,
+	colorirItem,
+	COLORIDOS_SILENCIOSOS_LIMITE_TOTAL
 } from "../state.js";
 import { obterFavoritos as obterFavoritosEstado } from "../state.js";
 import { inserir_aviso_effraim } from "../../../utils/interface.js";
 import { ensureFavoritosCss } from "../styles.js";
+import { abrirPaletaCores, aplicarColoracaoElemento, aplicarColoracaoLinhaTabela } from "../coloracao.js";
 import {
 	localizarLinhaOriginal,
 	removerIdsRecursivo,
@@ -89,15 +94,16 @@ export async function renderizarSecaoFavoritos(tentativa = 1) {
 		conteudo.appendChild(vazio);
 	} else {
 		if (favs.itens_soltos?.length) {
-			conteudo.appendChild(criarTabelaFavoritos("Favoritos", favs.itens_soltos, []));
+			conteudo.appendChild(criarTabelaFavoritos("Favoritos", favs.itens_soltos, [], null));
 		}
 		(favs.pastas || []).forEach(folder => {
-			conteudo.appendChild(criarFieldsetPasta(folder, []));
+			conteudo.appendChild(criarFieldsetPasta(folder, [], null));
 		});
 	}
 
 	fieldset.append(legend, conteudo);
 	parent.insertBefore(fieldset, referencia);
+	window.dispatchEvent(new CustomEvent("effraim:atualizar_coloracao"));
 }
 
 function hasFavoritos(favs) {
@@ -106,7 +112,7 @@ function hasFavoritos(favs) {
 	return false;
 }
 
-function criarTabelaFavoritos(titulo, itens, path) {
+function criarTabelaFavoritos(titulo, itens, path, corHerdada) {
 	const wrapper = document.createElement("div");
 	const tabela = document.createElement("table");
 	tabela.width = "99%";
@@ -129,7 +135,7 @@ function criarTabelaFavoritos(titulo, itens, path) {
 	tbody.appendChild(header);
 
 	(itens || []).forEach(it => {
-		const tr = criarLinhaFavorito(it, path);
+		const tr = criarLinhaFavorito(it, path, corHerdada);
 		if (tr) tbody.appendChild(tr);
 	});
 
@@ -140,19 +146,21 @@ function criarTabelaFavoritos(titulo, itens, path) {
 	return wrapper;
 }
 
-function criarFieldsetPasta(folder, pathAtual) {
+function criarFieldsetPasta(folder, pathAtual, corHerdada) {
 	const container = document.createElement("div");
 	container.className = "effraim-pasta-container";
 	if (pathAtual.length > 0) container.classList.add("nested");
 
 	const header = document.createElement("div");
 	header.className = "effraim-pasta-header";
+	const corEfetivaPasta = folder.cor_fundo || corHerdada || null;
+	aplicarColoracaoElemento(header, corEfetivaPasta, 0.24);
 	const arrow = document.createElement("span");
 	arrow.textContent = "▾";
 	arrow.className = "effraim-pasta-arrow";
 	const nome = document.createElement("span");
 	nome.textContent = folder.nome;
-	nome.className = "effraim-pasta-nome";
+	nome.className = "effraim-pasta-nome effraim-chip-texto";
 	header.append(arrow, nome);
 
 	if (pathAtual.length === 0) {
@@ -179,24 +187,62 @@ function criarFieldsetPasta(folder, pathAtual) {
 	}
 
 	const btnExcluir = document.createElement("img");
+	const caminhoCompleto = [...pathAtual, folder.nome];
+	const btnColorir = document.createElement("img");
+	btnColorir.src = chrome.runtime.getURL("assets/icones/colorir.png");
+	btnColorir.alt = "Colorir pasta";
+	btnColorir.title = "Colorir pasta";
+	btnColorir.className = "effraim-folder-action-icon color";
+	btnColorir.onclick = e => {
+		e.stopPropagation();
+		abrirPaletaCores(btnColorir, async corSelecionada => {
+			await colorirPasta(caminhoCompleto, corSelecionada);
+			await renderizarSecaoFavoritos();
+		});
+	};
+	header.appendChild(btnColorir);
+
+	const btnEditar = document.createElement("img");
+	btnEditar.src = chrome.runtime.getURL("assets/icones/editar.png");
+	btnEditar.alt = "Editar nome da pasta";
+	btnEditar.title = "Editar nome da pasta";
+	btnEditar.className = "effraim-folder-action-icon edit";
+	btnEditar.onclick = async e => {
+		e.stopPropagation();
+		const novoNome = (window.prompt("Novo nome da pasta:", folder.nome) || "").trim();
+		if (!novoNome) return;
+		const res = await renomearPasta(caminhoCompleto, novoNome);
+		if (!res?.ok && res?.motivo === "nome-duplicado") {
+			inserir_aviso_effraim("Já existe uma pasta com esse nome", 5000);
+			alert("Já existe uma pasta com esse nome");
+			return;
+		}
+		if (res?.ok && res?.alterado) {
+			await renderizarSecaoFavoritos();
+		}
+	};
+	header.appendChild(btnEditar);
+
 	btnExcluir.src = chrome.runtime.getURL("assets/icones/excluir.png");
 	btnExcluir.alt = "Excluir pasta";
 	btnExcluir.title = "Excluir pasta";
 	btnExcluir.className = "effraim-folder-action-icon delete";
-		btnExcluir.onclick = e => {
-			e.stopPropagation();
-			abrirConfirmExcluirPastaHandler(folder.nome, pathAtual, btnExcluir);
-		};
+	btnExcluir.onclick = e => {
+		e.stopPropagation();
+		abrirConfirmExcluirPastaHandler(folder.nome, pathAtual, btnExcluir);
+	};
 	header.appendChild(btnExcluir);
 
 	const conteudo = document.createElement("div");
 	conteudo.className = "effraim-pasta-conteudo";
 
 	if (folder.itens?.length) {
-		conteudo.appendChild(criarTabelaFavoritos(folder.nome, folder.itens, [...pathAtual, folder.nome]));
+		conteudo.appendChild(
+			criarTabelaFavoritos(folder.nome, folder.itens, [...pathAtual, folder.nome], corEfetivaPasta)
+		);
 	}
 	(folder.pastas || []).forEach(sub => {
-		conteudo.appendChild(criarFieldsetPasta(sub, [...pathAtual, folder.nome]));
+		conteudo.appendChild(criarFieldsetPasta(sub, [...pathAtual, folder.nome], corEfetivaPasta));
 	});
 
 	header.onclick = () => {
@@ -209,7 +255,7 @@ function criarFieldsetPasta(folder, pathAtual) {
 	return container;
 }
 
-function criarLinhaFavorito(meta, path) {
+function criarLinhaFavorito(meta, path, corHerdada) {
 	const original = localizarLinhaOriginal(meta);
 	if (!original) return null;
 	const origTds = original.querySelectorAll("td");
@@ -220,9 +266,13 @@ function criarLinhaFavorito(meta, path) {
 	tr.draggable = false;
 	tr.dataset.id = meta.id;
 	tr.dataset.path = path.join("/");
+	aplicarColoracaoLinhaTabela(tr, meta.cor_fundo || corHerdada || null, 0.2);
 
 	const tdDesc = document.createElement("td");
-	tdDesc.textContent = origTds[0].textContent?.trim() || meta.titulo || "";
+	const descChip = document.createElement("span");
+	descChip.className = "effraim-chip-texto";
+	descChip.textContent = origTds[0].textContent?.trim() || meta.titulo || "";
+	tdDesc.appendChild(descChip);
 
 	const tdRel = origTds[1].cloneNode(true);
 	removerIdsRecursivo(tdRel);
@@ -271,6 +321,25 @@ function criarLinhaFavorito(meta, path) {
 		abrirMenuMoverPastaHandler(meta, path, moverPasta);
 	});
 	tdFav.appendChild(moverPasta);
+
+	const colorir = document.createElement("img");
+	colorir.src = chrome.runtime.getURL("assets/icones/colorir.png");
+	colorir.alt = "Colorir favorito";
+	colorir.title = "Colorir favorito";
+	colorir.className = "effraim-action-icon";
+	colorir.addEventListener("click", e => {
+		e.stopPropagation();
+		abrirPaletaCores(colorir, async corSelecionada => {
+			const res = await colorirItem(meta, corSelecionada);
+			if (!res?.ok && res?.motivo === "limite-coloridos") {
+				inserir_aviso_effraim(`Limite de ${COLORIDOS_SILENCIOSOS_LIMITE_TOTAL} coloridos atingido`, 7000);
+				alert(`Limite de ${COLORIDOS_SILENCIOSOS_LIMITE_TOTAL} coloridos atingido`);
+				return;
+			}
+			await renderizarSecaoFavoritos();
+		});
+	});
+	tdFav.appendChild(colorir);
 
 	tr.append(tdDesc, tdRel, tdFav);
 	return tr;

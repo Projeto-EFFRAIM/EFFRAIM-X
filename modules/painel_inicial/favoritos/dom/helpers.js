@@ -1,3 +1,9 @@
+import {
+	obterBucketPorCaminho,
+	coletarItensPastaRecursivo,
+	listarCaminhosPastas
+} from "../../../utils/gestao_pastas.js";
+
 export function localizarLinhaOriginal(fav) {
 	switch (fav.secaoId) {
 		case "fldProcessoDeUmLocalizador": {
@@ -73,31 +79,13 @@ export function ordenarSeNecessario(favs) {
 }
 
 export function localizarPasta(favs, path) {
-	let node = { pastas: favs.pastas || [] };
-	for (const nome of path) {
-		const next = node.pastas?.find(p => p.nome === nome);
-		if (!next) return null;
-		node = next;
-	}
-	return node;
+	return obterBucketPorCaminho(favs, path);
 }
 
 export function coletarItensRecursivos(folder) {
-	let itens = [];
-	if (folder.itens) itens = itens.concat(folder.itens);
-	(folder.pastas || []).forEach(sub => {
-		itens = itens.concat(coletarItensRecursivos(sub));
-	});
-	return itens;
+	return coletarItensPastaRecursivo(folder);
 }
 
 export function listarPastasExistentes(fav) {
-	const paths = [];
-	const walk = (folder, path = []) => {
-		const currentPath = [...path, folder.nome];
-		paths.push(currentPath);
-		(folder.pastas || []).forEach(sub => walk(sub, currentPath));
-	};
-	(fav.pastas || []).forEach(p => walk(p, []));
-	return paths;
+	return listarCaminhosPastas(fav);
 }

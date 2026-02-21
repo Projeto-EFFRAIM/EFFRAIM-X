@@ -42,7 +42,7 @@
 
 /* Estrela de favoritar/desfavoritar nas listas originais do painel inicial */
 fieldset[id^="fld"]:not(#fldFavoritosPainel) td.effraim-fav-cell {
-	width: 30px;
+	width: 52px;
 	padding: 0 2px !important;
 	text-align: center;
 	vertical-align: middle;
@@ -195,6 +195,18 @@ fieldset[id^="fld"]:not(#fldFavoritosPainel) td.effraim-fav-cell .effraim-fav-ic
 	padding: 4px 6px;
 	border-radius: 4px;
 	cursor: pointer;
+	display: flex;
+	align-items: center;
+	gap: 6px;
+}
+
+.effraim-tree-item .effraim-chip-texto,
+.effraim-tree-folder-header .effraim-chip-texto {
+	flex: 1;
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
 }
 
 .effraim-tree-item:hover,
@@ -241,6 +253,16 @@ fieldset[id^="fld"]:not(#fldFavoritosPainel) td.effraim-fav-cell .effraim-fav-ic
 	height: 16px;
 }
 
+.effraim-folder-action-icon.edit {
+	width: 16px;
+	height: 16px;
+}
+
+.effraim-folder-action-icon.color {
+	width: 16px;
+	height: 16px;
+}
+
 .effraim-pasta-conteudo {
 	display: block;
 }
@@ -261,6 +283,11 @@ fieldset[id^="fld"]:not(#fldFavoritosPainel) td.effraim-fav-cell .effraim-fav-ic
 	height: 24px;
 }
 
+.effraim-colorir-icon {
+	width: 22px !important;
+	height: 22px !important;
+}
+
 .effraim-fav-star-icon {
 	width: 24px;
 	height: 24px;
@@ -275,4 +302,56 @@ fieldset[id^="fld"]:not(#fldFavoritosPainel) td.effraim-fav-cell .effraim-fav-ic
 #fldFavoritosPainel td.effraim-fav-cell img {
 	width: 24px;
 	height: 24px;
+}
+
+.effraim-colorido {
+	background: var(--effraim-cor-fundo, transparent) !important;
+	border: 1px solid var(--effraim-cor-borda, transparent) !important;
+}
+
+.effraim-colorido-linha {
+	outline: 1px solid var(--effraim-cor-borda, transparent);
+	outline-offset: -1px;
+}
+
+.effraim-colorido-linha > td {
+	background: var(--effraim-cor-fundo, transparent) !important;
+}
+
+.effraim-chip-texto {
+	background: rgba(255, 255, 255, 0.92);
+	padding: 1px 6px;
+	border-radius: 6px;
+	box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.08);
+}
+
+.effraim-paleta-cores {
+	position: absolute;
+	z-index: 100050;
+	display: grid;
+	grid-template-columns: repeat(4, 22px);
+	gap: 6px;
+	padding: 8px;
+	background: #fff;
+	border: 1px solid #c7c7c7;
+	border-radius: 8px;
+	box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
+}
+
+.effraim-paleta-cor {
+	width: 22px;
+	height: 22px;
+	border: 1px solid rgba(0, 0, 0, 0.25);
+	border-radius: 4px;
+	cursor: pointer;
+	padding: 0;
+}
+
+.effraim-paleta-cor.limpar {
+	background: #fff;
+	color: #b30000;
+	border-color: #b30000;
+	font-weight: 700;
+	font-size: 12px;
+	line-height: 1;
 }

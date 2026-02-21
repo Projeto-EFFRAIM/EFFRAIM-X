@@ -1,7 +1,20 @@
-import { obterFavoritos, moverItem, reordenarPastas, criarPastaRaiz, criarSubpasta } from "./state.js";
+import {
+	obterFavoritos,
+	moverItem,
+	reordenarItens,
+	reordenarPastas,
+	criarPastaRaiz,
+	criarSubpasta,
+	renomearPasta,
+	colorirPasta,
+	colorirItem,
+	COLORIDOS_SILENCIOSOS_LIMITE_TOTAL
+} from "./state.js";
 import { renderizarSecaoFavoritos, abrirConfirmExcluirPasta } from "./dom.js";
 import { inserir_aviso_effraim } from "../../utils/interface.js";
 import { ensureFavoritosCss } from "./styles.js";
+import { obterBucketPorCaminho } from "../../utils/gestao_pastas.js";
+import { abrirPaletaCores, aplicarColoracaoElemento } from "./coloracao.js";
 
 let painelRef = null;
 let anchorRef = null;
@@ -111,15 +124,38 @@ function renderTree(fav) {
 	const root = document.createElement("ul");
 	root.className = "effraim-tree";
 
-	const addItens = (itens, path, ul) => {
+	const addItens = (itens, path, ul, corHerdada = null) => {
 		(itens || []).forEach(it => {
 			const li = document.createElement("li");
-			li.textContent = it.titulo || it.id;
 			li.className = "effraim-tree-item";
+			aplicarColoracaoElemento(li, it.cor_fundo || corHerdada || null, 0.2);
 			li.draggable = true;
 			li.dataset.id = it.id;
 			li.dataset.secao = it.secaoId;
 			li.dataset.path = path.join("/");
+			const label = document.createElement("span");
+			label.className = "effraim-chip-texto";
+			label.textContent = it.titulo || it.id;
+			li.appendChild(label);
+			const colorir = document.createElement("img");
+			colorir.src = chrome.runtime.getURL("assets/icones/colorir.png");
+			colorir.alt = "Colorir item";
+			colorir.title = "Colorir item";
+			colorir.className = "effraim-folder-action-icon color";
+			colorir.onclick = e => {
+				e.stopPropagation();
+				abrirPaletaCores(colorir, async corSelecionada => {
+					const res = await colorirItem({ secaoId: it.secaoId, id: it.id }, corSelecionada);
+					if (!res?.ok && res?.motivo === "limite-coloridos") {
+						inserir_aviso_effraim(`Limite de ${COLORIDOS_SILENCIOSOS_LIMITE_TOTAL} coloridos atingido`, 7000);
+						alert(`Limite de ${COLORIDOS_SILENCIOSOS_LIMITE_TOTAL} coloridos atingido`);
+						return;
+					}
+					await renderizarSecaoFavoritos();
+					await reloadTree();
+				});
+			};
+			li.appendChild(colorir);
 			li.onclick = e => {
 				e.stopPropagation();
 				abrirItemOriginal(it);
@@ -137,7 +173,7 @@ function renderTree(fav) {
 		});
 	};
 
-	const addFolder = (folder, path, ul) => {
+	const addFolder = (folder, path, ul, corHerdada = null) => {
 		const fullPath = [...path, folder.nome];
 		const li = document.createElement("li");
 		li.className = "effraim-tree-folder";
@@ -152,8 +188,11 @@ function renderTree(fav) {
 
 		const header = document.createElement("div");
 		header.className = "effraim-tree-folder-header";
+		const corEfetivaPasta = folder.cor_fundo || corHerdada || null;
+		aplicarColoracaoElemento(header, corEfetivaPasta, 0.24);
 		const titulo = document.createElement("span");
 		titulo.textContent = folder.nome;
+		titulo.className = "effraim-chip-texto";
 		header.appendChild(titulo);
 
 		// apenas pastas de nível 1 podem criar subpastas (nível 2)
@@ -182,6 +221,42 @@ function renderTree(fav) {
 		}
 
 		const btnExcluir = document.createElement("img");
+		const btnColorir = document.createElement("img");
+		btnColorir.src = chrome.runtime.getURL("assets/icones/colorir.png");
+		btnColorir.alt = "Colorir pasta";
+		btnColorir.title = "Colorir pasta";
+		btnColorir.className = "effraim-folder-action-icon color";
+		btnColorir.onclick = (e) => {
+			e.stopPropagation();
+			abrirPaletaCores(btnColorir, async corSelecionada => {
+				await colorirPasta(fullPath, corSelecionada);
+				await renderizarSecaoFavoritos();
+				await reloadTree();
+			});
+		};
+		header.appendChild(btnColorir);
+		const btnEditar = document.createElement("img");
+		btnEditar.src = chrome.runtime.getURL("assets/icones/editar.png");
+		btnEditar.alt = "Editar nome da pasta";
+		btnEditar.title = "Editar nome da pasta";
+		btnEditar.className = "effraim-folder-action-icon edit";
+		btnEditar.onclick = async (e) => {
+			e.stopPropagation();
+			const novoNome = (window.prompt("Novo nome da pasta:", folder.nome) || "").trim();
+			if (!novoNome) return;
+			const res = await renomearPasta(fullPath, novoNome);
+			if (!res?.ok && res?.motivo === "nome-duplicado") {
+				inserir_aviso_effraim("Já existe uma pasta com esse nome", 5000);
+				alert("Já existe uma pasta com esse nome");
+				return;
+			}
+			if (res?.ok && res?.alterado) {
+				await renderizarSecaoFavoritos();
+				await reloadTree();
+			}
+		};
+		header.appendChild(btnEditar);
+
 		btnExcluir.src = chrome.runtime.getURL("assets/icones/excluir.png");
 		btnExcluir.alt = "Excluir pasta";
 		btnExcluir.title = "Excluir pasta";
@@ -203,14 +278,14 @@ function renderTree(fav) {
 		childUl.className = "effraim-tree";
 		childUl.addEventListener("dragover", e => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; });
 		childUl.addEventListener("drop", e => handleDropItem(e, [...path, folder.nome]));
-		addItens(folder.itens, fullPath, childUl);
-		(folder.pastas || []).forEach(sub => addFolder(sub, fullPath, childUl));
+		addItens(folder.itens, fullPath, childUl, corEfetivaPasta);
+		(folder.pastas || []).forEach(sub => addFolder(sub, fullPath, childUl, corEfetivaPasta));
 		li.appendChild(childUl);
 		ul.appendChild(li);
 	};
 
-	addItens(fav.itens_soltos, [], root);
-	(fav.pastas || []).forEach(p => addFolder(p, [], root));
+	addItens(fav.itens_soltos, [], root, null);
+	(fav.pastas || []).forEach(p => addFolder(p, [], root, null));
 
 	root.addEventListener("dragover", e => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; });
 	root.addEventListener("drop", e => handleDropItem(e, []));
@@ -260,7 +335,7 @@ async function handleDropFolder(e, targetPath) {
 	if (!meta.folder) return;
 	const parent = targetPath;
 	const fav = await obterFavoritos();
-	const bucket = parent.length === 0 ? fav : getBucket(fav, parent);
+	const bucket = parent.length === 0 ? fav : obterBucketPorCaminho(fav, parent);
 	if (!bucket || !bucket.pastas) return;
 	const current = bucket.pastas.map(p => p.nome);
 	if (meta.fromPath.join("/") !== parent.join("/")) return;
@@ -273,15 +348,6 @@ async function handleDropFolder(e, targetPath) {
 	await reordenarPastas(parent, newOrder);
 	await renderizarSecaoFavoritos();
 	reloadTree();
-}
-
-function getBucket(fav, path) {
-	let node = fav;
-	for (const n of path) {
-		node = node.pastas?.find(p => p.nome === n);
-		if (!node) return null;
-	}
-	return node;
 }
 
 async function reloadTree() {
