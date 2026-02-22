@@ -4,6 +4,7 @@
 
 export function consulta_dados_processo() {
   const get = s => document.querySelector(s)?.textContent?.trim() || null;
+  const valorCausa = consultar_valor_causa_tbl_copiar_excel();
 
   const capa = {
     numProcesso:
@@ -16,7 +17,9 @@ export function consulta_dados_processo() {
     localidade: get("#txtLocalidade"),
     situacao: get("#txtSituacao"),
     localizadores: consultar_localizadores_consulta_processual(),
-    orgaoJulgador: get("#txtOrgaoJulgador")
+    orgaoJulgador: get("#txtOrgaoJulgador"),
+    valorCausa: valorCausa?.texto || null,
+    valorCausaNumero: Number.isFinite(valorCausa?.numero) ? valorCausa.numero : null
   };
 
   const tipos = ["AUTOR", "REU", "INTERESSADO", "MPF", "PERITO"];
@@ -34,6 +37,63 @@ export function consulta_dados_processo() {
   );
 
   return { capa, partes };
+}
+
+function normalizarTextoBuscaProcesso(texto = "") {
+  return String(texto)
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toLowerCase();
+}
+
+function extrairNumeroPtBr(texto = "") {
+  const bruto = String(texto || "").trim();
+  if (!bruto) return { texto: null, numero: null };
+
+  const m = bruto.match(/(\d{1,3}(?:\.\d{3})*,\d{2}|\d+,\d{2}|\d+(?:\.\d+)?)/);
+  const textoNum = m?.[1] || null;
+  if (!textoNum) return { texto: null, numero: null };
+
+  const normalizado = textoNum.replace(/\./g, "").replace(",", ".");
+  const numero = Number.parseFloat(normalizado);
+  return {
+    texto: textoNum,
+    numero: Number.isFinite(numero) ? numero : null
+  };
+}
+
+function consultar_valor_causa_tbl_copiar_excel() {
+  const tabela = document.querySelector("#tblCopiarExcel");
+  if (!tabela) return null;
+
+  const linhas = [...tabela.querySelectorAll("tr")];
+  for (const tr of linhas) {
+    const celulas = [...tr.querySelectorAll("th, td")];
+    if (!celulas.length) continue;
+
+    const textos = celulas.map((cel) => String(cel.textContent || "").replace(/\s+/g, " ").trim());
+    const linhaTextoNorm = normalizarTextoBuscaProcesso(textos.join(" "));
+    if (!linhaTextoNorm.includes("valor da causa")) continue;
+
+    // Prioriza células sem o rótulo, depois a última célula, e por fim a linha toda.
+    const candidatosRotuloExcluido = textos.filter((txt) => !normalizarTextoBuscaProcesso(txt).includes("valor da causa"));
+    const candidatos = [
+      ...candidatosRotuloExcluido.reverse(),
+      textos[textos.length - 1],
+      ...textos.slice(0, -1).reverse()
+    ].filter(Boolean);
+    for (const candidato of candidatos) {
+      const extraido = extrairNumeroPtBr(candidato);
+      if (extraido?.texto) return extraido;
+    }
+
+    const extraidoLinha = extrairNumeroPtBr(textos.join(" "));
+    if (extraidoLinha?.texto) return extraidoLinha;
+  }
+
+  return null;
 }
 
 // ==========================================================

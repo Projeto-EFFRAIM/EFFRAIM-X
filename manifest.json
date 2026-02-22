@@ -1,7 +1,7 @@
 {
 	"manifest_version": 3,
 	"name": "EFFRAIM - X",
-	"version": "0.8.7.7",
+	"version": "0.8.8.11",
 	"description": "Simplifica tarefas no Eproc: integração, navegação, relatórios e mais.",
 	"icons": {
 		"16": "assets/icones/icone16.png",
@@ -9,7 +9,8 @@
 		"128": "assets/icones/icone128.png"
 	},
 	"permissions": [
-		"storage"
+		"storage",
+		"tabs"
 	],
 	"host_permissions": [
 		"https://eproc.jfrj.jus.br/*",

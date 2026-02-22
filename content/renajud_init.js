@@ -3,6 +3,78 @@
 (async () => {
 	console.log("RENAJUD init em:", window.location.href);
 	const CHAVE_DADOS_CACHE = "__EFFRAIM_DADOS_RENAJUD_CACHE__";
+	const CHAVE_JOB_RENAJUD_PREFIXO = "effraim_renajud_job_";
+
+	function obterJobIdDaUrl() {
+		try {
+			const hash = String(window.location.hash || "").replace(/^#/, "");
+			if (!hash) return "";
+			const params = new URLSearchParams(hash);
+			return String(params.get("effraimJob") || "").trim();
+		} catch {
+			return "";
+		}
+	}
+
+	async function carregarDadosDeJobNaNovaAba() {
+		if (window.top !== window.self) return null;
+		const jobId = obterJobIdDaUrl();
+		if (!jobId) return null;
+		const chaveJob = `${CHAVE_JOB_RENAJUD_PREFIXO}${jobId}`;
+		try {
+			let registro = null;
+			let backend = null;
+			try {
+				if (chrome.storage?.session?.get) {
+					const objSession = await chrome.storage.session.get(chaveJob);
+					registro = objSession?.[chaveJob] || null;
+					if (registro) backend = "session";
+				}
+			} catch (e) {
+				console.debug("[RENAJUD] Falha ao ler job em storage.session.", e);
+			}
+			if (!registro) {
+				const objLocal = await chrome.storage.local.get(chaveJob);
+				registro = objLocal?.[chaveJob] || null;
+				if (registro) backend = "local";
+			}
+			if (!registro?.dados) {
+				console.warn("[RENAJUD] Job informado na URL nao encontrado no storage (session/local).", { jobId, chaveJob });
+				return null;
+			}
+
+			const dados = registro.dados;
+			window.__EFFRAIM_DADOS_RENAJUD = dados;
+			try {
+				sessionStorage.setItem(CHAVE_DADOS_CACHE, JSON.stringify(dados));
+			} catch (e) {
+				console.warn("[RENAJUD] Falha ao gravar cache da sessao apos carregar job.", e);
+			}
+
+			// Limpa o job apos hidratar esta aba (o cache de sessao sustenta o fluxo nas proximas rotas).
+			try {
+				if (backend === "session" && chrome.storage?.session?.remove) {
+					await chrome.storage.session.remove(chaveJob);
+				} else {
+					await chrome.storage.local.remove(chaveJob);
+				}
+			} catch (e) {
+				console.warn("[RENAJUD] Falha ao remover job consumido.", e);
+			}
+
+			console.log("[RENAJUD] Dados carregados por job na nova aba.", {
+				jobId,
+				backend,
+				parametro: dados?.opcoes?.parametro_pesquisa,
+				acao: dados?.opcoes?.acao,
+				ambiente: dados?.opcoes?.ambiente
+			});
+			return dados;
+		} catch (e) {
+			console.error("[RENAJUD] Erro ao ler job da nova aba.", e);
+			return null;
+		}
+	}
 
 	function obterAcao(dados) {
 		const acao = String(dados?.opcoes?.acao || "inserir").toLowerCase();
@@ -22,6 +94,11 @@
 	}
 
 	const dadosProntos = new Promise((resolve) => {
+		void (async () => {
+			const dadosJob = await carregarDadosDeJobNaNovaAba();
+			if (dadosJob) resolve(dadosJob);
+		})();
+
 		if (window.__EFFRAIM_DADOS_RENAJUD) {
 			console.log("[RENAJUD] Dados carregados da janela.");
 			return resolve(window.__EFFRAIM_DADOS_RENAJUD);

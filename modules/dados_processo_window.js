@@ -7,8 +7,8 @@ const TIMEOUT_ESPERA_PARTES_MS = 5500;
 let listenerRegistrado = false;
 
 function logInfo(mensagem, dados) {
-	if (dados !== undefined) console.info(`${LOG_PREFIXO} ${mensagem}`, dados);
-	else console.info(`${LOG_PREFIXO} ${mensagem}`);
+	if (dados !== undefined) console.log(`${LOG_PREFIXO} ${mensagem}`, dados);
+	else console.log(`${LOG_PREFIXO} ${mensagem}`);
 }
 
 function logWarn(mensagem, dados) {
@@ -31,6 +31,8 @@ function capturarDadosProcesso(motivo = "desconhecido") {
 		logInfo("Dados do processo atualizados na window.", {
 			motivo,
 			numProcesso: dados?.capa?.numProcesso || null,
+			valorCausa: dados?.capa?.valorCausa || null,
+			magistrado: dados?.capa?.magistrado || null,
 			partes: resumirPartes(dados?.partes)
 		});
 		return dados;
