@@ -8,6 +8,13 @@ async function abrirRenajud() {
 	await esperar(260);
 }
 
+async function selecionarTipoRestricaoPenhoraNoPainel() {
+	await abrirRenajud();
+	const radioPenhora = document.querySelector('input[name="renajud-tipo-restricao"][value="penhora"]');
+	radioPenhora?.click();
+	await esperar(180);
+}
+
 export async function iniciarTutorial() {
 	iniciarTour([
 		{
@@ -38,6 +45,30 @@ export async function iniciarTutorial() {
 			texto: "Escolha se a busca sera por processo, placa, chassi ou CPF/CNPJ."
 		},
 		{
+			selector: 'input[name="renajud-tipo-restricao"]',
+			titulo: "Tipo de Restricao",
+			texto: "Escolha a restricao que sera preparada: transferencia, licenciamento, circulacao ou penhora."
+		},
+		{
+			selector: "#renajud-bloco-sem-restricoes",
+			onEnter: async () => {
+				await abrirRenajud();
+				const ambienteAntigo = document.querySelector('input[name="renajud-ambiente"][value="antigo"]');
+				const acaoInserir = document.querySelector('input[name="renajud-acao"][value="inserir"]');
+				ambienteAntigo?.click();
+				acaoInserir?.click();
+				await esperar(180);
+			},
+			titulo: "Filtro de Veiculos (Antigo)",
+			texto: "Na insercao do RENAJUD antigo, voce pode escolher mostrar somente veiculos sem restricoes."
+		},
+		{
+			selector: "#renajud-bloco-penhora",
+			onEnter: selecionarTipoRestricaoPenhoraNoPainel,
+			titulo: "Campos de Penhora",
+			texto: "Ao escolher Penhora, aparecem os campos adicionais. O valor da execucao vem preenchido com o valor da causa, e a data de atualizacao vem com a data de hoje."
+		},
+		{
 			selectorFn: () => document.querySelector('input[name="consultado"]'),
 			onEnter: async () => {
 				await abrirRenajud();
@@ -51,7 +82,7 @@ export async function iniciarTutorial() {
 		{
 			selector: "#btn-prosseguir-renajud",
 			titulo: "Prosseguir",
-			texto: "Com os dados definidos, use este botao para seguir para o RENAJUD escolhido."
+			texto: "Com os dados definidos, use este botao para seguir. No RENAJUD novo, a tela abre no painel; no RENAJUD antigo, abre em nova aba para permitir o login."
 		}
 	]);
 }
