@@ -116,6 +116,13 @@ function getRuntimeUrl(path) {
 			nome: "paginacao_aprimorada",
 			titulo: "Paginação Aprimorada",
 			ocultarNoPainel: true
+		},
+		{
+			cond: () => window.location.href.includes("acao=relatorio_geral"),
+			modulo: "modules/relatorio_geral/preenchimento_lote.js",
+			nome: "corregedoria_painel_inicial",
+			titulo: "Relatório Geral (Lote)",
+			ocultarNoPainel: true
 		}
 
 	];

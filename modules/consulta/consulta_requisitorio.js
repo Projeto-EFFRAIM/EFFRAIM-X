@@ -1,4 +1,5 @@
 import { criarPainelDeslizantePadrao, atualizarBadgeRequisitorioBotao, forcarAberturaPainelDeslizante } from "../utils/interface.js";
+import { localizarUrlMenuEprocPorNome } from "../utils/menus_eproc.js";
 import { consulta_dados_processo } from "../../funcoes.js";
 
 let iframeRequisitorioCompartilhado = null;
@@ -41,14 +42,6 @@ function renderMockRequisitorio(conteudo, botao) {
 	atualizarBadgeRequisitorioBotao(botao, "com", 1);
 }
 
-function normalizarTexto(texto = "") {
-	return texto
-		.normalize("NFD")
-		.replace(/[\u0300-\u036f]/g, "")
-		.toLowerCase()
-		.trim();
-}
-
 function normalizarNumeroProcesso(valor = "") {
 	return String(valor).replace(/\D/g, "");
 }
@@ -77,45 +70,10 @@ function aplicarEstiloIframe(iframe, silencioso = false) {
 }
 
 function localizarUrlRequisitorios() {
-	console.log("[REQUISITORIOS] Iniciando busca do link no menu lateral...");
-	const porHref = document.querySelector('a[href*="acao=oficio_requisitorio_listar"]');
-	if (porHref) {
-		const hrefAttr = porHref.getAttribute("href") || "";
-		const url = porHref.href || new URL(hrefAttr.replaceAll("&amp;", "&"), window.location.href).href;
-		console.log("[REQUISITORIOS] Link encontrado por href:", {
-			hrefOriginal: hrefAttr,
-			hrefResolvidoPeloBrowser: porHref.href || "",
-			urlResolvida: url,
-			ariaLabel: porHref.getAttribute("aria-label") || "",
-			texto: (porHref.textContent || "").trim().slice(0, 120)
-		});
-		return url;
-	}
-
-	const alvo = [...document.querySelectorAll("a")]
-		.find(a => {
-			const aria = normalizarTexto(a.getAttribute("aria-label") || "");
-			const texto = normalizarTexto(a.textContent || "");
-			return aria.includes("consultar oficio requisitorio") || texto.includes("consultar oficio requisitorio");
-		});
-
-	if (alvo) {
-		const hrefAttr = alvo.getAttribute("href") || "";
-		if (hrefAttr) {
-			const url = alvo.href || new URL(hrefAttr.replaceAll("&amp;", "&"), window.location.href).href;
-			console.log("[REQUISITORIOS] Link encontrado por texto/aria-label:", {
-				hrefOriginal: hrefAttr,
-				hrefResolvidoPeloBrowser: alvo.href || "",
-				urlResolvida: url,
-				ariaLabel: alvo.getAttribute("aria-label") || "",
-				texto: (alvo.textContent || "").trim().slice(0, 120)
-			});
-			return url;
-		}
-	}
-
-	console.warn("[REQUISITORIOS] Nenhum link de menu para oficio_requisitorio_listar foi encontrado no DOM.");
-	return null;
+	return localizarUrlMenuEprocPorNome("Consultar Ofício Requisitório", {
+		hrefContem: "acao=oficio_requisitorio_listar",
+		prefixoLog: "[REQUISITORIOS]"
+	});
 }
 
 function montarUrlRequisitorios() {
