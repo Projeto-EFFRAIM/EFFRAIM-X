@@ -22,6 +22,9 @@ function getRuntimeUrl(path) {
 	const tutorialParams = new URLSearchParams(window.location.search);
 	const isTutorialRoute = tutorialParams.get("effraim_tutorial") === "1" || window.EFFRAIM_TUTORIAL_ROUTE === true;
 	const tutorialTipo = (tutorialParams.get("tipo") || window.EFFRAIM_TUTORIAL_TIPO || "").toLowerCase();
+	const ehPainelInicialEproc =
+		window.location.href.includes("acao=painel_secretaria_listar") ||
+		window.location.href.includes("acao=painel_magistrado_listar");
 
 	
 	const { zerarConfiguracoes, carregarConfiguracoes, prepararDOM, verificarRotasAtivas, verificarUsoSync } = await import(getRuntimeUrl("funcoes.js"));
@@ -51,13 +54,13 @@ function getRuntimeUrl(path) {
 			titulo: "Consulta Flutuante"
 		},
 		{
-			cond: () => window.location.href.includes("acao=painel_secretaria_listar") || (isTutorialRoute && tutorialTipo === "painel_inicial"),
+			cond: () => ehPainelInicialEproc || (isTutorialRoute && tutorialTipo === "painel_inicial"),
 			modulo: "modules/painel_inicial/painel_inicial_flutuante.js",
 			nome: "painel_inicial_flutuante",
 			titulo: "Painel Inicial Flutuante"
 		},
 		{
-			cond: () => window.location.href.includes("acao=painel_secretaria_listar") || (isTutorialRoute && tutorialTipo === "painel_inicial"),
+			cond: () => ehPainelInicialEproc || (isTutorialRoute && tutorialTipo === "painel_inicial"),
 			modulo: "modules/painel_inicial/corregedoria_painel_inicial.js",
 			nome: "corregedoria_painel_inicial",
 			titulo: "Corregedoria",

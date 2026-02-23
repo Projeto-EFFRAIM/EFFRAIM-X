@@ -231,9 +231,50 @@ export function criarPainelFlutuante({ botao, secoes, id="effraim-painel-flutuan
 
   let secaoAtiva = null;
   let placeholder = null;
+  let restaurarInfoAdicionalAoFechar = false;
+  const mapaAtalhos = new Map();
+
+  function obterToggleInformacoesAdicionais() {
+    return document.getElementById("imgStatusInfAdicional");
+  }
+
+  function infoAdicionalEstaFechada() {
+    const img = obterToggleInformacoesAdicionais();
+    const src = String(img?.getAttribute("src") || img?.src || "");
+    return src.includes("ver_tudo.gif");
+  }
+
+  function infoAdicionalEstaAberta() {
+    const img = obterToggleInformacoesAdicionais();
+    const src = String(img?.getAttribute("src") || img?.src || "");
+    return src.includes("ver_resumo.gif");
+  }
+
+  function clicarToggleInformacoesAdicionais() {
+    const img = obterToggleInformacoesAdicionais();
+    if (!img) return false;
+    img.click();
+    return true;
+  }
+
+  function garantirInformacoesAdicionaisAbertasParaSecao(idSecao) {
+    const precisaAbrir = idSecao === "fldInformacoesAdicionais" || idSecao === "fldPartes";
+    if (!precisaAbrir) {
+      restaurarInfoAdicionalAoFechar = false;
+      return;
+    }
+    const estavaFechada = infoAdicionalEstaFechada();
+    if (estavaFechada) {
+      clicarToggleInformacoesAdicionais();
+      restaurarInfoAdicionalAoFechar = true;
+    } else {
+      restaurarInfoAdicionalAoFechar = false;
+    }
+  }
 
   function mostrarSecaoFlutuante(idSecao) {
     if (secaoAtiva) devolverSecao();
+    garantirInformacoesAdicionaisAbertasParaSecao(idSecao);
 
     const secao = document.getElementById(idSecao);
     if (!secao) return;
@@ -243,7 +284,9 @@ export function criarPainelFlutuante({ botao, secoes, id="effraim-painel-flutuan
 
     const painelRect = painel.getBoundingClientRect();
     const baseOriginal = painelRect.top + painel.scrollHeight + 8;
-    const base = Math.max(60, baseOriginal) + 15;
+    const vh = window.innerHeight || document.documentElement.clientHeight || 800;
+    const baseMinViewport = Math.round(vh * 0.35); // desce a seção para longe do container do EFFRAIM
+    const base = Math.max(60, baseOriginal + 15, baseMinViewport);
 
 
     placeholder = document.createElement("div");
@@ -272,6 +315,7 @@ export function criarPainelFlutuante({ botao, secoes, id="effraim-painel-flutuan
   function devolverSecao() {
     painel.querySelectorAll(".btn.active").forEach(x => x.classList.remove("active"));
     if (!secaoAtiva || !placeholder) return;
+    const idSecaoFechando = secaoAtiva.id;
 
     if (secaoAtiva.classList.contains("collapse") && secaoAtiva.classList.contains("show"))
       secaoAtiva.classList.remove("show");
@@ -292,12 +336,22 @@ export function criarPainelFlutuante({ botao, secoes, id="effraim-painel-flutuan
     placeholder.remove();
     secaoAtiva = null;
     placeholder = null;
+
+    if (
+      restaurarInfoAdicionalAoFechar &&
+      (idSecaoFechando === "fldInformacoesAdicionais" || idSecaoFechando === "fldPartes") &&
+      infoAdicionalEstaAberta()
+    ) {
+      clicarToggleInformacoesAdicionais();
+    }
+    restaurarInfoAdicionalAoFechar = false;
   }
 
   secoes.forEach(secao => {
     const b = document.createElement("button");
     b.className = "effraim-painel-flutuante-botao";
     b.accessKey = secao.chave;
+    b.dataset.effraimAtalho = String(secao.chave || "");
     b.textContent = `${secao.nome} (${b.accessKey})`;
     b.title = `Atalho: Alt + ${b.accessKey}`;
 
@@ -314,7 +368,42 @@ export function criarPainelFlutuante({ botao, secoes, id="effraim-painel-flutuan
     });
 
     gradeSecoes.appendChild(b);
+    mapaAtalhos.set(String(secao.chave || "").toLowerCase(), b);
   });
+
+  function painelVisivel() {
+    return painel && painel.style.display !== "none" && painel.style.pointerEvents !== "none";
+  }
+
+  function normalizarTeclaEventoParaAtalho(event) {
+    const key = String(event.key || "").toLowerCase();
+    if (!key) return "";
+    if (key === "add") return "+";
+    if (key === "plus") return "+";
+    if (key === "subtract") return "-";
+    return key;
+  }
+
+  if (!painel.dataset.effraimAtalhosCaptura) {
+    const onKeydown = (event) => {
+      if (!painelVisivel()) return;
+      if (!event.altKey || event.ctrlKey || event.metaKey) return;
+
+      const tecla = normalizarTeclaEventoParaAtalho(event);
+      let botaoAtalho = mapaAtalhos.get(tecla);
+
+      // layouts onde Alt+'+' chega como '='
+      if (!botaoAtalho && tecla === "=") botaoAtalho = mapaAtalhos.get("+");
+
+      if (!botaoAtalho) return;
+      event.preventDefault();
+      event.stopPropagation();
+      botaoAtalho.click();
+    };
+
+    document.addEventListener("keydown", onKeydown, true);
+    painel.dataset.effraimAtalhosCaptura = "1";
+  }
 
   return painel;
 }

@@ -2,13 +2,14 @@
   display: block;
   margin: 6px 10px 0;
   position: relative;
-  z-index: 1000;
+  z-index: 12000;
   pointer-events: auto;
 }
 
 .effraim-corregedoria-widget {
   width: 100%;
   min-width: 0;
+  position: relative;
   background: linear-gradient(180deg, #fbfdff 0%, #f4f9ff 100%);
   border: 1px solid #bfd6ea;
   border-radius: 10px;
@@ -39,9 +40,28 @@
   line-height: 1.2;
 }
 
+.effraim-corregedoria__subtitulo-wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 16px;
+}
+
+.effraim-corregedoria__carregando-indicador {
+  color: #2f6ea0;
+  font-size: 12px;
+  line-height: 1;
+  animation: effraim-corregedoria-girar 1s linear infinite;
+}
+
 .effraim-corregedoria__titulo:empty,
 .effraim-corregedoria__subtitulo:empty {
   display: none;
+}
+
+@keyframes effraim-corregedoria-girar {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 
 .effraim-corregedoria__acoes {
@@ -146,7 +166,15 @@
   gap: 8px;
   font-size: 12px;
   line-height: 1.25;
-  padding: 1px 0;
+  padding: 2px 4px;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  transition: border-color 120ms ease, background-color 120ms ease;
+}
+
+.effraim-corregedoria__valor-linha:hover {
+  border-color: #c9ddec;
+  background: #f8fbff;
 }
 
 .effraim-corregedoria__valor-linha span {
@@ -157,6 +185,45 @@
 .effraim-corregedoria__valor-linha strong {
   color: #0e3658;
   white-space: nowrap;
+}
+
+.effraim-corregedoria__barra-linha {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 3px;
+  margin: 3px 0;
+}
+
+.effraim-corregedoria__barra-rotulo {
+  font-size: 11px;
+  color: #394e61;
+  line-height: 1.2;
+}
+
+.effraim-corregedoria__barra-linha-valores {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) max-content;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+}
+
+.effraim-corregedoria__barra-preenchimento {
+  height: 14px;
+  min-width: 0;
+  width: 100%;
+  max-width: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #93c0e4 0%, #6ea8d6 100%);
+}
+
+.effraim-corregedoria__barra-valor {
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
+  color: #0b2f4d;
+  justify-self: end;
 }
 
 .effraim-corregedoria__bloco {
@@ -201,10 +268,19 @@
 }
 
 .effraim-corregedoria__drill {
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  top: 120px;
+  z-index: 10020;
   border: 1px solid #bfd6ea;
   border-radius: 8px;
   background: #fff;
   overflow: hidden;
+  box-shadow: 0 8px 24px rgba(11, 54, 92, 0.16);
+  max-height: min(72vh, 760px);
+  display: flex;
+  flex-direction: column;
 }
 
 .effraim-corregedoria__drill-cabecalho {
@@ -238,6 +314,10 @@
 
 .effraim-corregedoria__drill-conteudo {
   padding: 6px 8px;
+  position: relative;
+  overflow: auto;
+  overscroll-behavior: contain;
+  max-height: calc(min(72vh, 760px) - 44px);
 }
 
 .effraim-corregedoria__drill-meta,
@@ -248,11 +328,140 @@
   color: #395064;
 }
 
+.effraim-corregedoria__drill-graficos-flutuantes {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  gap: 8px;
+  margin-bottom: 8px;
+  padding: 6px;
+  border: 1px solid #d3e4f2;
+  border-radius: 8px;
+  background: rgba(251, 253, 255, 0.97);
+  box-shadow: 0 3px 10px rgba(17, 60, 99, 0.08);
+  backdrop-filter: blur(2px);
+}
+
+.effraim-corregedoria__drill-mini-card {
+  flex: 0 1 420px;
+  width: min(420px, 100%);
+  border: 1px solid #d9e8f4;
+  border-radius: 7px;
+  background: #fff;
+  padding: 6px;
+}
+
+.effraim-corregedoria__drill-mini-titulo {
+  font-size: 11px;
+  font-weight: 700;
+  color: #123f66;
+  margin-bottom: 4px;
+}
+
+.effraim-corregedoria__drill-mini-corpo {
+  display: grid;
+  gap: 2px;
+}
+
+.effraim-corregedoria__drill-mini-corpo--vertical {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(32px, 40px));
+  gap: 4px;
+  align-items: end;
+  justify-content: start;
+}
+
+.effraim-corregedoria__drill-mini-coluna {
+  appearance: none;
+  -webkit-appearance: none;
+  border: 1px solid transparent;
+  background: transparent;
+  padding: 2px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: grid;
+  grid-template-rows: auto 72px auto;
+  gap: 3px;
+  align-items: end;
+}
+
+.effraim-corregedoria__drill-mini-coluna:hover {
+  border-color: #c9ddec;
+  background: #f8fbff;
+}
+
+.effraim-corregedoria__drill-mini-coluna--ativa {
+  border-color: #8fbbe0;
+  background: #eaf4fe;
+  box-shadow: inset 0 1px 2px rgba(17, 60, 99, 0.10);
+}
+
+.effraim-corregedoria__drill-mini-valor {
+  font-size: 10px;
+  font-weight: 700;
+  color: #123f66;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.effraim-corregedoria__drill-mini-barra-area {
+  height: 72px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.effraim-corregedoria__drill-mini-barra {
+  width: 18px;
+  min-height: 2px;
+  border-radius: 6px 6px 3px 3px;
+  background: linear-gradient(180deg, #93c0e4 0%, #6ea8d6 100%);
+}
+
+.effraim-corregedoria__drill-mini-rotulo {
+  font-size: 9px;
+  line-height: 1.15;
+  color: #394e61;
+  text-align: center;
+  word-break: break-word;
+}
+
 .effraim-corregedoria__drill-tags {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
   margin-bottom: 6px;
+}
+
+.effraim-corregedoria__drill-filtros {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.effraim-corregedoria__drill-filtro-dias {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: #214663;
+  border: 1px solid #d4e3f0;
+  border-radius: 999px;
+  background: #f8fbff;
+  padding: 2px 8px;
+}
+
+.effraim-corregedoria__drill-filtro-dias input {
+  width: 70px;
+  border: 1px solid #b9d0e4;
+  border-radius: 6px;
+  padding: 1px 4px;
+  font-size: 11px;
+  background: #fff;
+  color: #123f66;
 }
 
 .effraim-corregedoria__drill-tag {
@@ -281,10 +490,11 @@
 
 .effraim-corregedoria__drill-tabela-wrap {
   overflow: auto;
-  max-height: 240px;
+  max-height: 280px;
   margin-top: 6px;
   border: 1px solid #e4eef7;
   border-radius: 6px;
+  overscroll-behavior: contain;
 }
 
 .effraim-corregedoria__drill-tabela {
@@ -307,6 +517,110 @@
   top: 0;
   background: #f3f8fd;
   color: #123f66;
+}
+
+.effraim-corregedoria__drill-filtros-colunas th {
+  top: 25px;
+  background: #f8fbff;
+  padding: 3px 4px;
+  vertical-align: top;
+}
+
+.effraim-corregedoria__drill-coluna-menu {
+  position: relative;
+  min-width: 90px;
+}
+
+.effraim-corregedoria__drill-coluna-menu > summary {
+  list-style: none;
+}
+
+.effraim-corregedoria__drill-coluna-menu > summary::-webkit-details-marker {
+  display: none;
+}
+
+.effraim-corregedoria__drill-coluna-menu-resumo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 58px;
+  max-width: 100%;
+  border: 1px solid #bfd6ea;
+  border-radius: 4px;
+  background: #fff;
+  color: #123f66;
+  padding: 1px 6px;
+  font-size: 10px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.effraim-corregedoria__drill-coluna-menu[open] .effraim-corregedoria__drill-coluna-menu-resumo {
+  background: #eaf4fe;
+  border-color: #8fbbe0;
+}
+
+.effraim-corregedoria__drill-coluna-menu-painel {
+  position: absolute;
+  top: calc(100% + 3px);
+  left: 0;
+  z-index: 10030;
+  width: min(260px, 40vw);
+  min-width: 180px;
+  border: 1px solid #bfd6ea;
+  border-radius: 6px;
+  background: #fff;
+  box-shadow: 0 6px 18px rgba(17, 60, 99, 0.16);
+  padding: 6px;
+}
+
+.effraim-corregedoria__drill-coluna-busca {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid #bfd6ea;
+  border-radius: 4px;
+  padding: 3px 5px;
+  font-size: 10px;
+  margin-bottom: 5px;
+}
+
+.effraim-corregedoria__drill-coluna-opcoes {
+  max-height: 180px;
+  overflow: auto;
+  border-top: 1px solid #edf3f8;
+  padding-top: 4px;
+}
+
+.effraim-corregedoria__drill-coluna-opcao-linha {
+  display: flex;
+  align-items: flex-start;
+  gap: 5px;
+  font-size: 10px;
+  color: #264861;
+  padding: 2px 0;
+}
+
+.effraim-corregedoria__drill-coluna-opcao-linha input {
+  margin: 1px 0 0;
+}
+
+.effraim-corregedoria__drill-coluna-opcao-linha span {
+  line-height: 1.25;
+  white-space: normal;
+  word-break: break-word;
+}
+
+.effraim-corregedoria__drill-coluna-opcao-linha--todos {
+  border-bottom: 1px solid #edf3f8;
+  margin-bottom: 4px;
+  padding-bottom: 4px;
+  font-weight: 600;
+}
+
+.effraim-corregedoria__drill-coluna-vazio {
+  font-size: 10px;
+  color: #5f7487;
+  padding: 3px 0;
 }
 
 .effraim-corregedoria__iframe {
@@ -343,5 +657,105 @@
 
   .effraim-corregedoria__valores {
     grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  }
+
+  .effraim-corregedoria__drill-graficos-flutuantes {
+    justify-content: stretch;
+  }
+
+  .effraim-corregedoria__drill-mini-card {
+    flex-basis: 100%;
+    width: 100%;
+  }
+
+  .effraim-corregedoria__drill {
+    max-height: 68vh;
+  }
+
+  .effraim-corregedoria__drill-conteudo {
+    max-height: calc(68vh - 44px);
+  }
+}
+
+@media (max-height: 820px) {
+  .effraim-corregedoria__drill {
+    max-height: 62vh;
+  }
+
+  .effraim-corregedoria__drill-conteudo {
+    max-height: calc(62vh - 44px);
+  }
+
+  .effraim-corregedoria__drill-mini-barra-area {
+    height: 56px;
+  }
+
+  .effraim-corregedoria__drill-mini-coluna {
+    grid-template-rows: auto 56px auto;
+  }
+
+  .effraim-corregedoria__drill-tabela-wrap {
+    max-height: 220px;
+  }
+}
+
+@media (max-width: 900px), (max-height: 720px) {
+  .effraim-corregedoria__drill {
+    left: 4px;
+    right: 4px;
+    max-height: 58vh;
+  }
+
+  .effraim-corregedoria__drill-conteudo {
+    max-height: calc(58vh - 44px);
+    padding: 5px 6px;
+  }
+
+  .effraim-corregedoria__drill-cabecalho {
+    padding: 4px 6px;
+  }
+
+  .effraim-corregedoria__drill-acoes {
+    gap: 4px;
+  }
+
+  .effraim-corregedoria__btn--texto {
+    font-size: 10px;
+  }
+
+  .effraim-corregedoria__drill-graficos-flutuantes {
+    gap: 6px;
+    padding: 4px;
+  }
+
+  .effraim-corregedoria__drill-mini-card {
+    padding: 4px;
+  }
+
+  .effraim-corregedoria__drill-mini-corpo--vertical {
+    grid-template-columns: repeat(auto-fit, minmax(28px, 34px));
+    gap: 3px;
+  }
+
+  .effraim-corregedoria__drill-mini-barra-area {
+    height: 48px;
+  }
+
+  .effraim-corregedoria__drill-mini-coluna {
+    grid-template-rows: auto 48px auto;
+    gap: 2px;
+  }
+
+  .effraim-corregedoria__drill-mini-rotulo {
+    font-size: 8px;
+  }
+
+  .effraim-corregedoria__drill-tabela {
+    font-size: 10px;
+  }
+
+  .effraim-corregedoria__drill-tabela th,
+  .effraim-corregedoria__drill-tabela td {
+    padding: 3px 4px;
   }
 }

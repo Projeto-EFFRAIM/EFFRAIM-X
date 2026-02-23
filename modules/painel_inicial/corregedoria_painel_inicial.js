@@ -1,6 +1,14 @@
 import { inserir_aviso_effraim } from "../utils/interface.js";
 import { obterConfiguracao } from "../utils/configuracoes.js";
 import { localizarUrlMenuEprocPorNome } from "../utils/menus_eproc.js";
+import {
+	classificarFaixaParadosNaoConclusos,
+	normalizarTextoComparacao,
+	extrairTagsFiltroParaGrupo,
+	aplicarFiltrosDrill,
+	aplicarFiltroDiasDrill,
+	aplicarFiltrosColunasDrill
+} from "../utils/corregedoria_drill_filtros.js";
 
 const PREFIXO_LOG = "[EFFRAIM corregedoria_painel_inicial]";
 const URL_BASE = "https://portaldeestatisticas.trf2.jus.br/Pages/PainelIndicadores/";
@@ -37,6 +45,9 @@ function setEstadoCarregando(view, carregando) {
 	if (!view?.widget) return;
 	view.carregando = !!carregando;
 	view.widget.classList.toggle("effraim-corregedoria-widget--carregando", !!carregando);
+	if (view.indicadorCarregando) {
+		view.indicadorCarregando.style.display = carregando ? "" : "none";
+	}
 
 	const botoes = [view.btnAbrirGuia, view.btnToggleIframe];
 	for (const btn of botoes) {
@@ -372,6 +383,165 @@ function extrairDataBr(texto = "") {
 	return m ? m[0] : String(texto || "").trim();
 }
 
+function normalizarTipoConclusaoLinha(linha) {
+	const valor = normalizarTextoComparacao(linha?.["Conclusão"] || linha?.Conclusao || "");
+	if (valor.includes("sentenc")) return "sentenca";
+	if (valor.includes("despacho") || valor.includes("decis")) return "despacho";
+	return "";
+}
+
+function rotuloFaixaDias(tempo, passo = 15) {
+	const n = Number(tempo);
+	if (!Number.isFinite(n) || n < 0) return "Sem dias";
+	const base = Math.max(1, Number(passo) || 15);
+	const inicio = Math.floor(Math.max(0, n - 1) / base) * base + 1;
+	const fim = inicio + (base - 1);
+	return `${inicio}-${fim}`;
+}
+
+function ordenarRotulosFaixaConclusao(a, b) {
+	if (a === "Vencidos") return 1;
+	if (b === "Vencidos") return -1;
+	if (a === "Sem dias") return 1;
+	if (b === "Sem dias") return -1;
+	const na = Number(String(a).split("-")[0]);
+	const nb = Number(String(b).split("-")[0]);
+	if (Number.isFinite(na) && Number.isFinite(nb)) return na - nb;
+	return String(a).localeCompare(String(b), "pt-BR", { numeric: true, sensitivity: "base" });
+}
+
+function parseRotuloFaixaDias(rotulo = "") {
+	const m = String(rotulo || "").match(/^\s*(\d+)\s*-\s*(\d+)\s*$/);
+	if (!m) return null;
+	return { min: Number(m[1]), max: Number(m[2]) };
+}
+
+function aplicarFiltroFaixaConclusosDrill(linhas = [], faixaConclusos = null) {
+	if (!Array.isArray(linhas)) return [];
+	if (!faixaConclusos || typeof faixaConclusos !== "object") return linhas;
+	const tipo = String(faixaConclusos.tipo || "").trim();
+	const rotulo = String(faixaConclusos.rotulo || "").trim();
+	if (!tipo || !rotulo) return linhas;
+
+	return linhas.filter((linha) => {
+		const tipoLinha = normalizarTipoConclusaoLinha(linha);
+		if (tipoLinha !== tipo) return false;
+
+		const vencido = normalizarTextoComparacao(linha?.Vencido || "") === "sim";
+		if (rotulo === "Vencidos") return vencido;
+		if (vencido) return false;
+
+		const faixa = parseRotuloFaixaDias(rotulo);
+		if (!faixa) return false;
+		const tempo = normalizarNumero(linha?.["Tempo Em Dias"]);
+		if (!Number.isFinite(tempo)) return false;
+		return tempo >= faixa.min && tempo <= faixa.max;
+	});
+}
+
+function corGradienteFaixaPorIndice(indice, total, { forcarVermelho = false } = {}) {
+	if (forcarVermelho) {
+		return "linear-gradient(180deg, #ef9a9a 0%, #e25b5b 100%)";
+	}
+	const t = total <= 1 ? 0 : Math.max(0, Math.min(1, indice / (total - 1)));
+	const hue = Math.round(120 - (120 * t)); // 120 (verde) -> 0 (vermelho)
+	const cor1 = `hsl(${hue} 70% 72%)`;
+	const cor2 = `hsl(${hue} 68% 58%)`;
+	return `linear-gradient(180deg, ${cor1} 0%, ${cor2} 100%)`;
+}
+
+function resumirGraficosFlutuantesConclusos(linhas = []) {
+	const acumuladores = {
+		despacho: new Map(),
+		sentenca: new Map()
+	};
+
+	for (const linha of Array.isArray(linhas) ? linhas : []) {
+		const tipo = normalizarTipoConclusaoLinha(linha);
+		if (!tipo || !acumuladores[tipo]) continue;
+		const vencido = normalizarTextoComparacao(linha?.Vencido || "") === "sim";
+		const passo = tipo === "sentenca" ? 30 : 15;
+		const rotulo = vencido ? "Vencidos" : rotuloFaixaDias(linha?.["Tempo Em Dias"], passo);
+		acumuladores[tipo].set(rotulo, (acumuladores[tipo].get(rotulo) || 0) + 1);
+	}
+
+	const montar = (mapa, titulo) => {
+		const itens = [...mapa.entries()]
+			.map(([rotulo, valor]) => ({ rotulo, valor }))
+			.sort((a, b) => ordenarRotulosFaixaConclusao(a.rotulo, b.rotulo));
+		return { titulo, itens };
+	};
+
+	return {
+		despacho: montar(acumuladores.despacho, "Conclusos despacho"),
+		sentenca: montar(acumuladores.sentenca, "Conclusos sentença")
+	};
+}
+
+function renderizarMiniBarrasConclusos(bloco) {
+	const itens = Array.isArray(bloco?.itens) ? bloco.itens : [];
+	if (!itens.length) {
+		return `
+			<div class="effraim-corregedoria__drill-mini-card">
+				<div class="effraim-corregedoria__drill-mini-titulo">${escapeHtml(bloco?.titulo || "")}</div>
+				<div class="effraim-corregedoria__drill-vazio">Sem dados.</div>
+			</div>
+		`;
+	}
+
+	const max = Math.max(1, ...itens.map((i) => Number(i.valor)).filter((n) => Number.isFinite(n)));
+	const linhas = itens.map((item) => {
+		const idx = itens.findIndex((x) => x === item);
+		const valor = Number(item.valor);
+		const pct = Number.isFinite(valor) ? Math.max(0, Math.min(100, (valor / max) * 100)) : 0;
+		const ehVencido = String(item.rotulo || "") === "Vencidos";
+		const corBarra = corGradienteFaixaPorIndice(idx, itens.length, { forcarVermelho: ehVencido });
+		const tipoData = String(bloco?.titulo || "").toLowerCase().includes("senten") ? "sentenca" : "despacho";
+		const ativo = bloco?.filtroAtivo?.tipo === tipoData && bloco?.filtroAtivo?.rotulo === item.rotulo;
+		return `
+			<button type="button" class="effraim-corregedoria__drill-mini-coluna${ativo ? " effraim-corregedoria__drill-mini-coluna--ativa" : ""}" data-drill-mini-tipo="${escapeAttr(tipoData)}" data-drill-mini-faixa="${escapeAttr(String(item.rotulo))}">
+				<div class="effraim-corregedoria__drill-mini-valor">${escapeHtml(String(valor))}</div>
+				<div class="effraim-corregedoria__drill-mini-barra-area">
+					<div class="effraim-corregedoria__drill-mini-barra" style="height:${pct.toFixed(2)}%;background:${escapeAttr(corBarra)}"></div>
+				</div>
+				<div class="effraim-corregedoria__drill-mini-rotulo">${escapeHtml(item.rotulo)}</div>
+			</button>
+		`;
+	}).join("");
+
+	return `
+		<div class="effraim-corregedoria__drill-mini-card">
+			<div class="effraim-corregedoria__drill-mini-titulo">${escapeHtml(bloco.titulo || "")}</div>
+			<div class="effraim-corregedoria__drill-mini-corpo effraim-corregedoria__drill-mini-corpo--vertical">${linhas}</div>
+		</div>
+	`;
+}
+
+function posicionarDrillNoSubquadro(view) {
+	if (!view?.drillWrap) return;
+	if (!view.drillHostPadrao) return;
+	if (view.drillWrap.parentElement !== view.drillHostPadrao) {
+		view.drillHostPadrao.appendChild(view.drillWrap);
+	}
+
+	const gidAtivo = Number(view.__drillAberto?.gid);
+	if (!Number.isFinite(gidAtivo)) {
+		view.drillWrap.style.top = "";
+		return;
+	}
+	const card = view.valores?.querySelector?.(`.effraim-corregedoria__valor-card[data-gid="${gidAtivo}"]`);
+	if (!card) {
+		view.drillWrap.style.top = "";
+		return;
+	}
+
+	const widgetRect = view.widget?.getBoundingClientRect?.();
+	const cardRect = card.getBoundingClientRect();
+	if (!widgetRect) return;
+	const topoRelativo = Math.max(0, (cardRect.bottom - widgetRect.top) + 6);
+	view.drillWrap.style.top = `${Math.round(topoRelativo)}px`;
+}
+
 function extrairNumerosProcessoDeLinhas(linhas = []) {
 	const vistos = new Set();
 	const lista = [];
@@ -412,13 +582,20 @@ async function abrirRelatorioGeralComProcessos(view) {
 	const drill = view?.__drillAberto;
 	if (!drill?.gid) return;
 	const linhasBase = Array.isArray(drill.linhas) ? drill.linhas : [];
-	const linhasFiltradas = aplicarFiltrosDrill(linhasBase, drill.gid, drill.tagsAtivas || []);
+	let linhasFiltradas = aplicarFiltrosDrill(linhasBase, drill.gid, drill.tagsAtivas || []);
+	linhasFiltradas = aplicarFiltroDiasDrill(linhasFiltradas, drill.diasMin);
+	linhasFiltradas = aplicarFiltroFaixaConclusosDrill(linhasFiltradas, drill.faixaConclusos || null);
+	linhasFiltradas = aplicarFiltrosColunasDrill(linhasFiltradas, drill.filtrosColunas || {});
 	const processos = extrairNumerosProcessoDeLinhas(linhasFiltradas).slice(0, 300);
 	if (!processos.length) {
 		renderizarDrill(view, drill.titulo || "Drill", linhasBase, "Nenhum processo disponível para enviar ao Relatório Geral.", {
 			gid: drill.gid,
 			tags: drill.tags || [],
 			tagsAtivas: drill.tagsAtivas || []
+			,
+			diasMin: drill.diasMin,
+			filtrosColunas: drill.filtrosColunas || {},
+			buscasColunas: drill.buscasColunas || {}
 		});
 		return;
 	}
@@ -449,18 +626,6 @@ async function abrirRelatorioGeralComProcessos(view) {
 	});
 }
 
-function normalizarTextoComparacao(texto = "") {
-	return String(texto || "")
-		.normalize("NFD")
-		.replace(/[\u0300-\u036f]/g, "")
-		.toLowerCase()
-		.trim();
-}
-
-function normalizarTextoChaveComparacao(texto = "") {
-	return normalizarTextoComparacao(texto).replace(/[\/\s_]+/g, "");
-}
-
 function obterGidNumericoDoGrupo(idGrupo = "") {
 	const m = String(idGrupo || "").match(/Grafico(\d+)/i);
 	return m ? Number(m[1]) : null;
@@ -483,17 +648,6 @@ async function carregarDrillGrafico(favoritos, gid) {
 	const url = `${URL_API_BASE}?${params.toString()}`;
 	const dados = await fetchJson(url);
 	return Array.isArray(dados) ? dados : [];
-}
-
-function classificarFaixaParadosNaoConclusos(tempoDias) {
-	const n = Number(tempoDias);
-	if (!Number.isFinite(n)) return null;
-	if (n <= 30) return "1)<=30";
-	if (n <= 60) return "2)>30 e <=60";
-	if (n <= 90) return "3)>60 e <=90";
-	if (n <= 120) return "4)>90 e <=120";
-	if (n <= 150) return "5)>120 e <=150";
-	return "6)>150";
 }
 
 async function carregarGrupoParadosNaoConclusosSemPrazoAberto(favoritos) {
@@ -548,86 +702,45 @@ async function substituirParadosNaoConclusosSemPrazoAberto(grupos, favoritos) {
 	}
 }
 
-function extrairTagsFiltroParaGrupo(grupo) {
-	if (!grupo || !Array.isArray(grupo.itens)) return [];
-	return grupo.itens
-		.map((item) => String(item?.rotulo || "").trim())
-		.filter(Boolean)
-		.slice(0, 12);
-}
-
-function linhaCorrespondeFiltroDrill(gid, linha, rotuloTag) {
-	const tag = normalizarTextoComparacao(rotuloTag);
-	if (!tag) return true;
-
-	if (Number(gid) === 1) {
-		const situacao = normalizarTextoComparacao(linha?.["Situação"] || linha?.Situacao || "");
-		const classe = normalizarTextoComparacao(linha?.Classe || "");
-		if (tag.startsWith("ativo")) return situacao.includes("ativo");
-		if (tag.startsWith("suspens")) return situacao.includes("suspens");
-		if (tag.startsWith("inquerit")) return classe.includes("inquerit") || situacao.includes("inquerit");
-		return situacao.includes(tag) || classe.includes(tag);
-	}
-
-	if (Number(gid) === 3) {
-		const concluso = normalizarTextoComparacao(linha?.Concluso || "");
-		if (tag.includes("nao conclus")) return concluso === "nao" || concluso === "não";
-		if (tag.includes("conclus")) return concluso === "sim";
-		return false;
-	}
-
-	if (Number(gid) === 4 || Number(gid) === 5) {
-		const conclusao = normalizarTextoChaveComparacao(linha?.Conclusão || linha?.Conclusao || "");
-		const tagConclusao = normalizarTextoChaveComparacao(rotuloTag);
-		return conclusao.includes(tagConclusao);
-	}
-
-	if (Number(gid) === 6) {
-		const faixa = normalizarTextoComparacao(classificarFaixaParadosNaoConclusos(linha?.["Tempo Em Dias"]) || "");
-		return faixa === normalizarTextoComparacao(rotuloTag);
-	}
-
-	if (Number(gid) === 7 || Number(gid) === 8) {
-		const tipo = normalizarTextoComparacao(linha?.Tipo || linha?.tipo || "");
-		const tagLimpa = tag.replace(/^[0-9]+\)/, "").trim();
-		return tipo.includes(tagLimpa) || tagLimpa.includes(tipo);
-	}
-
-	if (Number(gid) === 9) {
-		const tipo = normalizarTextoComparacao(linha?.Tipo || linha?.tipo || "");
-		return tipo.includes(tag) || tag.includes(tipo);
-	}
-
-	// Fallback genérico: tenta casar com qualquer campo textual da linha.
-	return Object.values(linha || {}).some((v) => typeof v === "string" && normalizarTextoComparacao(v).includes(tag));
-}
-
-function aplicarFiltrosDrill(linhas = [], gid, tagsAtivas = []) {
-	if (!Array.isArray(linhas)) return [];
-	if (!Array.isArray(tagsAtivas) || !tagsAtivas.length) return linhas;
-	return linhas.filter((linha) => tagsAtivas.some((tag) => linhaCorrespondeFiltroDrill(gid, linha, tag)));
-}
-
 function renderizarDrill(view, titulo, linhas = [], erro = "", opcoes = {}) {
 	if (!view?.drillWrap || !view?.drillTitulo || !view?.drillConteudo) return;
 	if (!titulo && !erro) {
 		view.drillWrap.style.display = "none";
 		view.drillTitulo.textContent = "";
 		view.drillConteudo.innerHTML = "";
+		posicionarDrillNoSubquadro(view);
 		return;
 	}
 
 	view.drillWrap.style.display = "";
+	posicionarDrillNoSubquadro(view);
 	view.drillTitulo.textContent = titulo || "";
 	const tags = Array.isArray(opcoes.tags) ? opcoes.tags : [];
 	const tagsAtivas = Array.isArray(opcoes.tagsAtivas) ? opcoes.tagsAtivas : [];
+	const diasMin = (opcoes.diasMin === null || opcoes.diasMin === undefined || opcoes.diasMin === "")
+		? null
+		: (Number.isFinite(Number(opcoes.diasMin)) ? Number(opcoes.diasMin) : null);
+	const filtrosColunas = (opcoes.filtrosColunas && typeof opcoes.filtrosColunas === "object")
+		? opcoes.filtrosColunas
+		: {};
+	const buscasColunas = (opcoes.buscasColunas && typeof opcoes.buscasColunas === "object")
+		? opcoes.buscasColunas
+		: {};
+	const faixaConclusos = (opcoes.faixaConclusos && typeof opcoes.faixaConclusos === "object")
+		? opcoes.faixaConclusos
+		: null;
 
 	if (erro) {
 		view.drillConteudo.innerHTML = `<div class="effraim-corregedoria__drill-erro">${escapeHtml(erro)}</div>`;
 		return;
 	}
 
-	const linhasFiltradas = aplicarFiltrosDrill(linhas, opcoes.gid, tagsAtivas);
+	let linhasFiltradas = aplicarFiltrosDrill(linhas, opcoes.gid, tagsAtivas);
+	linhasFiltradas = aplicarFiltroDiasDrill(linhasFiltradas, diasMin);
+	linhasFiltradas = aplicarFiltroFaixaConclusosDrill(linhasFiltradas, Number(opcoes.gid) === 4 ? faixaConclusos : null);
+	const linhasBaseColunas = linhasFiltradas;
+	linhasFiltradas = aplicarFiltrosColunasDrill(linhasFiltradas, filtrosColunas);
+	const suportaFiltroDias = [4, 5].includes(Number(opcoes.gid));
 
 	const htmlTags = tags.length
 		? `<div class="effraim-corregedoria__drill-tags">${
@@ -637,14 +750,89 @@ function renderizarDrill(view, titulo, linhas = [], erro = "", opcoes = {}) {
 			}).join("")
 		}</div>`
 		: "";
+	const htmlFiltroDias = suportaFiltroDias
+		? `<div class="effraim-corregedoria__drill-filtros">
+			<label class="effraim-corregedoria__drill-filtro-dias">
+				<span>Mais de</span>
+				<input type="number" min="0" step="1" data-drill-dias-min value="${diasMin ?? ""}">
+				<span>dias</span>
+			</label>
+		</div>`
+		: "";
+	const htmlGraficosConclusos = Number(opcoes.gid) === 4 && Array.isArray(linhas) && linhas.length
+		? (() => {
+			const resumo = resumirGraficosFlutuantesConclusos(linhas);
+			resumo.despacho.filtroAtivo = faixaConclusos;
+			resumo.sentenca.filtroAtivo = faixaConclusos;
+			return `
+				<div class="effraim-corregedoria__drill-graficos-flutuantes">
+					${renderizarMiniBarrasConclusos(resumo.despacho)}
+					${renderizarMiniBarrasConclusos(resumo.sentenca)}
+				</div>
+			`;
+		})()
+		: "";
+	const htmlFaixaConclusos = Number(opcoes.gid) === 4 && faixaConclusos?.rotulo
+		? `<div class="effraim-corregedoria__drill-filtros">
+			<button type="button" class="effraim-corregedoria__drill-tag effraim-corregedoria__drill-tag--ativa" data-drill-limpar-faixa-conclusos="1">
+				${escapeHtml((faixaConclusos.tipo === "sentenca" ? "Sentença" : "Despacho/Decisão") + " • " + faixaConclusos.rotulo)} ×
+			</button>
+		</div>`
+		: "";
 
 	if (!Array.isArray(linhasFiltradas) || !linhasFiltradas.length) {
-		view.drillConteudo.innerHTML = `${htmlTags}<div class="effraim-corregedoria__drill-vazio">Sem registros.</div>`;
+		view.drillConteudo.innerHTML = `${htmlGraficosConclusos}${htmlTags}${htmlFaixaConclusos}${htmlFiltroDias}<div class="effraim-corregedoria__drill-vazio">Sem registros.</div>`;
 		return;
 	}
 
 	const amostra = linhasFiltradas;
 	const colunas = Object.keys(amostra[0] || {});
+	const linhaFiltros = colunas.map((coluna) => {
+		const valoresDistintos = [...new Set(linhasBaseColunas.map((l) => String(l?.[coluna] ?? "").trim()))]
+			.filter((v) => v !== "")
+			.sort((a, b) => a.localeCompare(b, "pt-BR", { numeric: true, sensitivity: "base" }))
+			.slice(0, 500);
+		const selecionados = Array.isArray(filtrosColunas?.[coluna])
+			? filtrosColunas[coluna].map((v) => String(v ?? "").trim()).filter(Boolean)
+			: (String(filtrosColunas?.[coluna] ?? "").trim() ? [String(filtrosColunas[coluna]).trim()] : []);
+		const busca = String(buscasColunas?.[coluna] ?? "").trim();
+		const buscaNorm = normalizarTextoComparacao(busca);
+		const valoresFiltradosBusca = !buscaNorm
+			? valoresDistintos
+			: valoresDistintos.filter((v) => normalizarTextoComparacao(v).includes(buscaNorm));
+		const resumo = selecionados.length ? `${selecionados.length}/${valoresDistintos.length}` : "Todos";
+		const opcoesChecklist = valoresFiltradosBusca.map((v) => {
+			const checked = selecionados.includes(v);
+			return `
+				<label class="effraim-corregedoria__drill-coluna-opcao-linha" data-drill-coluna-opcao-linha="${escapeAttr(v)}">
+					<input type="checkbox" data-drill-coluna-opcao="${escapeAttr(coluna)}" value="${escapeAttr(v)}"${checked ? " checked" : ""}>
+					<span>${escapeHtml(v)}</span>
+				</label>
+			`;
+		}).join("");
+		return `
+			<th>
+				<details class="effraim-corregedoria__drill-coluna-menu"${selecionados.length ? " open" : ""}>
+					<summary class="effraim-corregedoria__drill-coluna-menu-resumo">${escapeHtml(resumo)}</summary>
+					<div class="effraim-corregedoria__drill-coluna-menu-painel">
+						<input
+							type="text"
+							class="effraim-corregedoria__drill-coluna-busca"
+							data-drill-coluna-busca="${escapeAttr(coluna)}"
+							placeholder="Buscar..."
+							value="${escapeAttr(busca)}">
+						<label class="effraim-corregedoria__drill-coluna-opcao-linha effraim-corregedoria__drill-coluna-opcao-linha--todos">
+							<input type="checkbox" data-drill-coluna-todos="${escapeAttr(coluna)}"${selecionados.length === 0 ? " checked" : ""}>
+							<span>Todos</span>
+						</label>
+						<div class="effraim-corregedoria__drill-coluna-opcoes">
+							${opcoesChecklist || `<div class="effraim-corregedoria__drill-coluna-vazio">Sem valores</div>`}
+						</div>
+					</div>
+				</details>
+			</th>
+		`;
+	}).join("");
 	const th = colunas.map((c) => `<th>${escapeHtml(c)}</th>`).join("");
 	const trs = amostra.map((linha) => {
 		const tds = colunas.map((c) => `<td>${escapeHtml(linha?.[c] ?? "")}</td>`).join("");
@@ -652,11 +840,17 @@ function renderizarDrill(view, titulo, linhas = [], erro = "", opcoes = {}) {
 	}).join("");
 
 	view.drillConteudo.innerHTML = `
+		${htmlGraficosConclusos}
 		${htmlTags}
+		${htmlFaixaConclusos}
+		${htmlFiltroDias}
 		<div class="effraim-corregedoria__drill-meta">${escapeHtml(String(linhasFiltradas.length))} registros${linhasFiltradas.length !== linhas.length ? ` (de ${escapeHtml(String(linhas.length))})` : ""}</div>
 		<div class="effraim-corregedoria__drill-tabela-wrap">
 			<table class="effraim-corregedoria__drill-tabela">
-				<thead><tr>${th}</tr></thead>
+				<thead>
+					<tr>${th}</tr>
+					<tr class="effraim-corregedoria__drill-filtros-colunas">${linhaFiltros}</tr>
+				</thead>
 				<tbody>${trs}</tbody>
 			</table>
 		</div>
@@ -674,7 +868,10 @@ function criarWidget(wrap) {
 		<div class="effraim-corregedoria__cabecalho">
 			<div>
 				<div class="effraim-corregedoria__titulo">Painel da corregedoria TRF2</div>
-				<div class="effraim-corregedoria__subtitulo"></div>
+				<div class="effraim-corregedoria__subtitulo-wrap">
+					<div class="effraim-corregedoria__subtitulo"></div>
+					<span class="effraim-corregedoria__carregando-indicador" data-role="carregando-indicador" style="display:none;" aria-hidden="true">⟳</span>
+				</div>
 			</div>
 			<div class="effraim-corregedoria__acoes">
 				<button type="button" class="effraim-corregedoria__btn" data-acao="abrir-guia" title="">↗</button>
@@ -705,6 +902,7 @@ function criarWidget(wrap) {
 		widget,
 		titulo: widget.querySelector(".effraim-corregedoria__titulo"),
 		subtitulo: widget.querySelector(".effraim-corregedoria__subtitulo"),
+		indicadorCarregando: widget.querySelector('[data-role="carregando-indicador"]'),
 		alerta: widget.querySelector('[data-role="alerta"]'),
 		status: widget.querySelector('[data-role="status"]'),
 		valores: widget.querySelector('[data-role="valores"]'),
@@ -722,7 +920,8 @@ function criarWidget(wrap) {
 		minimizado: true,
 		modoConfiguracaoManual: false,
 		carregando: false,
-		resumoCache: null
+		resumoCache: null,
+		timerDebounceFiltroDias: null
 	};
 
 	const protegerCliqueCabecalho = (handler) => (event) => {
@@ -778,6 +977,7 @@ function criarWidget(wrap) {
 
 	view.valores?.addEventListener("click", async (event) => {
 		const alvo = event.target instanceof Element ? event.target : null;
+		if (alvo?.closest?.(".effraim-corregedoria__drill")) return;
 		const card = alvo?.closest?.(".effraim-corregedoria__valor-card[data-gid]");
 		if (!card || view.carregando) return;
 		event.preventDefault();
@@ -796,9 +996,9 @@ function criarWidget(wrap) {
 		try {
 			const grupo = (view.__gruposResumoAtuais || []).find((g) => Number(obterGidNumericoDoGrupo(g?.id)) === gid) || null;
 			const tags = extrairTagsFiltroParaGrupo(grupo);
-			view.__drillAberto = { gid, titulo, tags, tagsAtivas: [], linhas: [] };
+			view.__drillAberto = { gid, titulo, tags, tagsAtivas: [], linhas: [], diasMin: null, filtrosColunas: {}, buscasColunas: {}, faixaConclusos: null };
 			renderizarValores(view, view.__gruposResumoAtuais || []);
-			renderizarDrill(view, `${titulo}`, [], "", { gid, tags, tagsAtivas: [] });
+			renderizarDrill(view, `${titulo}`, [], "", { gid, tags, tagsAtivas: [], diasMin: null, filtrosColunas: {}, buscasColunas: {}, faixaConclusos: null });
 			view.drillConteudo.innerHTML = `<div class="effraim-corregedoria__drill-carregando">Carregando...</div>`;
 			const favoritos = await lerFavoritosCorregedoria();
 			const linhas = await carregarDrillGrafico(favoritos, gid);
@@ -807,7 +1007,11 @@ function criarWidget(wrap) {
 			renderizarDrill(view, titulo, linhas, "", {
 				gid,
 				tags: view.__drillAberto.tags || [],
-				tagsAtivas: view.__drillAberto.tagsAtivas || []
+				tagsAtivas: view.__drillAberto.tagsAtivas || [],
+				diasMin: view.__drillAberto.diasMin,
+				filtrosColunas: view.__drillAberto.filtrosColunas || {},
+				buscasColunas: view.__drillAberto.buscasColunas || {},
+				faixaConclusos: view.__drillAberto.faixaConclusos || null
 			});
 		} catch (e) {
 			console.warn(`${PREFIXO_LOG} Falha no drill da Corregedoria.`, { gid, erro: e });
@@ -837,9 +1041,184 @@ function criarWidget(wrap) {
 			{
 				gid: view.__drillAberto.gid,
 				tags: view.__drillAberto.tags || [],
-				tagsAtivas: view.__drillAberto.tagsAtivas || []
+				tagsAtivas: view.__drillAberto.tagsAtivas || [],
+				diasMin: view.__drillAberto.diasMin,
+				filtrosColunas: view.__drillAberto.filtrosColunas || {},
+				buscasColunas: view.__drillAberto.buscasColunas || {},
+				faixaConclusos: view.__drillAberto.faixaConclusos || null
 			}
 		);
+	});
+
+	view.drillConteudo?.addEventListener("input", (event) => {
+		const alvo = event.target instanceof Element ? event.target : null;
+		const inputDias = alvo?.matches?.("[data-drill-dias-min]") ? alvo : null;
+		if (!inputDias || !view.__drillAberto) return;
+		const valorBruto = String(inputDias.value || "").trim();
+		if (view.timerDebounceFiltroDias) clearTimeout(view.timerDebounceFiltroDias);
+		view.timerDebounceFiltroDias = window.setTimeout(() => {
+			view.timerDebounceFiltroDias = null;
+			if (!view.__drillAberto) return;
+			const valor = Number(valorBruto);
+			view.__drillAberto.diasMin = Number.isFinite(valor) ? valor : null;
+			renderizarDrill(
+				view,
+				view.__drillAberto.titulo || "Drill",
+				view.__drillAberto.linhas || [],
+				"",
+				{
+					gid: view.__drillAberto.gid,
+					tags: view.__drillAberto.tags || [],
+					tagsAtivas: view.__drillAberto.tagsAtivas || [],
+					diasMin: view.__drillAberto.diasMin,
+					filtrosColunas: view.__drillAberto.filtrosColunas || {},
+					buscasColunas: view.__drillAberto.buscasColunas || {},
+					faixaConclusos: view.__drillAberto.faixaConclusos || null
+				}
+			);
+		}, 2000);
+	});
+
+	view.drillConteudo?.addEventListener("change", (event) => {
+		const alvo = event.target instanceof Element ? event.target : null;
+		if (!view.__drillAberto) return;
+		const checkTodos = alvo?.matches?.("[data-drill-coluna-todos]") ? alvo : null;
+		const checkOpcao = alvo?.matches?.("[data-drill-coluna-opcao]") ? alvo : null;
+		if (!checkTodos && !checkOpcao) return;
+		const coluna = String(
+			checkTodos?.getAttribute("data-drill-coluna-todos") ||
+			checkOpcao?.getAttribute("data-drill-coluna-opcao") ||
+			""
+		).trim();
+		if (!coluna) return;
+		if (!view.__drillAberto.filtrosColunas || typeof view.__drillAberto.filtrosColunas !== "object") {
+			view.__drillAberto.filtrosColunas = {};
+		}
+		if (checkTodos) {
+			delete view.__drillAberto.filtrosColunas[coluna];
+		} else {
+			const valor = String(checkOpcao?.value || "").trim();
+			const atuais = new Set(
+				Array.isArray(view.__drillAberto.filtrosColunas[coluna])
+					? view.__drillAberto.filtrosColunas[coluna]
+					: []
+			);
+			if (checkOpcao.checked) atuais.add(valor);
+			else atuais.delete(valor);
+			if (atuais.size) view.__drillAberto.filtrosColunas[coluna] = [...atuais];
+			else delete view.__drillAberto.filtrosColunas[coluna];
+		}
+
+		renderizarDrill(
+			view,
+			view.__drillAberto.titulo || "Drill",
+			view.__drillAberto.linhas || [],
+			"",
+			{
+				gid: view.__drillAberto.gid,
+				tags: view.__drillAberto.tags || [],
+				tagsAtivas: view.__drillAberto.tagsAtivas || [],
+				diasMin: view.__drillAberto.diasMin,
+				filtrosColunas: view.__drillAberto.filtrosColunas || {},
+				buscasColunas: view.__drillAberto.buscasColunas || {},
+				faixaConclusos: view.__drillAberto.faixaConclusos || null
+			}
+		);
+	});
+
+	view.drillConteudo?.addEventListener("input", (event) => {
+		const alvo = event.target instanceof Element ? event.target : null;
+		const buscaColuna = alvo?.matches?.("[data-drill-coluna-busca]") ? alvo : null;
+		if (!buscaColuna || !view.__drillAberto) return;
+		const coluna = String(buscaColuna.getAttribute("data-drill-coluna-busca") || "").trim();
+		if (!coluna) return;
+		if (!view.__drillAberto.buscasColunas || typeof view.__drillAberto.buscasColunas !== "object") {
+			view.__drillAberto.buscasColunas = {};
+		}
+		const termo = String(buscaColuna.value || "");
+		view.__drillAberto.buscasColunas[coluna] = termo;
+
+		const painel = buscaColuna.closest(".effraim-corregedoria__drill-coluna-menu-painel");
+		const linhasOpcoes = painel?.querySelectorAll?.("[data-drill-coluna-opcao-linha]");
+		if (!linhasOpcoes) return;
+		const termoNorm = normalizarTextoComparacao(termo);
+		linhasOpcoes.forEach((linha) => {
+			const valorLinha = String(linha.getAttribute("data-drill-coluna-opcao-linha") || "");
+			const mostrar = !termoNorm || normalizarTextoComparacao(valorLinha).includes(termoNorm);
+			linha.style.display = mostrar ? "" : "none";
+		});
+	});
+
+	view.drillConteudo?.addEventListener("click", (event) => {
+		const alvo = event.target instanceof Element ? event.target : null;
+		if (!alvo || !view.__drillAberto) return;
+
+		const btnLimparFaixa = alvo.closest?.("[data-drill-limpar-faixa-conclusos]");
+		if (btnLimparFaixa) {
+			event.preventDefault();
+			event.stopPropagation();
+			view.__drillAberto.faixaConclusos = null;
+			renderizarDrill(
+				view,
+				view.__drillAberto.titulo || "Drill",
+				view.__drillAberto.linhas || [],
+				"",
+				{
+					gid: view.__drillAberto.gid,
+					tags: view.__drillAberto.tags || [],
+					tagsAtivas: view.__drillAberto.tagsAtivas || [],
+					diasMin: view.__drillAberto.diasMin,
+					filtrosColunas: view.__drillAberto.filtrosColunas || {},
+					buscasColunas: view.__drillAberto.buscasColunas || {},
+					faixaConclusos: null
+				}
+			);
+			return;
+		}
+
+		const mini = alvo.closest?.("[data-drill-mini-tipo][data-drill-mini-faixa]");
+		if (!mini || Number(view.__drillAberto.gid) !== 4) return;
+		event.preventDefault();
+		event.stopPropagation();
+		const tipo = String(mini.getAttribute("data-drill-mini-tipo") || "").trim();
+		const rotulo = String(mini.getAttribute("data-drill-mini-faixa") || "").trim();
+		if (!tipo || !rotulo) return;
+
+		const atual = view.__drillAberto.faixaConclusos || {};
+		const repetido = atual.tipo === tipo && atual.rotulo === rotulo;
+		view.__drillAberto.faixaConclusos = repetido ? null : { tipo, rotulo };
+		view.__drillAberto.diasMin = null; // evita conflito com faixa rápida
+
+		// Reflete também nas tags principais do card.
+		view.__drillAberto.tagsAtivas = [tipo === "sentenca" ? "Sentença" : "Despacho/Decisão"];
+
+		renderizarDrill(
+			view,
+			view.__drillAberto.titulo || "Drill",
+			view.__drillAberto.linhas || [],
+			"",
+			{
+				gid: view.__drillAberto.gid,
+				tags: view.__drillAberto.tags || [],
+				tagsAtivas: view.__drillAberto.tagsAtivas || [],
+				diasMin: view.__drillAberto.diasMin,
+				filtrosColunas: view.__drillAberto.filtrosColunas || {},
+				buscasColunas: view.__drillAberto.buscasColunas || {},
+				faixaConclusos: view.__drillAberto.faixaConclusos || null
+			}
+		);
+	});
+
+	document.addEventListener("click", (event) => {
+		const alvo = event.target instanceof Element ? event.target : null;
+		if (!alvo) return;
+		if (!view.drillWrap?.isConnected) return;
+		if (alvo.closest(".effraim-corregedoria__drill-coluna-menu")) return;
+
+		const menusAbertos = view.drillConteudo?.querySelectorAll?.(".effraim-corregedoria__drill-coluna-menu[open]");
+		menusAbertos?.forEach((menu) => {
+			try { menu.removeAttribute("open"); } catch {}
+		});
 	});
 
 	view.iframe?.addEventListener("load", () => {
@@ -847,6 +1226,7 @@ function criarWidget(wrap) {
 	});
 
 	widget.__effraimView = view;
+	view.drillHostPadrao = view.drillWrap.parentElement;
 	return view;
 }
 
@@ -877,15 +1257,39 @@ function renderizarValores(view, gruposResumo = []) {
 		const totalGrupo = Number(grupo.total);
 		const gid = obterGidNumericoDoGrupo(grupo.id);
 		const cardAtivo = Number(view.__drillAberto?.gid) === Number(gid);
-		const linhas = grupo.itens
-			.slice(0, 8)
-			.map((item) => {
-				const rotulo = String(item?.rotulo || "Total").trim();
-				const total = Number(item?.valor);
-				const totalFmt = Number.isFinite(total) ? formatarValorHumano(total) : String(item?.valor ?? "");
-				return `<div class="effraim-corregedoria__valor-linha"><span>${escapeHtml(rotulo)}</span><strong>${escapeHtml(totalFmt)}</strong></div>`;
-			})
-			.join("");
+		const itensVisiveis = grupo.itens.slice(0, 8);
+		const linhas = Number(gid) === 6
+			? (() => {
+				const max = Math.max(
+					1,
+					...itensVisiveis.map((item) => Number(item?.valor)).filter((n) => Number.isFinite(n))
+				);
+				return itensVisiveis.map((item) => {
+					const idx = itensVisiveis.findIndex((x) => x === item);
+					const rotulo = String(item?.rotulo || "Total").trim();
+					const total = Number(item?.valor);
+					const totalFmt = Number.isFinite(total) ? formatarValorHumano(total) : String(item?.valor ?? "");
+					const pct = Number.isFinite(total) ? Math.max(0, Math.min(100, (total / max) * 100)) : 0;
+					const corBarra = corGradienteFaixaPorIndice(idx, itensVisiveis.length);
+					return `
+						<div class="effraim-corregedoria__barra-linha">
+							<div class="effraim-corregedoria__barra-rotulo">${escapeHtml(rotulo)}</div>
+							<div class="effraim-corregedoria__barra-linha-valores">
+								<div class="effraim-corregedoria__barra-preenchimento" style="width:${pct.toFixed(2)}%;background:${escapeAttr(corBarra)}"></div>
+								<span class="effraim-corregedoria__barra-valor">${escapeHtml(totalFmt)}</span>
+							</div>
+						</div>
+					`;
+				}).join("");
+			})()
+			: itensVisiveis
+				.map((item) => {
+					const rotulo = String(item?.rotulo || "Total").trim();
+					const total = Number(item?.valor);
+					const totalFmt = Number.isFinite(total) ? formatarValorHumano(total) : String(item?.valor ?? "");
+					return `<div class="effraim-corregedoria__valor-linha"><span>${escapeHtml(rotulo)}</span><strong>${escapeHtml(totalFmt)}</strong></div>`;
+				})
+				.join("");
 		blocos.push(`
 			<div class="effraim-corregedoria__valor-card${gid ? " effraim-corregedoria__valor-card--clicavel" : ""}${cardAtivo ? " effraim-corregedoria__valor-card--ativo" : ""}"${gid ? ` data-gid="${gid}" data-titulo="${escapeAttr(titulo)}"` : ""}>
 				<div class="effraim-corregedoria__valor-titulo">
@@ -897,6 +1301,7 @@ function renderizarValores(view, gruposResumo = []) {
 		`);
 	}
 	view.valores.innerHTML = blocos.join("");
+	posicionarDrillNoSubquadro(view);
 }
 
 function atualizarIframe(view, favoritos, { forcar = false } = {}) {
@@ -973,11 +1378,47 @@ async function sincronizarWidgetSeFavoritosMudaram(view, { origem = "desconhecid
 
 	if (assinatura === assinaturaAnterior) return;
 	ultimaAssinaturaFavoritos = assinatura;
-	await atualizarWidget(view, { forcarResumo: true, forcarIframe: true });
+	setEstadoCarregando(view, true);
+	try {
+		await atualizarWidget(view, { forcarResumo: true, forcarIframe: true });
+	} finally {
+		setEstadoCarregando(view, false);
+	}
 
 	const virouConfiguradoAgora =
 		!assinaturaTemFavoritoCompleto(assinaturaAnterior) &&
 		assinaturaTemFavoritoCompleto(assinatura);
+
+	// Primeira configuração pode ocorrer enquanto a página/armazenamento ainda estabiliza.
+	// Faz algumas retentativas curtas para evitar quadro vazio no primeiro uso.
+	if (virouConfiguradoAgora) {
+		if (view.__timerRetentativasPrimeiraCarga) {
+			clearTimeout(view.__timerRetentativasPrimeiraCarga);
+			view.__timerRetentativasPrimeiraCarga = null;
+		}
+		const semValores = !Array.isArray(view.__valoresGraficosCache) || view.__valoresGraficosCache.length === 0;
+		if (semValores) {
+			let tentativa = 0;
+			const tentar = async () => {
+				tentativa += 1;
+				try {
+					setEstadoCarregando(view, true);
+					await atualizarWidget(view, { forcarResumo: true, forcarIframe: false });
+				} catch (e) {
+					console.warn(`${PREFIXO_LOG} Retentativa da primeira carga da Corregedoria falhou.`, { tentativa, erro: e });
+				} finally {
+					setEstadoCarregando(view, false);
+				}
+				const aindaSemValores = !Array.isArray(view.__valoresGraficosCache) || view.__valoresGraficosCache.length === 0;
+				if (aindaSemValores && tentativa < 3) {
+					view.__timerRetentativasPrimeiraCarga = window.setTimeout(() => { void tentar(); }, 1200);
+				} else {
+					view.__timerRetentativasPrimeiraCarga = null;
+				}
+			};
+			view.__timerRetentativasPrimeiraCarga = window.setTimeout(() => { void tentar(); }, 500);
+		}
+	}
 
 	if (virouConfiguradoAgora) {
 		inserir_aviso_effraim(

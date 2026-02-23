@@ -92,12 +92,13 @@ function atualizarStatus(texto, tipo = "normal") {
 
 function aplicarConfiguracaoPainelPorAcao(manipulador) {
 	if (!painel) return;
-	// O tamanho do painel deslizante agora e centralizado no CSS compartilhado.
-	painel.style.width = "";
-	painel.style.maxWidth = "";
-	if (manipulador?.configuracaoPainel?.largura || manipulador?.configuracaoPainel?.larguraMaxima) {
-		logInfo("Configuracao de largura do manipulador ignorada para manter padrao visual unificado.", {
-			manipulador: manipulador?.id || "padrao"
+	painel.style.width = manipulador?.configuracaoPainel?.largura || "";
+	painel.style.maxWidth = manipulador?.configuracaoPainel?.larguraMaxima || "";
+	if (painel.style.width || painel.style.maxWidth) {
+		logInfo("Configuracao de largura aplicada pelo manipulador.", {
+			manipulador: manipulador?.id || "padrao",
+			width: painel.style.width || null,
+			maxWidth: painel.style.maxWidth || null
 		});
 	}
 }
