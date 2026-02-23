@@ -10,6 +10,9 @@ let observadorPausado = false;
 let expandirTodosAtivo = false;
 let linhaHoverAtiva = null;
 let bloqueioHoverAte = 0;
+let overlayLinha = null;
+let overlayLinhaHover = false;
+let overlayLinhaFonte = null;
 const BLOQUEIO_HOVER_MS = 900;
 
 function logInfo(mensagem, dados) {
@@ -90,6 +93,9 @@ function montarControleAviso(aviso) {
 }
 
 function expandirTodosColapsaveis() {
+	ocultarOverlayLinha();
+	linhaHoverAtiva = null;
+	document.documentElement.classList.add("effraim-tabelas-compactas--expandir-todos");
 	const itens = document.querySelectorAll(".effraim-tabelas-compactas-colapsavel");
 	let total = 0;
 	for (const item of itens) {
@@ -101,6 +107,9 @@ function expandirTodosColapsaveis() {
 }
 
 function recolherTodosColapsaveis() {
+	ocultarOverlayLinha();
+	linhaHoverAtiva = null;
+	document.documentElement.classList.remove("effraim-tabelas-compactas--expandir-todos");
 	const itens = document.querySelectorAll(".effraim-tabelas-compactas-colapsavel");
 	let total = 0;
 	for (const item of itens) {
@@ -137,16 +146,87 @@ function centralizarLinhaNaViewport(linha) {
 	});
 }
 
+function garantirOverlayLinha() {
+	if (overlayLinha?.isConnected) return overlayLinha;
+	const host = document.createElement("div");
+	host.className = "effraim-tabelas-compactas-overlay-linha";
+	host.style.display = "none";
+	host.addEventListener("mouseenter", () => {
+		overlayLinhaHover = true;
+	});
+	host.addEventListener("mouseleave", () => {
+		overlayLinhaHover = false;
+		if (!expandirTodosAtivo && overlayLinhaFonte && !overlayLinhaFonte.matches(":hover")) {
+			recolherLinha(overlayLinhaFonte);
+			linhaHoverAtiva = null;
+		}
+	});
+	document.body.appendChild(host);
+	overlayLinha = host;
+	return host;
+}
+
+function clonarLinhaExpandida(linha) {
+	const cloneTabela = document.createElement("table");
+	cloneTabela.className = "effraim-tabelas-compactas-overlay-tabela";
+	const tbody = document.createElement("tbody");
+	const linhaClone = linha.cloneNode(true);
+	linhaClone.classList.add("effraim-tabelas-compactas-overlay-row");
+	tbody.appendChild(linhaClone);
+	cloneTabela.appendChild(tbody);
+
+	const celulasOriginais = [...linha.children].filter((el) => el instanceof HTMLElement);
+	const celulasClone = [...linhaClone.children].filter((el) => el instanceof HTMLElement);
+	celulasClone.forEach((celulaClone, idx) => {
+		const celulaOriginal = celulasOriginais[idx];
+		if (!celulaOriginal) return;
+		const largura = Math.max(1, Math.round(celulaOriginal.getBoundingClientRect().width));
+		celulaClone.style.width = `${largura}px`;
+		celulaClone.style.minWidth = `${largura}px`;
+		celulaClone.style.maxWidth = `${largura}px`;
+		const wrappers = celulaClone.querySelectorAll(".effraim-tabelas-compactas-colapsavel");
+		wrappers.forEach((w) => {
+			w.dataset.expandido = "1";
+		});
+	});
+
+	return cloneTabela;
+}
+
+function mostrarOverlayLinha(linha) {
+	if (!(linha instanceof HTMLElement)) return;
+	const host = garantirOverlayLinha();
+	const rect = linha.getBoundingClientRect();
+	if (rect.width <= 0 || rect.height <= 0) return;
+
+	host.innerHTML = "";
+	host.appendChild(clonarLinhaExpandida(linha));
+	Object.assign(host.style, {
+		display: "",
+		top: `${Math.round(rect.top)}px`,
+		left: `${Math.round(rect.left)}px`,
+		width: `${Math.round(rect.width)}px`
+	});
+	overlayLinhaFonte = linha;
+}
+
+function ocultarOverlayLinha() {
+	if (overlayLinha) {
+		overlayLinha.style.display = "none";
+		overlayLinha.innerHTML = "";
+	}
+	overlayLinhaHover = false;
+	overlayLinhaFonte = null;
+}
+
 function expandirLinha(linha) {
 	linha.classList.add("effraim-tabelas-compactas-linha-hover");
-	const itens = linha.querySelectorAll(".effraim-tabelas-compactas-colapsavel");
-	itens.forEach((item) => (item.dataset.expandido = "1"));
+	mostrarOverlayLinha(linha);
 }
 
 function recolherLinha(linha) {
 	linha.classList.remove("effraim-tabelas-compactas-linha-hover");
-	const itens = linha.querySelectorAll(".effraim-tabelas-compactas-colapsavel");
-	itens.forEach((item) => (item.dataset.expandido = "0"));
+	if (overlayLinhaFonte === linha) ocultarOverlayLinha();
 }
 
 function ativarHoverEmLinhas(tabela) {
@@ -163,7 +243,6 @@ function ativarHoverEmLinhas(tabela) {
 			linhaHoverAtiva = linha;
 			bloqueioHoverAte = agora + BLOQUEIO_HOVER_MS;
 			expandirLinha(linha);
-			centralizarLinhaNaViewport(linha);
 		});
 		linha.addEventListener("mouseleave", () => {
 			if (expandirTodosAtivo) return;
@@ -175,11 +254,13 @@ function ativarHoverEmLinhas(tabela) {
 					if (expandirTodosAtivo) return;
 					if (linha !== linhaHoverAtiva) return;
 					if (linha.matches(":hover")) return;
+					if (overlayLinhaHover) return;
 					recolherLinha(linha);
 					linhaHoverAtiva = null;
 				}, espera);
 				return;
 			}
+			if (overlayLinhaHover) return;
 			recolherLinha(linha);
 			linhaHoverAtiva = null;
 		});
@@ -234,20 +315,36 @@ function garantirAvisoUso(tabelas) {
 	texto.textContent = "Você está usando a função de tabelas compactas. Se desejar, desative nas configurações.";
 
 	aviso.append(logo, texto);
-	montarControleAviso(aviso);
 	parent.insertBefore(aviso, tabelaRef);
 }
 
-function criarItemColapsavel(htmlOriginal) {
+function criarItemColapsavel(htmlOriginal, corFundo = "") {
 	const wrapper = document.createElement("div");
 	wrapper.className = "effraim-tabelas-compactas-colapsavel";
 	wrapper.dataset.expandido = "0";
+	if (corFundo) wrapper.style.setProperty("--effraim-tabelas-compactas-overlay-bg", corFundo);
 
 	const conteudo = document.createElement("div");
 	conteudo.className = "effraim-tabelas-compactas-celula-conteudo";
 	conteudo.innerHTML = htmlOriginal;
 	wrapper.append(conteudo);
 	return wrapper;
+}
+
+function ehCorTransparente(valor) {
+	const v = String(valor || "").trim().toLowerCase();
+	return !v || v === "transparent" || v === "rgba(0, 0, 0, 0)";
+}
+
+function obterCorFundoEfetiva(celula) {
+	if (!(celula instanceof HTMLElement)) return "";
+	const candidatos = [celula, celula.parentElement, celula.closest("tbody"), celula.closest("table")];
+	for (const el of candidatos) {
+		if (!(el instanceof HTMLElement)) continue;
+		const cor = getComputedStyle(el).backgroundColor;
+		if (!ehCorTransparente(cor)) return cor;
+	}
+	return "";
 }
 
 function medirAlturaNaturalConteudo(celula, htmlOriginal) {
@@ -275,7 +372,7 @@ function aplicarNaTabela(tabela) {
 		if (alturaConteudo <= alturaMaxima) continue;
 
 		celula.textContent = "";
-		const item = criarItemColapsavel(htmlOriginal);
+		const item = criarItemColapsavel(htmlOriginal, obterCorFundoEfetiva(celula));
 		celula.appendChild(item);
 		celula.dataset.effraimTabelaCompactaAplicada = "1";
 		if (expandirTodosAtivo) item.dataset.expandido = "1";

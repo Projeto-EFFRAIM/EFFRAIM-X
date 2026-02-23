@@ -220,7 +220,12 @@ export function criarPainelHoverLogo(dicionarioOpcoes) {
 // interface.js
 //cria todo o painel flutuante
 // Painel flutuante genérico (para páginas com seções)
-export function criarPainelFlutuante({ botao, secoes, id="effraim-painel-flutuante"}) {
+export function criarPainelFlutuante({
+  botao,
+  secoes,
+  id = "effraim-painel-flutuante",
+  posicionamentoSecao = "ancora_subindo"
+}) {
   if (!id || !botao || !Array.isArray(secoes)) return null;
 
   const painel = criarPainelDeslizantePadrao(id, botao);
@@ -285,8 +290,13 @@ export function criarPainelFlutuante({ botao, secoes, id="effraim-painel-flutuan
     const painelRect = painel.getBoundingClientRect();
     const baseOriginal = painelRect.top + painel.scrollHeight + 8;
     const vh = window.innerHeight || document.documentElement.clientHeight || 800;
-    const baseMinViewport = Math.round(vh * 0.35); // desce a seção para longe do container do EFFRAIM
-    const base = Math.max(60, baseOriginal + 15, baseMinViewport);
+    const usarMeioViewport = posicionamentoSecao === "meio_viewport";
+    const base = Math.max(48, baseOriginal + 15);
+    const baseMinViewport = Math.round(vh * 0.35);
+    const deslocamentoSubida = usarMeioViewport ? 0 : Math.round(vh * 0.30);
+    const topoVisual = usarMeioViewport
+      ? Math.max(48, Math.max(base, baseMinViewport))
+      : Math.max(16, base - deslocamentoSubida);
 
 
     placeholder = document.createElement("div");
@@ -296,14 +306,15 @@ export function criarPainelFlutuante({ botao, secoes, id="effraim-painel-flutuan
 
     Object.assign(secao.style, {
       position: "fixed",
-      top: `${base}px`,
+      top: `${usarMeioViewport ? topoVisual : base}px`,
       left: "0",
       right: "0",
+      transform: usarMeioViewport ? "" : `translateY(-${deslocamentoSubida}px)`,
       zIndex: "10",
       background: "#fff",
       border: "1px solid #2a9c1bff",
       boxShadow: "0 -2px 4px rgba(0,0,0,0.05)",
-      maxHeight: `calc(100vh - ${Math.round(base)}px)`,
+      maxHeight: `calc(100vh - ${Math.round(topoVisual)}px)`,
       overflow: "auto"
     });
 
@@ -326,6 +337,7 @@ export function criarPainelFlutuante({ botao, secoes, id="effraim-painel-flutuan
       top: "",
       left: "",
       right: "",
+      transform: "",
       zIndex: "",
       background: "",
       border: "",
@@ -376,15 +388,22 @@ export function criarPainelFlutuante({ botao, secoes, id="effraim-painel-flutuan
   }
 
   function normalizarTeclaEventoParaAtalho(event) {
+    const code = String(event.code || "");
+    // Prioriza código físico da tecla para atalhos (evita variações de layout/locale com Alt).
+    if (/^Key[A-Z]$/.test(code)) return code.slice(3).toLowerCase();
+    if (/^Digit[0-9]$/.test(code)) return code.slice(5);
+    if (code === "Equal" || code === "NumpadAdd") return "="; // tratado abaixo para "+"
+    if (code === "Minus" || code === "NumpadSubtract") return "-";
+
     const key = String(event.key || "").toLowerCase();
-    if (!key) return "";
     if (key === "add") return "+";
     if (key === "plus") return "+";
     if (key === "subtract") return "-";
-    return key;
+    if (key) return key;
+    return "";
   }
 
-  if (!painel.dataset.effraimAtalhosCaptura) {
+  if (!painel.__effraimAtalhosCapturaAtivo) {
     const onKeydown = (event) => {
       if (!painelVisivel()) return;
       if (!event.altKey || event.ctrlKey || event.metaKey) return;
@@ -394,6 +413,10 @@ export function criarPainelFlutuante({ botao, secoes, id="effraim-painel-flutuan
 
       // layouts onde Alt+'+' chega como '='
       if (!botaoAtalho && tecla === "=") botaoAtalho = mapaAtalhos.get("+");
+      // fallback específico para letras quando event.key vier alterado por layout
+      if (!botaoAtalho && /^Key[A-Z]$/.test(String(event.code || ""))) {
+        botaoAtalho = mapaAtalhos.get(String(event.code).slice(3).toLowerCase());
+      }
 
       if (!botaoAtalho) return;
       event.preventDefault();
@@ -402,7 +425,8 @@ export function criarPainelFlutuante({ botao, secoes, id="effraim-painel-flutuan
     };
 
     document.addEventListener("keydown", onKeydown, true);
-    painel.dataset.effraimAtalhosCaptura = "1";
+    painel.__effraimAtalhosCapturaAtivo = true;
+    painel.__effraimAtalhosCapturaHandler = onKeydown;
   }
 
   return painel;

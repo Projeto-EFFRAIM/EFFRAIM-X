@@ -5,6 +5,7 @@ export async function init() {
 
   criarPainelFlutuante({
     botao,
+    posicionamentoSecao: "meio_viewport",
     secoes: [
   { id: "fldCapa", nome: "Capa", chave: "."}, //futuramente pode trazer um resumo da capa
   { id: "fldLembretes", nome: "Lembretes", chave: "," },

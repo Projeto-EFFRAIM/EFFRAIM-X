@@ -13,6 +13,7 @@ export function init() {
 	}
 
 	const painel = criarPainelDeslizantePadrao("painel-sisbajud", botao, "SISBAJUD");
+	painel.classList.add("effraim-painel-deslizante--sisbajud");
 	Object.assign(painel.style, {
 		background: "#f0f8ff",
 		color: "#002244",
@@ -21,6 +22,7 @@ export function init() {
 		overflowY: "",
 		paddingRight: "12px"
 	});
+	aplicarDimensoesExpandidasPainelSisbajud(painel);
 
 	const conteudo = document.createElement("div");
 	conteudo.id = "conteudo-sisbajud";
@@ -29,6 +31,7 @@ export function init() {
 	painel.appendChild(conteudo);
 
 	const abrirPainel = () => {
+		aplicarDimensoesExpandidasPainelSisbajud(painel);
 		forcarAberturaPainelDeslizante(painel);
 	};
 
@@ -40,6 +43,15 @@ export function init() {
 	console.log("Painel SISBAJUD inicializado.");
 }
 
+function aplicarDimensoesExpandidasPainelSisbajud(painel) {
+	if (!painel) return;
+	painel.style.setProperty("width", "min(1180px, 96vw)", "important");
+	painel.style.setProperty("min-width", "min(1180px, 96vw)", "important");
+	painel.style.setProperty("max-width", "96vw", "important");
+	painel.style.setProperty("min-height", "80vh", "important");
+	painel.style.setProperty("max-height", "92vh", "important");
+}
+
 async function inserir_sisbajud_no_painel(painel, conteudo) {
 	try {
 		const sisbajud_configuracoes = window.EFFRAIM_CONFIGURACOES.opcoes_sisbajud;
@@ -49,6 +61,10 @@ async function inserir_sisbajud_no_painel(painel, conteudo) {
 
 		const dados_consulta = await selecionar_dados_consulta(conteudo, dados_processo);
 		conteudo.innerHTML = "";
+		conteudo.style.padding = "0";
+		conteudo.style.height = "calc(92vh - 52px)";
+		conteudo.style.minHeight = "520px";
+		conteudo.style.overflow = "hidden";
 
 		const dados_iframe = { ...dados_processo, sisbajud_configuracoes, dados_consulta };
 
@@ -64,7 +80,7 @@ async function inserir_sisbajud_no_painel(painel, conteudo) {
 		Object.assign(iframe.style, {
 			width: "100%",
 			height: "100%",
-			minHeight: "320px",
+			minHeight: "100%",
 			border: "none",
 			background: "#fff",
 		});

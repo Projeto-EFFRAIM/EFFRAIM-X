@@ -2,9 +2,12 @@
 	display: flex;
 	flex-direction: column;
 	gap: 4px;
+	position: relative;
+	min-height: var(--effraim-tabelas-compactas-max-height, 50px);
 }
 
 .effraim-tabelas-compactas-celula-conteudo {
+	display: block;
 	max-height: var(--effraim-tabelas-compactas-max-height, 50px);
 	overflow: hidden;
 	line-height: 1.3;
@@ -13,14 +16,129 @@
 }
 
 .effraim-tabelas-compactas-colapsavel[data-expandido="1"] .effraim-tabelas-compactas-celula-conteudo {
-	max-height: 250px;
-	max-width: calc(100vw - 24px);
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	z-index: 30;
+	width: 100%;
+	min-width: 0;
+	max-height: min(320px, 60vh);
+	max-width: 100%;
 	overflow: auto;
+	background: var(--effraim-tabelas-compactas-overlay-bg, #fff);
+	border: 1px solid #bfd6ea;
+	border-radius: 6px;
+	box-shadow: 0 8px 20px rgba(17, 60, 99, 0.18);
+	padding: 6px 8px;
+	box-sizing: border-box;
+	white-space: normal;
+	word-break: break-word;
 }
 
 tr.effraim-tabelas-compactas-linha-hover {
 	position: relative;
-	z-index: 5;
+	z-index: 40;
+}
+
+td[data-effraim-tabela-compacta-aplicada="1"] {
+	position: relative;
+	overflow: visible;
+}
+
+.effraim-tabelas-compactas-overlay-linha {
+	position: fixed;
+	z-index: 12050;
+	pointer-events: auto;
+	background: rgba(255, 255, 255, 0.96);
+	border: 1px solid #bfd6ea;
+	border-radius: 6px;
+	box-shadow: 0 8px 20px rgba(17, 60, 99, 0.18);
+	overflow-y: auto;
+	overflow-x: hidden;
+	max-height: min(360px, 65vh);
+	overscroll-behavior: contain;
+}
+
+.effraim-tabelas-compactas-overlay-tabela {
+	width: 100%;
+	border-collapse: collapse;
+	table-layout: fixed;
+}
+
+.effraim-tabelas-compactas-overlay-row {
+	position: relative;
+	z-index: 1;
+}
+
+.effraim-tabelas-compactas-overlay-row > td,
+.effraim-tabelas-compactas-overlay-row > th {
+	position: relative;
+	vertical-align: top;
+	background: transparent;
+	box-shadow: inset 0 -1px 0 rgba(17, 60, 99, 0.08);
+}
+
+.effraim-tabelas-compactas-overlay-row .effraim-tabelas-compactas-colapsavel {
+	min-height: 0;
+	gap: 0;
+}
+
+.effraim-tabelas-compactas-overlay-row .effraim-tabelas-compactas-celula-conteudo {
+	background: transparent;
+}
+
+.effraim-tabelas-compactas-overlay-row .effraim-tabelas-compactas-colapsavel[data-expandido="1"] .effraim-tabelas-compactas-celula-conteudo {
+	position: static;
+	left: auto;
+	right: auto;
+	top: auto;
+	width: 100%;
+	min-width: 0;
+	max-width: 100%;
+	max-height: var(--effraim-tabelas-compactas-max-height, 50px);
+	overflow: auto;
+	overflow-y: auto;
+	overflow-x: hidden;
+	overscroll-behavior: contain;
+	-webkit-overflow-scrolling: touch;
+	background: transparent;
+	border: 0;
+	border-radius: 0;
+	box-shadow: none;
+	padding: 0;
+	white-space: normal;
+	word-break: break-word;
+}
+
+/* Modo "Expandir todos": leitura contínua, sem overlays por célula */
+.effraim-tabelas-compactas--expandir-todos .effraim-tabelas-compactas-colapsavel {
+	min-height: 0;
+	gap: 0;
+}
+
+.effraim-tabelas-compactas--expandir-todos .effraim-tabelas-compactas-colapsavel[data-expandido="1"] .effraim-tabelas-compactas-celula-conteudo {
+	position: static;
+	top: auto;
+	left: auto;
+	right: auto;
+	z-index: auto;
+	width: auto;
+	min-width: 0;
+	max-width: none;
+	max-height: var(--effraim-tabelas-compactas-max-height, 50px);
+	overflow: auto;
+	overflow-y: auto;
+	overflow-x: hidden;
+	overscroll-behavior: contain;
+	-webkit-overflow-scrolling: touch;
+	background: transparent;
+	border: 0;
+	border-radius: 0;
+	box-shadow: none;
+	padding: 0;
+	white-space: normal;
+	word-break: break-word;
 }
 
 .effraim-tabelas-compactas-aviso {
@@ -71,4 +189,3 @@ tr.effraim-tabelas-compactas-linha-hover {
 	white-space: normal;
 	line-height: 1.3;
 }
-
