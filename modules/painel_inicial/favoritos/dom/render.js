@@ -87,7 +87,20 @@ export async function renderizarSecaoFavoritos(tentativa = 1) {
 	ico.src = chrome.runtime.getURL("assets/icones/painel_inicial_favoritos.png");
 	ico.alt = "Favoritos";
 	ico.className = "effraim-fav-legend-icon";
-	legend.append(img, " ", ico, " Favoritos do Painel");
+	const textoLegend = document.createElement("span");
+	textoLegend.textContent = " Favoritos do Painel";
+	const btnRefreshTodos = document.createElement("button");
+	btnRefreshTodos.type = "button";
+	btnRefreshTodos.className = "effraim-fav-legend-refresh";
+	btnRefreshTodos.title = "Atualizar relatórios de todos os favoritos";
+	btnRefreshTodos.setAttribute("aria-label", "Atualizar relatórios de todos os favoritos");
+	btnRefreshTodos.textContent = "⟳";
+	btnRefreshTodos.addEventListener("click", async (e) => {
+		e.preventDefault();
+		e.stopPropagation();
+		await acionarRefreshGlobalFavoritos(btnRefreshTodos, favs);
+	});
+	legend.append(img, " ", ico, textoLegend, btnRefreshTodos);
 
 	const conteudo = document.createElement("div");
 	conteudo.id = "conteudoFavoritosPainel";
@@ -170,6 +183,78 @@ function hasFavoritos(favs) {
 	if (favs.itens_soltos?.length) return true;
 	if (favs.pastas?.length) return true;
 	return false;
+}
+
+function coletarTodosFavoritosDaEstrutura(favs) {
+	const itens = [];
+	(favs?.itens_soltos || []).forEach((it) => itens.push(it));
+	const visitar = (pastas) => {
+		(pastas || []).forEach((pasta) => {
+			(pasta?.itens || []).forEach((it) => itens.push(it));
+			visitar(pasta?.pastas || []);
+		});
+	};
+	visitar(favs?.pastas || []);
+	return itens;
+}
+
+function localizarControleRefreshNaLinhaOriginal(linhaOriginal) {
+	if (!(linhaOriginal instanceof HTMLElement)) return null;
+	const tds = linhaOriginal.querySelectorAll("td");
+	const tdRel = tds?.[1];
+	if (!(tdRel instanceof HTMLElement)) return null;
+
+	const seletores = [
+		"img[title*='Atual' i]",
+		"img[alt*='Atual' i]",
+		"a[title*='Atual' i]",
+		"button[title*='Atual' i]",
+		"input[type='image'][title*='Atual' i]",
+		"img[src*='atual' i]",
+		"img[src*='refresh' i]"
+	];
+	for (const seletor of seletores) {
+		const el = tdRel.querySelector(seletor);
+		if (el instanceof HTMLElement) return el;
+	}
+	return null;
+}
+
+async function acionarRefreshGlobalFavoritos(btnRefresh, favs) {
+	const itens = coletarTodosFavoritosDaEstrutura(favs);
+	const unicos = new Map();
+	for (const item of itens) {
+		const chave = `${item?.secaoId || ""}::${item?.id || ""}`;
+		if (!item?.secaoId || !item?.id || unicos.has(chave)) continue;
+		unicos.set(chave, item);
+	}
+
+	if (btnRefresh) {
+		btnRefresh.disabled = true;
+		btnRefresh.classList.add("effraim-fav-legend-refresh--girando");
+	}
+
+	let acionados = 0;
+	try {
+		for (const item of unicos.values()) {
+			const linha = localizarLinhaOriginal(item);
+			const controle = localizarControleRefreshNaLinhaOriginal(linha);
+			if (!(controle instanceof HTMLElement)) continue;
+			controle.click();
+			acionados += 1;
+			await new Promise((resolve) => setTimeout(resolve, 60));
+		}
+		if (acionados > 0) {
+			inserir_aviso_effraim(`Atualização acionada em ${acionados} favorito(s).`, 4500);
+		} else {
+			inserir_aviso_effraim("Nenhum botão de atualização foi encontrado nos favoritos.", 5000);
+		}
+	} finally {
+		if (btnRefresh) {
+			btnRefresh.disabled = false;
+			btnRefresh.classList.remove("effraim-fav-legend-refresh--girando");
+		}
+	}
 }
 
 function criarTabelaFavoritos(titulo, itens, path, corHerdada) {

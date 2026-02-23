@@ -315,6 +315,7 @@ function garantirAvisoUso(tabelas) {
 	texto.textContent = "Você está usando a função de tabelas compactas. Se desejar, desative nas configurações.";
 
 	aviso.append(logo, texto);
+	montarControleAviso(aviso);
 	parent.insertBefore(aviso, tabelaRef);
 }
 

@@ -345,11 +345,13 @@ export function init() {
 	atualizarBadgeRequisitorioBotao(botao, "carregando");
 
 	const painel = criarPainelDeslizantePadrao("painel-requisitorio", botao, "REQUISITORIOS");
+	painel.classList.add("effraim-painel-deslizante--requisitorio");
 	Object.assign(painel.style, {
 		background: "#f6fbff",
 		color: "#0d2f4f",
 		paddingRight: "12px"
 	});
+	aplicarDimensoesExpandidasPainelRequisitorio(painel);
 
 	const conteudo = document.createElement("div");
 	conteudo.id = "conteudo-requisitorio";
@@ -361,6 +363,7 @@ export function init() {
 		renderMockRequisitorio(conteudo, botao);
 		console.log("[REQUISITORIOS] Modo tutorial detectado. Renderizando mock de requisitorios.");
 		botao.addEventListener("click", () => {
+			aplicarDimensoesExpandidasPainelRequisitorio(painel);
 			forcarAberturaPainelDeslizante(painel);
 		});
 		console.log("Painel Requisitorios inicializado (tutorial/mock).");
@@ -368,6 +371,7 @@ export function init() {
 	}
 
 	const abrirPainel = () => {
+		aplicarDimensoesExpandidasPainelRequisitorio(painel);
 		forcarAberturaPainelDeslizante(painel);
 	};
 
@@ -387,6 +391,15 @@ export function init() {
 	}
 
 	console.log("Painel Requisitorios inicializado.");
+}
+
+function aplicarDimensoesExpandidasPainelRequisitorio(painel) {
+	if (!painel) return;
+	painel.style.setProperty("width", "min(1180px, 96vw)", "important");
+	painel.style.setProperty("min-width", "min(1180px, 96vw)", "important");
+	painel.style.setProperty("max-width", "96vw", "important");
+	painel.style.setProperty("min-height", "78vh", "important");
+	painel.style.setProperty("max-height", "92vh", "important");
 }
 
 function injetarIframe(conteudo, opcoes = {}) {

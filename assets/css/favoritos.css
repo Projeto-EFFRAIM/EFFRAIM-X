@@ -228,6 +228,43 @@ fieldset[id^="fld"]:not(#fldFavoritosPainel) td.effraim-fav-cell .effraim-fav-ic
 	margin-right: 6px;
 }
 
+.effraim-fav-legend-refresh {
+	margin-left: 8px;
+	width: 20px;
+	height: 20px;
+	border: 1px solid #9eb7ca;
+	border-radius: 50%;
+	background: #fff;
+	color: #134b76;
+	font-size: 13px;
+	line-height: 1;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	cursor: pointer;
+	padding: 0;
+	vertical-align: middle;
+}
+
+.effraim-fav-legend-refresh:hover {
+	background: #eef6ff;
+	border-color: #7fa8c7;
+}
+
+.effraim-fav-legend-refresh:disabled {
+	opacity: 0.7;
+	cursor: wait;
+}
+
+.effraim-fav-legend-refresh--girando {
+	animation: effraim-fav-refresh-spin 0.9s linear infinite;
+}
+
+@keyframes effraim-fav-refresh-spin {
+	from { transform: rotate(0deg); }
+	to { transform: rotate(360deg); }
+}
+
 .effraim-fav-empty-box {
 	padding: 8px;
 	color: #555;
