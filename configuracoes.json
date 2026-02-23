@@ -46,6 +46,13 @@
         "explicacao": "Ativa favoritos e coloração de itens no painel inicial, com organização por pastas."
       }
     },
+    "corregedoria_painel_inicial": {
+      "valor": true,
+      "_meta": {
+        "nome": "Corregedoria (Painel Inicial)",
+        "explicacao": "Exibe um painel da Corregedoria no painel inicial do eproc, com captura automática de parâmetros favoritos."
+      }
+    },
     "consulta_flutuante": {
       "valor": true,
       "_meta": {
@@ -225,6 +232,48 @@
       "_meta": {
         "nome": "Localizadores de disparo automático",
         "explicacao": "A consulta automática será executada quando o processo tiver algum dos localizadores selecionados."
+      }
+    }
+  },
+
+  "opcoes_corregedoria": {
+    "_meta": {
+      "nome": "Opções Corregedoria",
+      "explicacao": "Parâmetros favoritos do Painel de Indicadores da Corregedoria (salvos automaticamente pela navegação no portal)."
+    },
+    "sec_favorito": {
+      "valor": "",
+      "_meta": {
+        "nome": "Seção favorita (sec)",
+        "explicacao": "Salva automaticamente ao navegar no portal da Corregedoria até um painel final. Para trocar, limpe este campo."
+      }
+    },
+    "uni_favorita": {
+      "valor": "",
+      "_meta": {
+        "nome": "Unidade favorita (uni)",
+        "explicacao": "Salva automaticamente ao navegar no portal da Corregedoria até um painel final. Para trocar, limpe este campo."
+      }
+    },
+    "descricao_unidade_favorita": {
+      "valor": "",
+      "_meta": {
+        "nome": "Descrição da unidade favorita",
+        "explicacao": "Texto da unidade selecionada no portal, salvo automaticamente para exibição no painel inicial."
+      }
+    },
+    "sigla_unidade_favorita": {
+      "valor": "",
+      "_meta": {
+        "nome": "Sigla da unidade favorita",
+        "explicacao": "Sigla da unidade selecionada no portal, salva automaticamente para exibição no painel inicial."
+      }
+    },
+    "url_favorita": {
+      "valor": "",
+      "_meta": {
+        "nome": "URL favorita",
+        "explicacao": "Última URL completa salva automaticamente com sec e uni."
       }
     }
   },

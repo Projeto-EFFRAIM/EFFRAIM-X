@@ -1,0 +1,222 @@
+.effraim-corregedoria-widget-wrap {
+  display: block;
+  margin: 6px 10px 0;
+  position: relative;
+  z-index: 1000;
+  pointer-events: auto;
+}
+
+.effraim-corregedoria-widget {
+  width: 100%;
+  min-width: 0;
+  background: linear-gradient(180deg, #fbfdff 0%, #f4f9ff 100%);
+  border: 1px solid #bfd6ea;
+  border-radius: 10px;
+  box-shadow: 0 4px 16px rgba(11, 54, 92, 0.12);
+  padding: 8px;
+  display: grid;
+  grid-template-rows: auto auto auto auto minmax(220px, 42vh);
+  gap: 8px;
+  pointer-events: auto;
+}
+
+.effraim-corregedoria__cabecalho {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.effraim-corregedoria__titulo {
+  font-weight: 700;
+  color: #113c63;
+  line-height: 1.1;
+}
+
+.effraim-corregedoria__subtitulo {
+  color: #4f6a81;
+  font-size: 12px;
+  line-height: 1.2;
+}
+
+.effraim-corregedoria__titulo:empty,
+.effraim-corregedoria__subtitulo:empty {
+  display: none;
+}
+
+.effraim-corregedoria__acoes {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.effraim-corregedoria__btn {
+  border: 1px solid #a5c6e0;
+  background: #fff;
+  color: #123f66;
+  border-radius: 6px;
+  padding: 3px 8px;
+  cursor: pointer;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.effraim-corregedoria__btn:hover {
+  background: #eef6fd;
+}
+
+.effraim-corregedoria__btn:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.effraim-corregedoria__alerta {
+  font-size: 12px;
+  color: #6b5200;
+  background: #fff7db;
+  border: 1px solid #ead79c;
+  border-radius: 6px;
+  padding: 6px 8px;
+  line-height: 1.25;
+}
+
+.effraim-corregedoria__alerta:empty {
+  display: none;
+}
+
+.effraim-corregedoria__status {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.effraim-corregedoria__status:empty {
+  display: none;
+}
+
+.effraim-corregedoria__valores {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 6px;
+  align-items: start;
+}
+
+.effraim-corregedoria__valor-card {
+  border: 1px solid #c9ddec;
+  background: #ffffff;
+  border-radius: 7px;
+  padding: 6px;
+}
+
+.effraim-corregedoria__valor-titulo {
+  font-size: 12px;
+  font-weight: 700;
+  color: #123f66;
+  margin-bottom: 4px;
+  line-height: 1.2;
+}
+
+.effraim-corregedoria__valor-total {
+  margin-left: 4px;
+  color: #4a647b;
+  font-weight: 600;
+  font-size: 11px;
+}
+
+.effraim-corregedoria__valor-linha {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 12px;
+  line-height: 1.25;
+  padding: 1px 0;
+}
+
+.effraim-corregedoria__valor-linha span {
+  color: #394e61;
+  min-width: 0;
+}
+
+.effraim-corregedoria__valor-linha strong {
+  color: #0e3658;
+  white-space: nowrap;
+}
+
+.effraim-corregedoria__bloco {
+  border-radius: 6px;
+  padding: 7px 8px;
+  border: 1px solid #ccdceb;
+  background: #fff;
+}
+
+.effraim-corregedoria__bloco.ok {
+  border-color: #b8dbc2;
+  background: #f5fff7;
+}
+
+.effraim-corregedoria__bloco.aviso {
+  border-color: #ead79c;
+  background: #fffdf3;
+}
+
+.effraim-corregedoria__bloco.erro {
+  border-color: #efc1c1;
+  background: #fff4f4;
+  color: #7a2020;
+}
+
+.effraim-corregedoria__linha {
+  font-size: 12px;
+  line-height: 1.35;
+  margin-bottom: 4px;
+}
+
+.effraim-corregedoria__linha:last-child {
+  margin-bottom: 0;
+}
+
+.effraim-corregedoria__iframe-wrap {
+  border: 1px solid #bfd6ea;
+  border-radius: 8px;
+  background: #fff;
+  overflow: hidden;
+  min-height: 220px;
+}
+
+.effraim-corregedoria__iframe {
+  width: 100%;
+  height: 100%;
+  min-height: 220px;
+  border: 0;
+  background: #fff;
+}
+
+.effraim-corregedoria-widget--minimizado {
+  grid-template-rows: auto;
+  width: fit-content;
+  min-width: 0;
+  margin-left: auto;
+}
+
+.effraim-corregedoria-widget--minimizado .effraim-corregedoria__alerta,
+.effraim-corregedoria-widget--minimizado .effraim-corregedoria__status,
+.effraim-corregedoria-widget--minimizado .effraim-corregedoria__valores,
+.effraim-corregedoria-widget--minimizado .effraim-corregedoria__iframe-wrap {
+  display: none !important;
+}
+
+.effraim-corregedoria-widget--carregando {
+  opacity: 0.82;
+}
+
+@media (max-width: 1100px) {
+  .effraim-corregedoria-widget {
+    width: 100%;
+  }
+
+  .effraim-corregedoria__valores {
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  }
+}

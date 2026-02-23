@@ -1,7 +1,7 @@
 {
 	"manifest_version": 3,
 	"name": "EFFRAIM - X",
-	"version": "0.8.8.11",
+	"version": "0.8.9",
 	"description": "Simplifica tarefas no Eproc: integração, navegação, relatórios e mais.",
 	"icons": {
 		"16": "assets/icones/icone16.png",
@@ -17,7 +17,8 @@
 		"https://sisbajud.cnj.jus.br/*",
 		"https://sso.cloud.pje.jus.br/auth/*",
 		"https://renajud.pdpj.jus.br/*",
-		"https://renajud.denatran.serpro.gov.br/*"
+		"https://renajud.denatran.serpro.gov.br/*",
+		"https://portaldeestatisticas.trf2.jus.br/*"
 		],
 	"options_page": "preferencias.html",
 	"background": {
@@ -44,6 +45,14 @@
 		"https://renajud.denatran.serpro.gov.br/*"
 		],
 		"js": ["content/renajud_init.js"],
+		"run_at": "document_idle",
+		"all_frames": true
+		},
+		{
+		"matches": [
+		"https://portaldeestatisticas.trf2.jus.br/*"
+		],
+		"js": ["content/corregedoria_init.js"],
 		"run_at": "document_idle",
 		"all_frames": true
 		},
@@ -80,7 +89,8 @@
 			"https://sisbajud.cnj.jus.br/*",
 			"https://sso.cloud.pje.jus.br/*",
 			"https://renajud.pdpj.jus.br/*",
-			"https://renajud.denatran.serpro.gov.br/*"
+			"https://renajud.denatran.serpro.gov.br/*",
+			"https://portaldeestatisticas.trf2.jus.br/*"
 			]
 		}
 	],

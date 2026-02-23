@@ -57,6 +57,13 @@ function getRuntimeUrl(path) {
 			titulo: "Painel Inicial Flutuante"
 		},
 		{
+			cond: () => window.location.href.includes("acao=painel_secretaria_listar") || (isTutorialRoute && tutorialTipo === "painel_inicial"),
+			modulo: "modules/painel_inicial/corregedoria_painel_inicial.js",
+			nome: "corregedoria_painel_inicial",
+			titulo: "Corregedoria",
+			ocultarNoPainel: true
+		},
+		{
 			cond: () => window.location.href.includes("acao=processo_selecionar") || (isTutorialRoute && tutorialTipo === "consulta_processual"),
 			modulo: "modules/consulta/consulta_requisitorio.js",
 			nome: "requisitorio",

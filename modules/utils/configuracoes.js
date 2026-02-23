@@ -6,6 +6,53 @@ import { writeChunkedObject } from "./sync_chunk_storage.js";
 
 const FAVORITOS_SYNC_KEY = "effraim_painel_favoritos_v1";
 export const CHAVE_SYNC_FAVORITOS = FAVORITOS_SYNC_KEY;
+const CHAVE_CONFIG_SYNC = "effraim_configuracoes";
+const CHAVE_CONFIG_INDICE = "effraim_cfg_index_v1";
+const PREFIXO_CHAVE_SECAO_CFG = "effraim_cfg_sec__";
+
+function ehErroContextoExtensaoInvalidado(erro) {
+	const msg = String(erro?.message || erro || "").toLowerCase();
+	return msg.includes("extension context invalidated");
+}
+
+function getStorage(area, chave) {
+	return new Promise((resolve, reject) => {
+		area.get(chave, (dados) => {
+			const erro = chrome?.runtime?.lastError;
+			if (erro) {
+				reject(new Error(erro.message || "storage.get falhou"));
+				return;
+			}
+			resolve(dados || {});
+		});
+	});
+}
+
+function setStorage(area, payload) {
+	return new Promise((resolve, reject) => {
+		area.set(payload, () => {
+			const erro = chrome?.runtime?.lastError;
+			if (erro) {
+				reject(new Error(erro.message || "storage.set falhou"));
+				return;
+			}
+			resolve();
+		});
+	});
+}
+
+function removeStorage(area, chave) {
+	return new Promise((resolve, reject) => {
+		area.remove(chave, () => {
+			const erro = chrome?.runtime?.lastError;
+			if (erro) {
+				reject(new Error(erro.message || "storage.remove falhou"));
+				return;
+			}
+			resolve();
+		});
+	});
+}
 
 async function separarFavoritosDoBlobConfiguracoes(cfg) {
 	if (!cfg || typeof cfg !== "object" || !cfg.painel_favoritos) return { cfg, alterado: false };
@@ -24,6 +71,77 @@ async function separarFavoritosDoBlobConfiguracoes(cfg) {
 	return { cfg, alterado: false };
 }
 
+function chaveSecaoConfiguracao(secao) {
+	return `${PREFIXO_CHAVE_SECAO_CFG}${secao}`;
+}
+
+function obterSecoesRaizConfiguracao(cfg) {
+	if (!cfg || typeof cfg !== "object") return [];
+	return Object.keys(cfg).filter((k) => k !== "painel_favoritos");
+}
+
+function montarPayloadSegmentadoConfiguracoes(cfg) {
+	const secoes = obterSecoesRaizConfiguracao(cfg);
+	const payload = {};
+	for (const secao of secoes) {
+		payload[chaveSecaoConfiguracao(secao)] = cfg[secao];
+	}
+	payload[CHAVE_CONFIG_INDICE] = {
+		formato: "segmentado_v1",
+		secoes,
+		atualizado_em: Date.now()
+	};
+	return { payload, secoes };
+}
+
+async function salvarConfiguracoesSegmentadas(cfg, contexto = "desconhecido") {
+	const { payload, secoes } = montarPayloadSegmentadoConfiguracoes(cfg);
+	let indiceAnterior = null;
+	try {
+		const dadosIndice = await getStorage(chrome.storage.sync, CHAVE_CONFIG_INDICE);
+		indiceAnterior = dadosIndice?.[CHAVE_CONFIG_INDICE] || null;
+	} catch (e) {
+		console.warn("[EFFRAIM] Falha ao ler indice de configuracoes antes de salvar.", { contexto, erro: e });
+	}
+
+	await setStorage(chrome.storage.sync, payload);
+
+	const secoesAntigas = Array.isArray(indiceAnterior?.secoes) ? indiceAnterior.secoes : [];
+	const chavesObsoletas = secoesAntigas
+		.filter((s) => !secoes.includes(s))
+		.map((s) => chaveSecaoConfiguracao(s));
+	if (chavesObsoletas.length) {
+		try {
+			await removeStorage(chrome.storage.sync, chavesObsoletas);
+		} catch (e) {
+			console.warn("[EFFRAIM] Falha ao remover secoes obsoletas de configuracao.", { contexto, chavesObsoletas, erro: e });
+		}
+	}
+
+	// Limpa o formato legado (item unico) apos gravacao segmentada bem-sucedida.
+	try {
+		await removeStorage(chrome.storage.sync, CHAVE_CONFIG_SYNC);
+	} catch (e) {
+		console.warn("[EFFRAIM] Falha ao remover chave legada de configuracoes.", { contexto, erro: e });
+	}
+}
+
+async function lerConfiguracoesSegmentadas() {
+	const dadosIndice = await getStorage(chrome.storage.sync, CHAVE_CONFIG_INDICE).catch(() => ({}));
+	const indice = dadosIndice?.[CHAVE_CONFIG_INDICE];
+	if (!indice || indice.formato !== "segmentado_v1" || !Array.isArray(indice.secoes)) return null;
+	if (!indice.secoes.length) return {};
+
+	const chaves = indice.secoes.map((s) => chaveSecaoConfiguracao(s));
+	const dadosSecoes = await getStorage(chrome.storage.sync, chaves);
+	const cfg = {};
+	for (const secao of indice.secoes) {
+		const chave = chaveSecaoConfiguracao(secao);
+		if (dadosSecoes[chave] !== undefined) cfg[secao] = dadosSecoes[chave];
+	}
+	return cfg;
+}
+
 export async function carregarConfiguracoes() {
 	const existentes = await lerConfiguracoes();
 
@@ -39,7 +157,11 @@ export async function carregarConfiguracoes() {
 
 	// nenhum salvo ainda → grava padrão completo
 	if (!Object.keys(existentes).length) {
-		await chrome.storage.sync.set({ effraim_configuracoes: padrao });
+		const { cfg: padraoSemFavoritos, alterado } = await separarFavoritosDoBlobConfiguracoes(clone(padrao));
+		await salvarConfiguracoesSegmentadas(padraoSemFavoritos, "carregarConfiguracoes:padrao_inicial");
+		if (alterado) {
+			console.log("[EFFRAIM] painel_favoritos separado em 3 chaves fixas no sync.");
+		}
 		return padrao;
 	}
 
@@ -48,25 +170,43 @@ export async function carregarConfiguracoes() {
 	const migrado = aplicarMigracoesConfiguracao(mesclado, padrao);
 	if (migrado._atualizado) {
 		delete mesclado._atualizado;
-		await chrome.storage.sync.set({ effraim_configuracoes: mesclado });
+		const { cfg: mescladoSemFavoritos } = await separarFavoritosDoBlobConfiguracoes(clone(mesclado));
+		await salvarConfiguracoesSegmentadas(mescladoSemFavoritos, "carregarConfiguracoes:mesclar_migrar");
 		return mesclado;
 	}
 	return existentes;
 }
 
 async function lerConfiguracoes() {
-	const dados = await new Promise(resolve => {
-		chrome.storage.sync.get("effraim_configuracoes", dados => {
-			resolve(dados.effraim_configuracoes || {});
-		});
-	});
-	const { cfg, alterado } = await separarFavoritosDoBlobConfiguracoes(dados);
-	if (alterado) {
-		try {
-			await new Promise((resolve) => chrome.storage.sync.set({ effraim_configuracoes: cfg }, resolve));
-		} catch (e) {
-			console.warn("[EFFRAIM] Falha ao persistir configuracoes sem painel_favoritos.", e);
+	// 1) Formato novo: secoes em chaves separadas no sync.
+	const segmentado = await lerConfiguracoesSegmentadas();
+	if (segmentado && typeof segmentado === "object" && Object.keys(segmentado).length) {
+		return segmentado;
+	}
+
+	// 2) Formato legado: item unico effraim_configuracoes.
+	const dadosSync = await getStorage(chrome.storage.sync, CHAVE_CONFIG_SYNC).catch((e) => {
+		if (!ehErroContextoExtensaoInvalidado(e)) {
+			console.warn("[EFFRAIM] Falha ao ler configuracoes legadas do sync.", e);
 		}
+		return {};
+	});
+	const dadosLegados = dadosSync?.[CHAVE_CONFIG_SYNC] || {};
+	if (!dadosLegados || typeof dadosLegados !== "object" || !Object.keys(dadosLegados).length) {
+		return {};
+	}
+
+	const { cfg, alterado } = await separarFavoritosDoBlobConfiguracoes(clone(dadosLegados));
+	try {
+		await salvarConfiguracoesSegmentadas(cfg, "lerConfiguracoes:migracao_legacy_para_segmentado");
+		console.log("[EFFRAIM] Configuracoes migradas para formato segmentado (multichave).", {
+			secoes: Object.keys(cfg || {})
+		});
+	} catch (e) {
+		console.warn("[EFFRAIM] Falha ao migrar configuracoes legadas para formato segmentado.", e);
+	}
+	if (alterado) {
+		console.log("[EFFRAIM] painel_favoritos separado em 3 chaves fixas no sync durante migracao.");
 	}
 	return cfg;
 }
@@ -133,8 +273,11 @@ export async function zerarConfiguracoes(preservarOuOpcoes = []) {
 		}
 	}
 
-	// Preserva secoes especificas dentro de effraim_configuracoes.
-	const cfgAtual = dadosAtuais?.effraim_configuracoes;
+	// Preserva secoes especificas da configuracao (formato segmentado ou legado).
+	const cfgAtual = await lerConfiguracoes().catch((e) => {
+		console.warn("[EFFRAIM] Falha ao ler configuracoes para preservacao no reset.", e);
+		return {};
+	});
 	if (cfgAtual && typeof cfgAtual === "object") {
 		const secoesSolicitadas = new Set();
 		for (const token of tokens) {
@@ -150,7 +293,8 @@ export async function zerarConfiguracoes(preservarOuOpcoes = []) {
 			for (const secao of secoesSolicitadas) {
 				cfgPreservado[secao] = cfgAtual[secao];
 			}
-			restaurar.effraim_configuracoes = cfgPreservado;
+			const { payload } = montarPayloadSegmentadoConfiguracoes(cfgPreservado);
+			Object.assign(restaurar, payload);
 		}
 	}
 
@@ -224,7 +368,7 @@ export async function gravarConfiguracao(caminho, novoValor) {
 	}
 
 	delete dados.painel_favoritos;
-	await new Promise(resolve => chrome.storage.sync.set({ effraim_configuracoes: dados }, resolve));
+	await salvarConfiguracoesSegmentadas(dados, `gravarConfiguracao:${caminho}`);
 	return dados;
 }
 
@@ -508,6 +652,14 @@ async function adicionarCampos(container, prefixo, objeto) {
 		if (chave.startsWith("_")) continue;
 
 		const caminho = `${prefixo}.${chave}`;
+		if (
+			caminho === "opcoes_corregedoria.descricao_unidade_favorita" ||
+			caminho === "opcoes_corregedoria.sigla_unidade_favorita" ||
+			caminho === "opcoes_corregedoria.url_favorita" ||
+			caminho === "opcoes_corregedoria.resumo_cache"
+		) {
+			continue;
+		}
 
 		// nó com estrutura { valor, _meta }
 		if (valor && typeof valor === "object" && "valor" in valor) {
@@ -722,6 +874,60 @@ async function adicionarCampos(container, prefixo, objeto) {
 							? String(Math.max(100, Number.parseInt(valor.valor, 10)))
 							: "300";
 						linha.append(label, input);
+					} else if (
+						caminho === "opcoes_corregedoria.sec_favorito" ||
+						caminho === "opcoes_corregedoria.uni_favorita"
+					) {
+						input = document.createElement("input");
+						input.type = "text";
+						input.value = valor.valor ?? "";
+						input.disabled = true;
+						input.readOnly = true;
+						input.title = valor._meta?.explicacao || "";
+						input.style.background = "#f5f7fa";
+						input.style.color = "#334";
+
+						const wrapLeitura = document.createElement("div");
+						wrapLeitura.style.display = "flex";
+						wrapLeitura.style.alignItems = "center";
+						wrapLeitura.style.width = "100%";
+						wrapLeitura.append(input);
+
+						if (caminho === "opcoes_corregedoria.sec_favorito") {
+							const btnLimpar = document.createElement("button");
+							btnLimpar.type = "button";
+							btnLimpar.title = "Zerar favoritos da Corregedoria";
+							btnLimpar.style.width = "28px";
+							btnLimpar.style.height = "28px";
+							btnLimpar.style.display = "inline-flex";
+							btnLimpar.style.alignItems = "center";
+							btnLimpar.style.justifyContent = "center";
+							btnLimpar.style.padding = "0";
+							btnLimpar.style.marginLeft = "6px";
+							const iconeExcluir = document.createElement("img");
+							iconeExcluir.src = chrome.runtime.getURL("assets/icones/excluir.png");
+							iconeExcluir.alt = "Zerar";
+							iconeExcluir.style.width = "14px";
+							iconeExcluir.style.height = "14px";
+							btnLimpar.appendChild(iconeExcluir);
+
+							btnLimpar.addEventListener("click", async () => {
+								const confirmar = window.confirm(
+									"Deseja zerar os favoritos da Corregedoria (sec/uni e dados associados)?"
+								);
+								if (!confirmar) return;
+								await gravarConfiguracao("opcoes_corregedoria.sec_favorito", "");
+								await gravarConfiguracao("opcoes_corregedoria.uni_favorita", "");
+								await gravarConfiguracao("opcoes_corregedoria.sigla_unidade_favorita", "");
+								await gravarConfiguracao("opcoes_corregedoria.descricao_unidade_favorita", "");
+								await gravarConfiguracao("opcoes_corregedoria.url_favorita", "");
+								console.log("[EFFRAIM] Favoritos da Corregedoria zerados.");
+								await montarPreferencias();
+							});
+
+							wrapLeitura.append(btnLimpar);
+						}
+						linha.append(label, wrapLeitura);
 					} else {
 					input = document.createElement("input");
 					input.type = "text";

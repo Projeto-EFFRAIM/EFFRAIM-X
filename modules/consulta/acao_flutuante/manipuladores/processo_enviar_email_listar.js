@@ -1,3 +1,5 @@
+import { obterConfiguracao, gravarConfiguracao } from "../../../utils/configuracoes.js";
+
 const LOG_PREFIX = "[EFFRAIM acao_flutuante][enviar_email]";
 const ID_ESTILO = "effraim-textos-padrao-email-estilo";
 const ID_BOTAO = "effraim-btn-texto-padrao-email";
@@ -29,44 +31,23 @@ function normalizarLista(lista) {
 		.slice(0, LIMITE_TEXTOS);
 }
 
-async function lerConfiguracoes() {
-	return new Promise((resolve) => {
-		chrome.storage.sync.get("effraim_configuracoes", (dados) => {
-			resolve(dados?.effraim_configuracoes || {});
-		});
-	});
-}
-
 async function obterTextosPadrao() {
-	const cfg = await lerConfiguracoes();
-	const listaNova = cfg?.[CAMINHO_CFG[0]]?.[CAMINHO_CFG[1]]?.[CAMINHO_CFG[2]]?.valor;
-	const listaLegada = cfg?.[CAMINHO_LEGADO[0]]?.[CAMINHO_LEGADO[1]]?.valor;
+	const listaNova = await obterConfiguracao(CAMINHO_CFG.join("."));
+	const listaLegada = await obterConfiguracao(CAMINHO_LEGADO.join("."));
 	const lista = Array.isArray(listaNova) && listaNova.length ? listaNova : listaLegada;
 	return normalizarLista(lista);
 }
 
 async function salvarTextosPadrao(lista) {
-	const cfg = await lerConfiguracoes();
-	delete cfg.painel_favoritos;
-	if (!cfg[CAMINHO_CFG[0]]) cfg[CAMINHO_CFG[0]] = {};
-	if (!cfg[CAMINHO_CFG[0]][CAMINHO_CFG[1]]) {
-		cfg[CAMINHO_CFG[0]][CAMINHO_CFG[1]] = {};
-	}
-	if (!cfg[CAMINHO_CFG[0]][CAMINHO_CFG[1]][CAMINHO_CFG[2]]) {
-		cfg[CAMINHO_CFG[0]][CAMINHO_CFG[1]][CAMINHO_CFG[2]] = { valor: [], _meta: {} };
-	}
-	cfg[CAMINHO_CFG[0]][CAMINHO_CFG[1]][CAMINHO_CFG[2]].valor = normalizarLista(lista);
-	await new Promise((resolve) => {
-		chrome.storage.sync.set({ effraim_configuracoes: cfg }, resolve);
-	});
-	return cfg[CAMINHO_CFG[0]][CAMINHO_CFG[1]][CAMINHO_CFG[2]].valor;
+	const normalizada = normalizarLista(lista);
+	await gravarConfiguracao(CAMINHO_CFG.join("."), normalizada);
+	return normalizada;
 }
 
 async function migrarConfiguracaoLegadaSeNecessario() {
-	const cfg = await lerConfiguracoes();
-	const listaNova = cfg?.[CAMINHO_CFG[0]]?.[CAMINHO_CFG[1]]?.[CAMINHO_CFG[2]]?.valor;
+	const listaNova = await obterConfiguracao(CAMINHO_CFG.join("."));
 	if (Array.isArray(listaNova) && listaNova.length) return;
-	const listaLegada = cfg?.[CAMINHO_LEGADO[0]]?.[CAMINHO_LEGADO[1]]?.valor;
+	const listaLegada = await obterConfiguracao(CAMINHO_LEGADO.join("."));
 	if (!Array.isArray(listaLegada) || !listaLegada.length) return;
 	await salvarTextosPadrao(listaLegada);
 	logInfo("Configuracao legada migrada para subcaixa enviar_email_flutuante.");
