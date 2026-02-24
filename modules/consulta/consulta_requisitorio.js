@@ -1,6 +1,7 @@
 import { criarPainelDeslizantePadrao, atualizarBadgeRequisitorioBotao, forcarAberturaPainelDeslizante } from "../utils/interface.js";
 import { localizarUrlMenuEprocPorNome } from "../utils/menus_eproc.js";
 import { consulta_dados_processo } from "../../funcoes.js";
+import { deveDispararPorLocalizadores } from "../utils/disparo_automatico_localizadores.js";
 
 let iframeRequisitorioCompartilhado = null;
 let consultaAutomaticaEmAndamento = false;
@@ -113,43 +114,15 @@ function deveExecutarConsultaAutomaticaPorLocalizador() {
 		window.EFFRAIM_CONFIGURACOES?.opcoes_requisitorio?.localizadores_disparo?.valor;
 	const operacaoCfg =
 		window.EFFRAIM_CONFIGURACOES?.opcoes_requisitorio?.operacao_logica_localizadores?.valor;
-	const alvos = Array.isArray(alvosConfigurados) && alvosConfigurados.length
-		? alvosConfigurados
-		: ["[REQ]-expedir-requisitorio"];
-	const operacao = String(operacaoCfg || "OU").toUpperCase() === "E" ? "E" : "OU";
 	const dados = window.__EFFRAIM_DADOS_PROCESSO || consulta_dados_processo();
 	const localizadores = Array.isArray(dados?.capa?.localizadores) ? dados.capa.localizadores : [];
-	const normalizar = (txt = "") => {
-		const div = document.createElement("div");
-		div.innerHTML = String(txt);
-		const textoVisivel = div.textContent || div.innerText || String(txt);
-		return textoVisivel
-		.normalize("NFD")
-		.replace(/[\u0300-\u036f]/g, "")
-		.replace(/[^a-zA-Z0-9\[\]\-_ ]/g, " ")
-		.replace(/\s+/g, " ")
-		.trim()
-		.toLowerCase();
-	};
-
-	const normalizados = localizadores.map(normalizar);
-	const alvosNormalizados = alvos.map(normalizar).filter(Boolean);
-	const deve = alvosNormalizados.length === 0
-		? false
-		: operacao === "E"
-			? alvosNormalizados.every((alvo) => normalizados.includes(alvo))
-			: alvosNormalizados.some((alvo) => normalizados.includes(alvo));
-
-	console.log("[REQUISITORIOS] Avaliacao de localizadores para consulta automatica:", {
-		operacao,
-		alvosConfigurados: alvos,
+	return deveDispararPorLocalizadores({
 		localizadores,
-		localizadoresNormalizados: normalizados,
-		alvosNormalizados,
-		deveExecutar: deve
+		alvosConfigurados,
+		alvosPadrao: ["[REQ]-expedir-requisitorio"],
+		operacao: operacaoCfg,
+		prefixoLog: "[REQUISITORIOS]"
 	});
-
-	return deve;
 }
 
 function preencherEPesquisarNoIframe(iframe, numeroProcesso, onResultado) {
@@ -385,6 +358,7 @@ export function init() {
 
 	// consulta silenciosa apenas para processos no localizador de expedir requisitorio
 	if (deveExecutarConsultaAutomaticaPorLocalizador()) {
+		abrirPainel();
 		iniciarConsultaAutomaticaNoPainel(conteudo, botao);
 	} else {
 		atualizarBadgeRequisitorioBotao(botao, "inativo");

@@ -238,6 +238,7 @@ export function criarPainelFlutuante({
   let placeholder = null;
   let restaurarInfoAdicionalAoFechar = false;
   const mapaAtalhos = new Map();
+  let observadorVisibilidadePainel = null;
 
   function obterToggleInformacoesAdicionais() {
     return document.getElementById("imgStatusInfAdicional");
@@ -359,6 +360,15 @@ export function criarPainelFlutuante({
     restaurarInfoAdicionalAoFechar = false;
   }
 
+  function painelFoiOcultado() {
+    if (!painel) return false;
+    const estilo = window.getComputedStyle ? window.getComputedStyle(painel) : null;
+    const display = estilo?.display || painel.style.display || "";
+    const opacity = estilo?.opacity || painel.style.opacity || "";
+    const pointerEvents = estilo?.pointerEvents || painel.style.pointerEvents || "";
+    return display === "none" || opacity === "0" || pointerEvents === "none";
+  }
+
   secoes.forEach(secao => {
     const b = document.createElement("button");
     b.className = "effraim-painel-flutuante-botao";
@@ -460,6 +470,19 @@ export function criarPainelFlutuante({
     document.addEventListener("keydown", onKeydown, true);
     painel.__effraimAtalhosCapturaAtivo = true;
     painel.__effraimAtalhosCapturaHandler = onKeydown;
+  }
+
+  if (!observadorVisibilidadePainel && painel instanceof HTMLElement) {
+    observadorVisibilidadePainel = new MutationObserver(() => {
+      if (!secaoAtiva) return;
+      if (!painelFoiOcultado()) return;
+      devolverSecao();
+    });
+    observadorVisibilidadePainel.observe(painel, {
+      attributes: true,
+      attributeFilter: ["style", "class"]
+    });
+    painel.__effraimObservadorSecaoFlutuante = observadorVisibilidadePainel;
   }
 
   return painel;
