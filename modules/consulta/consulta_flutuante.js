@@ -5,12 +5,13 @@ export async function init() {
 
   criarPainelFlutuante({
     botao,
+    id: "effraim-painel-consulta-flutuante",
     posicionamentoSecao: "meio_viewport",
     secoes: [
-  { id: "fldCapa", nome: "Capa", chave: "."}, //futuramente pode trazer um resumo da capa
+  { id: "fldCapa", nome: "Capa", chave: "."}, 
   { id: "fldLembretes", nome: "Lembretes", chave: "," },
   { id: "fldAssuntos", nome: "Assuntos", chave: "j" },
-  { id: "fldPartes", nome: "Partes", chave:"z" },
+  { id: "fldPartes", nome: "Partes", chave:"h" },
   { id: "fldMinutas", nome: "Minutas", chave:"'" },
   { id: "fldInformacoesAdicionais", nome: "Informações Adicionais", chave:"+" },
   { id: "fldResumo", nome: "Resumo", chave:";"},

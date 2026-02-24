@@ -116,7 +116,7 @@ export async function renderizarSecaoFavoritos(tentativa = 1) {
 			conteudo.appendChild(criarTabelaFavoritos("Favoritos", favs.itens_soltos, [], null));
 		}
 		(favs.pastas || []).forEach(folder => {
-			conteudo.appendChild(criarFieldsetPasta(folder, [], null));
+			conteudo.appendChild(criarFieldsetPasta(folder, [], null, favs));
 		});
 	}
 
@@ -291,7 +291,7 @@ function criarTabelaFavoritos(titulo, itens, path, corHerdada) {
 	return wrapper;
 }
 
-function criarFieldsetPasta(folder, pathAtual, corHerdada) {
+function criarFieldsetPasta(folder, pathAtual, corHerdada, favsRef) {
 	const container = document.createElement("div");
 	container.className = "effraim-pasta-container";
 	if (pathAtual.length > 0) container.classList.add("nested");
@@ -390,6 +390,11 @@ function criarFieldsetPasta(folder, pathAtual, corHerdada) {
 
 	const conteudo = document.createElement("div");
 	conteudo.className = "effraim-pasta-conteudo";
+	const pastaAberta = folder?.id
+		? (favsRef?.pastas_estado_abertas?.[String(folder.id)] !== false)
+		: true;
+	conteudo.style.display = pastaAberta ? "block" : "none";
+	arrow.textContent = pastaAberta ? "▾" : "▸";
 
 	if (folder.itens?.length) {
 		conteudo.appendChild(
@@ -397,13 +402,22 @@ function criarFieldsetPasta(folder, pathAtual, corHerdada) {
 		);
 	}
 	(folder.pastas || []).forEach(sub => {
-		conteudo.appendChild(criarFieldsetPasta(sub, [...pathAtual, folder.nome], corEfetivaPasta));
+		conteudo.appendChild(criarFieldsetPasta(sub, [...pathAtual, folder.nome], corEfetivaPasta, favsRef));
 	});
 
-	header.onclick = () => {
+	header.onclick = async () => {
 		const aberto = conteudo.style.display !== "none";
-		conteudo.style.display = aberto ? "none" : "block";
-		arrow.textContent = aberto ? "▸" : "▾";
+		const novoAberto = !aberto;
+		conteudo.style.display = novoAberto ? "block" : "none";
+		arrow.textContent = novoAberto ? "▾" : "▸";
+		if (folder?.id && favsRef?.pastas_estado_abertas) {
+			favsRef.pastas_estado_abertas[String(folder.id)] = novoAberto;
+			try {
+				await salvarFavoritos(favsRef);
+			} catch {
+				// Sem impacto funcional; apenas persistencia de UX.
+			}
+		}
 	};
 
 	container.append(header, conteudo);

@@ -94,11 +94,20 @@ function aplicarConfiguracaoPainelPorAcao(manipulador) {
 	if (!painel) return;
 	painel.style.width = manipulador?.configuracaoPainel?.largura || "";
 	painel.style.maxWidth = manipulador?.configuracaoPainel?.larguraMaxima || "";
+	painel.style.minHeight = manipulador?.configuracaoPainel?.alturaMinima || "";
+	painel.style.maxHeight = manipulador?.configuracaoPainel?.alturaMaxima || "";
+	if (iframe?.isConnected) {
+		iframe.style.height = manipulador?.configuracaoPainel?.alturaIframe || "";
+		iframe.style.minHeight = manipulador?.configuracaoPainel?.alturaIframeMinima || "";
+	}
 	if (painel.style.width || painel.style.maxWidth) {
 		logInfo("Configuracao de largura aplicada pelo manipulador.", {
 			manipulador: manipulador?.id || "padrao",
 			width: painel.style.width || null,
-			maxWidth: painel.style.maxWidth || null
+			maxWidth: painel.style.maxWidth || null,
+			minHeight: painel.style.minHeight || null,
+			maxHeight: painel.style.maxHeight || null,
+			iframeHeight: iframe?.style?.height || null
 		});
 	}
 }
@@ -205,10 +214,12 @@ function abrirPainel() {
 	painel.style.display = "inline-block";
 	painel.style.opacity = "1";
 	painel.style.pointerEvents = "auto";
+	if (!painel.style.minHeight) painel.style.minHeight = "78vh";
+	if (!painel.style.maxHeight) painel.style.maxHeight = "92vh";
+	painel.style.overflowY = "auto";
+	painel.style.overflowX = "hidden";
 	requestAnimationFrame(() => {
 		posicionarAbaixoDaAncora();
-		const altura = painel.scrollHeight || 0;
-		painel.style.maxHeight = `${altura}px`;
 	});
 }
 
@@ -287,6 +298,8 @@ async function carregarAcaoNoPainel(anchor) {
 		iframe.id = "effraim-iframe-acao-flutuante";
 		iframe.className = "effraim-iframe-acao-flutuante";
 		iframe.style.width = "100%";
+		iframe.style.height = manipuladorAtual?.configuracaoPainel?.alturaIframe || "";
+		iframe.style.minHeight = manipuladorAtual?.configuracaoPainel?.alturaIframeMinima || "";
 		iframe.addEventListener("load", async () => {
 			logInfo("Iframe carregado.", { src: iframe?.src || "" });
 			await aplicarComportamentoDoManipuladorNoIframe();

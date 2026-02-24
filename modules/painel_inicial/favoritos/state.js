@@ -18,6 +18,31 @@ function normalizarEstruturaFavoritos(fav) {
 	fav.pastas = Array.isArray(fav.pastas) ? fav.pastas : [];
 	fav.itens_soltos = Array.isArray(fav.itens_soltos) ? fav.itens_soltos : [];
 	fav.itens_coloridos = Array.isArray(fav.itens_coloridos) ? fav.itens_coloridos : [];
+	fav.pastas_estado_abertas =
+		fav.pastas_estado_abertas && typeof fav.pastas_estado_abertas === "object"
+			? fav.pastas_estado_abertas
+			: {};
+
+	const idsPastas = new Set();
+	const normalizarPastasRecursivo = (pastas) => {
+		(pastas || []).forEach((pasta) => {
+			if (!pasta || typeof pasta !== "object") return;
+			if (!pasta.id && typeof crypto?.randomUUID === "function") {
+				pasta.id = crypto.randomUUID();
+			} else if (!pasta.id) {
+				pasta.id = `pasta_${Math.random().toString(36).slice(2, 10)}`;
+			}
+			idsPastas.add(String(pasta.id));
+			pasta.itens = Array.isArray(pasta.itens) ? pasta.itens : [];
+			pasta.pastas = Array.isArray(pasta.pastas) ? pasta.pastas : [];
+			normalizarPastasRecursivo(pasta.pastas);
+		});
+	};
+	normalizarPastasRecursivo(fav.pastas);
+
+	for (const chave of Object.keys(fav.pastas_estado_abertas)) {
+		if (!idsPastas.has(String(chave))) delete fav.pastas_estado_abertas[chave];
+	}
 	return fav;
 }
 

@@ -52,7 +52,7 @@ function aplicarEstiloIframe(iframe, silencioso = false) {
 	Object.assign(iframe.style, {
 		width: "100%",
 		height: "100%",
-		minHeight: "320px",
+		minHeight: silencioso ? "1px" : "100%",
 		border: "none",
 		background: "#fff",
 		position: "",
@@ -356,6 +356,7 @@ export function init() {
 	const conteudo = document.createElement("div");
 	conteudo.id = "conteudo-requisitorio";
 	conteudo.style.padding = "8px";
+	conteudo.style.boxSizing = "border-box";
 	conteudo.textContent = "Aguardando consulta de requisitorios...";
 	painel.appendChild(conteudo);
 
@@ -400,6 +401,8 @@ function aplicarDimensoesExpandidasPainelRequisitorio(painel) {
 	painel.style.setProperty("max-width", "96vw", "important");
 	painel.style.setProperty("min-height", "78vh", "important");
 	painel.style.setProperty("max-height", "92vh", "important");
+	painel.style.setProperty("overflow-y", "auto", "important");
+	painel.style.setProperty("overflow-x", "hidden", "important");
 }
 
 function injetarIframe(conteudo, opcoes = {}) {
@@ -408,6 +411,12 @@ function injetarIframe(conteudo, opcoes = {}) {
 	const numeroProcesso = obterNumeroProcesso();
 	console.log("[REQUISITORIOS] Preparando iframe com URL:", urlRequisitorios);
 	conteudo.innerHTML = "";
+	if (!silencioso) {
+		conteudo.style.padding = "0";
+		conteudo.style.height = "calc(92vh - 52px)";
+		conteudo.style.minHeight = "520px";
+		conteudo.style.overflow = "hidden";
+	}
 
 	const iframe = document.createElement("iframe");
 	iframe.id = silencioso ? "effraim-iframe-requisitorio-auto" : "effraim-iframe-requisitorio";

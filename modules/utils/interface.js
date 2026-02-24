@@ -411,6 +411,24 @@ export function criarPainelFlutuante({
       const tecla = normalizarTeclaEventoParaAtalho(event);
       let botaoAtalho = mapaAtalhos.get(tecla);
 
+      const ehTentativaAltZ =
+        String(event.code || "") === "KeyZ" ||
+        String(event.key || "").toLowerCase() === "z";
+      if (ehTentativaAltZ) {
+        console.log("[EFFRAIM atalhos painel_flutuante] Alt+Z debug (antes dos fallbacks)", {
+          idPainel: painel.id,
+          key: event.key,
+          code: event.code,
+          teclaNormalizada: tecla,
+          altKey: event.altKey,
+          ctrlKey: event.ctrlKey,
+          metaKey: event.metaKey,
+          shiftKey: event.shiftKey,
+          mapaTemZ: mapaAtalhos.has("z"),
+          botaoInicialResolvido: !!botaoAtalho
+        });
+      }
+
       // layouts onde Alt+'+' chega como '='
       if (!botaoAtalho && tecla === "=") botaoAtalho = mapaAtalhos.get("+");
       // fallback específico para letras quando event.key vier alterado por layout
@@ -418,9 +436,24 @@ export function criarPainelFlutuante({
         botaoAtalho = mapaAtalhos.get(String(event.code).slice(3).toLowerCase());
       }
 
+      if (ehTentativaAltZ) {
+        console.log("[EFFRAIM atalhos painel_flutuante] Alt+Z debug (apos fallbacks)", {
+          idPainel: painel.id,
+          botaoFinalResolvido: !!botaoAtalho,
+          botaoTexto: botaoAtalho?.textContent || "",
+          botaoAtalhoDataset: botaoAtalho?.dataset?.effraimAtalho || ""
+        });
+      }
+
       if (!botaoAtalho) return;
       event.preventDefault();
       event.stopPropagation();
+      if (ehTentativaAltZ) {
+        console.log("[EFFRAIM atalhos painel_flutuante] Alt+Z disparando clique.", {
+          idPainel: painel.id,
+          botaoTexto: botaoAtalho?.textContent || ""
+        });
+      }
       botaoAtalho.click();
     };
 
