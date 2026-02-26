@@ -61,7 +61,7 @@ td[data-effraim-tabela-compacta-aplicada="1"] {
 	overflow-y: auto;
 	overflow-x: hidden;
 	max-height: var(--effraim-tabelas-compactas-altura-expandida, 200px);
-	overscroll-behavior: contain;
+	overscroll-behavior: auto;
 	-webkit-overflow-scrolling: touch;
 }
 
@@ -133,7 +133,7 @@ td[data-effraim-tabela-compacta-aplicada="1"] {
 	overflow: auto;
 	overflow-y: auto;
 	overflow-x: hidden;
-	overscroll-behavior: contain;
+	overscroll-behavior: auto;
 	-webkit-overflow-scrolling: touch;
 	background: transparent;
 	border: 0;

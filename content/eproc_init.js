@@ -260,13 +260,25 @@ async function ativarFuncionalidades(rotasAtivas, { tutorial = false } = {}) {
 	}
 
 	const { criarContainer } = await import(getRuntimeUrl("modules/utils/interface.js"));
-	const [painel, conteudo] = criarContainer("effraim-funcionalidades-container", infra, "EFFRAIM");
+	const referenciaContainer = tutorial ? infra : document.body;
+	const [painel, conteudo] = criarContainer("effraim-funcionalidades-container", referenciaContainer, "EFFRAIM");
 	//remove o botão de fechar
 	painel.querySelector(".effraim-botao-fechar")?.remove();
 	if (tutorial) {
 		infra.appendChild(painel);
 	} else {
-		infra.insertAdjacentElement("afterend", painel);
+		const posicionarPainelFuncionalidades = () => {
+			const ancora = document.querySelector("#navbar") || infra;
+			const rect = ancora?.getBoundingClientRect?.();
+			if (!rect) return;
+			painel.style.position = "fixed";
+			painel.style.top = `${Math.max(0, Math.round(rect.bottom))}px`;
+			painel.style.left = "50%";
+			painel.style.transform = "translateX(-50%)";
+		};
+		posicionarPainelFuncionalidades();
+		window.addEventListener("resize", posicionarPainelFuncionalidades);
+		window.addEventListener("scroll", posicionarPainelFuncionalidades, { passive: true });
 	}
 	painel.classList.add("effraim-funcionalidades-container");
 

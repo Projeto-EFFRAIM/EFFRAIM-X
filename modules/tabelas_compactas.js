@@ -3,6 +3,7 @@ const CSS_ID = "effraim-tabelas-compactas-css";
 const AVISO_ID = "effraim-tabelas-compactas-aviso";
 const AVISO_TOGGLE_ID = "effraim-tabelas-compactas-toggle";
 const IDS_TABELAS_ALVO = ["tblProcessoLista", "tabelaNomAJG", "tabelaLocalizadores"];
+const INDICES_COLUNAS_EXCLUIDAS_COMPACTACAO = new Set([0, 1]); // checkbox + número do processo
 const ALTURA_MAXIMA_PADRAO = 50;
 let observador = null;
 let timerReaplicar = null;
@@ -161,6 +162,26 @@ function garantirOverlayLinha() {
 			linhaHoverAtiva = null;
 		}
 	});
+	host.addEventListener(
+		"wheel",
+		(evento) => {
+			if (!(evento instanceof WheelEvent)) return;
+			const deltaY = evento.deltaY || 0;
+			if (deltaY === 0) return;
+			const maxScrollTop = Math.max(0, host.scrollHeight - host.clientHeight);
+			if (maxScrollTop <= 0) return; // deixa a rolagem normal da página acontecer
+
+			const noTopo = host.scrollTop <= 0;
+			const noFim = host.scrollTop >= maxScrollTop - 1;
+			const tentandoSubirNoTopo = deltaY < 0 && noTopo;
+			const tentandoDescerNoFim = deltaY > 0 && noFim;
+			if (!tentandoSubirNoTopo && !tentandoDescerNoFim) return;
+
+			evento.preventDefault();
+			window.scrollBy({ top: deltaY, left: 0, behavior: "auto" });
+		},
+		{ passive: false }
+	);
 	document.body.appendChild(host);
 	overlayLinha = host;
 	return host;
@@ -368,6 +389,7 @@ function aplicarNaTabela(tabela) {
 
 	for (const celula of celulas) {
 		if (celula.dataset.effraimTabelaCompactaAplicada === "1") continue;
+		if (INDICES_COLUNAS_EXCLUIDAS_COMPACTACAO.has(celula.cellIndex)) continue;
 		const htmlOriginal = celula.innerHTML;
 		const alturaConteudo = medirAlturaNaturalConteudo(celula, htmlOriginal);
 		if (alturaConteudo <= alturaMaxima) continue;
