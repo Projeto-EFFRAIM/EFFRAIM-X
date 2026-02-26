@@ -311,7 +311,7 @@ export function criarPainelFlutuante({
       left: "0",
       right: "0",
       transform: usarMeioViewport ? "" : `translateY(-${deslocamentoSubida}px)`,
-      zIndex: "10",
+      zIndex: "10000",
       background: "#fff",
       border: "1px solid #2a9c1bff",
       boxShadow: "0 -2px 4px rgba(0,0,0,0.05)",
@@ -512,7 +512,7 @@ export function criarPainelDeslizantePadrao(id, botaoReferencia, titulo = "") {
       opacity: "0",
       maxHeight: "0",
       transition: "all 0.25s ease-out",
-      zIndex: "1000",
+      zIndex: "1130",
       padding: "4px 6px",
       // layout: todos os botões em uma linha horizontal
       display: "none",

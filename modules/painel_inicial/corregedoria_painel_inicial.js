@@ -740,7 +740,7 @@ function renderizarDrill(view, titulo, linhas = [], erro = "", opcoes = {}) {
 	linhasFiltradas = aplicarFiltroFaixaConclusosDrill(linhasFiltradas, Number(opcoes.gid) === 4 ? faixaConclusos : null);
 	const linhasBaseColunas = linhasFiltradas;
 	linhasFiltradas = aplicarFiltrosColunasDrill(linhasFiltradas, filtrosColunas);
-	const suportaFiltroDias = [4, 5].includes(Number(opcoes.gid));
+	const suportaFiltroDias = [4, 5, 6].includes(Number(opcoes.gid));
 
 	const htmlTags = tags.length
 		? `<div class="effraim-corregedoria__drill-tags">${

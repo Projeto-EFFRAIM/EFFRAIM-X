@@ -205,9 +205,11 @@ function clonarLinhaExpandida(linha) {
 		celulaClone.style.width = `${largura}px`;
 		celulaClone.style.minWidth = `${largura}px`;
 		celulaClone.style.maxWidth = `${largura}px`;
+		const colunaFixa = INDICES_COLUNAS_EXCLUIDAS_COMPACTACAO.has(idx);
+		if (colunaFixa) celulaClone.classList.add("effraim-tabelas-compactas-overlay-coluna-fixa");
 		const wrappers = celulaClone.querySelectorAll(".effraim-tabelas-compactas-colapsavel");
 		wrappers.forEach((w) => {
-			w.dataset.expandido = "1";
+			w.dataset.expandido = colunaFixa ? "0" : "1";
 		});
 	});
 

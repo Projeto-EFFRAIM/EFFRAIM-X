@@ -114,6 +114,20 @@ td[data-effraim-tabela-compacta-aplicada="1"] {
 	word-break: break-word;
 }
 
+.effraim-tabelas-compactas-overlay-row > td.effraim-tabelas-compactas-overlay-coluna-fixa,
+.effraim-tabelas-compactas-overlay-row > th.effraim-tabelas-compactas-overlay-coluna-fixa {
+	vertical-align: middle;
+}
+
+.effraim-tabelas-compactas-overlay-row .effraim-tabelas-compactas-overlay-coluna-fixa .effraim-tabelas-compactas-colapsavel {
+	min-height: 0;
+}
+
+.effraim-tabelas-compactas-overlay-row .effraim-tabelas-compactas-overlay-coluna-fixa .effraim-tabelas-compactas-celula-conteudo {
+	max-height: var(--effraim-tabelas-compactas-max-height, 50px);
+	overflow: hidden;
+}
+
 /* Modo "Expandir todos": leitura contínua, sem overlays por célula */
 .effraim-tabelas-compactas--expandir-todos .effraim-tabelas-compactas-colapsavel {
 	min-height: 0;

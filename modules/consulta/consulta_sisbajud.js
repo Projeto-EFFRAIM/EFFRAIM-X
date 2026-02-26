@@ -31,8 +31,9 @@ export function init() {
 	painel.appendChild(conteudo);
 
 	const abrirPainel = () => {
-		aplicarDimensoesExpandidasPainelSisbajud(painel);
 		forcarAberturaPainelDeslizante(painel);
+		aplicarDimensoesExpandidasPainelSisbajud(painel);
+		requestAnimationFrame(() => aplicarDimensoesExpandidasPainelSisbajud(painel));
 	};
 
 	botao.addEventListener("click", () => {
@@ -45,11 +46,17 @@ export function init() {
 
 function aplicarDimensoesExpandidasPainelSisbajud(painel) {
 	if (!painel) return;
+	const margemInferior = 12;
+	const viewportAltura = window.innerHeight || document.documentElement.clientHeight || 800;
+	const topo = painel.getBoundingClientRect?.().top || 0;
+	const alturaDisponivel = Math.max(320, Math.floor(viewportAltura - Math.max(0, topo) - margemInferior));
+	const minAltura = Math.min(alturaDisponivel, Math.max(420, Math.floor(viewportAltura * 0.72)));
 	painel.style.setProperty("width", "min(1180px, 96vw)", "important");
 	painel.style.setProperty("min-width", "min(1180px, 96vw)", "important");
 	painel.style.setProperty("max-width", "96vw", "important");
-	painel.style.setProperty("min-height", "80vh", "important");
-	painel.style.setProperty("max-height", "92vh", "important");
+	painel.style.setProperty("min-height", `${minAltura}px`, "important");
+	painel.style.setProperty("max-height", `${alturaDisponivel}px`, "important");
+	painel.style.setProperty("overflow-y", "auto", "important");
 }
 
 async function inserir_sisbajud_no_painel(painel, conteudo) {
@@ -62,8 +69,10 @@ async function inserir_sisbajud_no_painel(painel, conteudo) {
 		const dados_consulta = await selecionar_dados_consulta(conteudo, dados_processo);
 		conteudo.innerHTML = "";
 		conteudo.style.padding = "0";
-		conteudo.style.height = "calc(92vh - 52px)";
-		conteudo.style.minHeight = "520px";
+		aplicarDimensoesExpandidasPainelSisbajud(painel);
+		const alturaUtilPainel = Math.max(320, (painel.clientHeight || 0) - 52);
+		conteudo.style.height = `${alturaUtilPainel}px`;
+		conteudo.style.minHeight = `${Math.max(320, Math.min(520, alturaUtilPainel))}px`;
 		conteudo.style.overflow = "hidden";
 
 		const dados_iframe = { ...dados_processo, sisbajud_configuracoes, dados_consulta };
