@@ -311,13 +311,13 @@ export function criarPainelFlutuante({
       left: "0",
       right: "0",
       transform: usarMeioViewport ? "" : `translateY(-${deslocamentoSubida}px)`,
-      zIndex: "10000",
       background: "#fff",
       border: "1px solid #2a9c1bff",
       boxShadow: "0 -2px 4px rgba(0,0,0,0.05)",
       maxHeight: `calc(100vh - ${Math.round(topoVisual)}px)`,
       overflow: "auto"
     });
+    secao.classList.add("effraim-secao-flutuante");
 
     document.body.appendChild(secao);
     secaoAtiva = secao;
@@ -339,12 +339,12 @@ export function criarPainelFlutuante({
       left: "",
       right: "",
       transform: "",
-      zIndex: "",
       background: "",
       border: "",
       maxHeight: "",
       overflow: ""
     });
+    secaoAtiva.classList.remove("effraim-secao-flutuante");
 
     placeholder.remove();
     secaoAtiva = null;
@@ -512,7 +512,6 @@ export function criarPainelDeslizantePadrao(id, botaoReferencia, titulo = "") {
       opacity: "0",
       maxHeight: "0",
       transition: "all 0.25s ease-out",
-      zIndex: "1130",
       padding: "4px 6px",
       // layout: todos os botões em uma linha horizontal
       display: "none",
