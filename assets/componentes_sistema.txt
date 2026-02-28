@@ -1,0 +1,590 @@
+CATALOGO DE COMPONENTES DO SISTEMA (EFFRAIM-X)
+Atualizado em: 24/02/2026
+Objetivo: servir como mapa técnico de arquitetura e componentes para retomada rápida em chats futuros.
+
+===========================================================================
+1. VISAO GERAL DA EXTENSAO
+===========================================================================
+
+Nome da extensão:
+- EFFRAIM - X
+
+Tecnologia:
+- Extensão Chrome (Manifest V3)
+- Service worker (`background.js`)
+- Content scripts por domínio
+- UI injetada no eproc (painéis, botões, fieldsets, iframes)
+
+Domínios principais:
+- eproc (`https://eproc.jfrj.jus.br/*`)
+- SISBAJUD (`https://sisbajud.cnj.jus.br/*`)
+- SSO PDPJ (`https://sso.cloud.pje.jus.br/*`)
+- RENAJUD novo (`https://renajud.pdpj.jus.br/*`)
+- RENAJUD antigo (`https://renajud.denatran.serpro.gov.br/*`)
+- Portal de Estatísticas TRF2 / Corregedoria (`https://portaldeestatisticas.trf2.jus.br/*`)
+
+Padrão geral de funcionamento:
+- `content/eproc_init.js` é o bootstrap principal no eproc.
+- Ele carrega configurações, prepara DOM, avalia rotas e ativa módulos.
+- Cada funcionalidade é um módulo com `init()`.
+- Algumas funcionalidades criam botão no container EFFRAIM; outras iniciam sem botão (`ocultarNoPainel`).
+
+
+===========================================================================
+2. PONTOS DE ENTRADA (ENTRYPOINTS)
+===========================================================================
+
+2.1. Bootstrap principal no eproc
+- Arquivo: `content/eproc_init.js`
+- Responsabilidades:
+  - detectar modo normal vs tutorial
+  - carregar configurações (`funcoes.js` -> `modules/utils/configuracoes.js`)
+  - preparar DOM base do EFFRAIM
+  - montar lista de rotas/módulos
+  - inserir container principal EFFRAIM na navbar (ou âncora de tutorial)
+  - importar e iniciar módulos ativos
+  - iniciar tutoriais vivos sob demanda (evento `EFFRAIM_START_TUTORIAL`)
+
+Observações:
+- As rotas são avaliadas por `cond` e filtradas por configuração em `funcionalidades_ativas`.
+- Painel inicial já possui whitelist explícita:
+  - `acao=painel_secretaria_listar`
+  - `acao=painel_magistrado_listar`
+
+
+2.2. Content scripts por integração
+- `content/sisbajud_init.js`
+  - automações dentro do SISBAJUD (all_frames)
+- `content/renajud_init.js`
+  - automações dentro do RENAJUD (novo/antigo)
+- `content/corregedoria_init.js`
+  - captura automática de favoritos `sec/uni` no portal da Corregedoria
+  - roda também em iframe (`all_frames`)
+- `content/sso_pdpj.js`
+  - suporte à autenticação/fluxos do SSO PDPJ
+
+
+2.3. Background / service worker
+- Arquivo: `background.js`
+- Responsabilidades atuais:
+  - proxy de fetch para Corregedoria (`EFFRAIM_CORREGEDORIA_FETCH`) para contornar CORS
+  - abertura de aba para RENAJUD (`EFFRAIM_ABRIR_RENAJUD_ABA`)
+
+Observação:
+- O background é o ponto certo para chamadas cross-origin que falham por CORS no contexto do eproc.
+
+
+===========================================================================
+3. ORQUESTRACAO DE MODULOS E UI BASE
+===========================================================================
+
+3.1. Container principal EFFRAIM
+- Helper: `modules/utils/interface.js` -> `criarContainer()`
+- Estrutura:
+  - painel base (`.effraim-painel`)
+  - cabeçalho
+  - conteúdo (onde botões de funcionalidades são injetados)
+
+Uso:
+- `content/eproc_init.js` cria `#effraim-funcionalidades-container`
+- Módulos com botão adicionam `#btn-<nome>`
+- Módulos sem botão iniciam silenciosamente
+
+
+3.2. Painéis deslizantes padrão
+- Helper: `modules/utils/interface.js` -> `criarPainelDeslizantePadrao()`
+- Orquestração central:
+  - `mostrarPainel()`
+  - `ocultarPainel()`
+  - fechamento de painel anterior ao abrir outro
+- CSS base:
+  - `assets/css/paineis_deslizantes.css`
+
+Ponto sensível:
+- O helper mede dimensão por proporção e pode encolher painéis se o módulo não definir altura/largura úteis.
+- Funcionalidades com iframe grande (SISBAJUD, Requisitórios, Ação Flutuante) costumam precisar override.
+
+
+3.3. Painel flutuante de seções (fieldsets do eproc)
+- Helper: `modules/utils/interface.js` -> `criarPainelFlutuante()`
+- Usado por:
+  - `modules/consulta/consulta_flutuante.js`
+  - `modules/painel_inicial/painel_inicial_flutuante.js`
+
+Capacidades:
+- cria grade de botões por seção
+- move fieldsets/seções para `body` em modo flutuante (`position: fixed`)
+- suporta atalhos `Alt+tecla`
+- controla restore de "Informações Adicionais" (`imgStatusInfAdicional`)
+- observer para devolver seção ativa quando o painel é ocultado (evita bloqueio de clique por overlay esquecido)
+
+Parâmetro importante:
+- `posicionamentoSecao`
+  - `meio_viewport` (usado na consulta flutuante)
+  - `ancora_subindo` (padrão)
+
+
+===========================================================================
+4. CONFIGURACOES E STORAGE
+===========================================================================
+
+4.1. Configuração padrão
+- Arquivo: `configuracoes.json`
+- Contém:
+  - `funcionalidades_ativas`
+  - opções por integração (SISBAJUD, RENAJUD, Requisitório, Corregedoria, etc.)
+  - parâmetros `_meta` para UI de preferências
+
+
+4.2. Leitura/gravação de configurações
+- Arquivo: `modules/utils/configuracoes.js`
+
+Arquitetura atual (importante):
+- Configurações segmentadas em múltiplas chaves no `chrome.storage.sync`
+  - índice: `effraim_cfg_index_v1`
+  - seções: `effraim_cfg_sec__<secao>`
+- Compatibilidade:
+  - lê legado (`effraim_configuracoes`) e migra para segmentado
+
+Motivação:
+- Evitar erro de quota por item (`kQuotaBytesPerItem`) do `chrome.storage.sync`
+
+
+4.3. Chunking de objetos grandes no sync
+- Arquivo: `modules/utils/sync_chunk_storage.js`
+- Uso principal:
+  - Favoritos do painel inicial
+- Regra vigente:
+  - favoritos + coloridos em até 3 chaves fixas
+
+
+4.4. Barrel file de utilitários
+- Arquivo: `funcoes.js`
+- Observação arquitetural:
+  - funciona como agregador de utilitários (`modules/utils/*`)
+  - novos utils devem ser exportados aqui (padrão do projeto)
+
+
+===========================================================================
+5. COMPONENTES FUNCIONAIS (EPROC)
+===========================================================================
+
+5.1. Dados do processo (cache global)
+- Módulo: `modules/dados_processo_window.js`
+- Finalidade:
+  - ler dados estruturados da página do processo
+  - popular `window.__EFFRAIM_DADOS_PROCESSO` para reuso por outros módulos
+
+Dependência recorrente:
+- `consulta_dados_processo()` (`funcoes.js` / `modules/utils/processo.js` + afins)
+
+
+5.2. Consulta Flutuante
+- Módulo: `modules/consulta/consulta_flutuante.js`
+- Base UI: `criarPainelFlutuante()`
+- Finalidade:
+  - atalhos e acesso rápido aos fieldsets da consulta processual (Capa, Partes, Resumo etc.)
+
+Pontos sensíveis:
+- atalhos `Alt+tecla` podem colidir com navegador/layout
+- `Partes` mudou de `z` para `h` por conflito de captura de teclado
+- depende de manipulação de `imgStatusInfAdicional` para `fldPartes` / `fldInformacoesAdicionais`
+
+
+5.3. Ação Flutuante (fieldset Ações)
+- Módulo base: `modules/consulta/acao_flutuante/index.js`
+- Mapeamento: `modules/consulta/acao_flutuante/mapeamento_acoes.js`
+- Manipuladores:
+  - `padrao.js`
+  - `arvore_documento_listar.js`
+  - `processo_enviar_email_listar.js`
+
+Arquitetura:
+- não cria botão EFFRAIM por ação
+- intercepta clique nos botões nativos de `#fldAcoes`
+- abre/reutiliza um painel único + iframe
+- aplicações específicas por ação via manipulador
+
+Regra atual:
+- painel da Ação Flutuante é grande por padrão (CSS)
+- exceções podem sobrescrever por `configuracaoPainel` no manipulador (ex.: Árvore)
+
+Pontos sensíveis:
+- posicionamento abaixo da âncora
+- fechamento por mouse com delay
+- seções flutuantes e painéis ocultos podem bloquear clique se não forem devolvidos (já mitigado no helper)
+
+
+5.4. Requisitórios
+- Módulo: `modules/consulta/consulta_requisitorio.js`
+- Finalidade:
+  - consulta automatizada no menu "Consultar Ofício Requisitório"
+  - badge no botão
+  - iframe compartilhado para consulta
+
+Características:
+- localiza URL de menu no DOM (com hash) via util de menus
+- pesquisa por número do processo
+- leitura de resultados no iframe
+- consulta automática opcional baseada em localizadores do processo
+
+Pontos sensíveis:
+- painel/iframe precisam de altura útil explícita (senão fica "metade vazia")
+- abertura automática por localizador deve abrir o painel grande antes de injetar iframe
+
+Util associado:
+- `modules/utils/disparo_automatico_localizadores.js`
+
+
+5.5. SISBAJUD
+- Módulo (eproc): `modules/consulta/consulta_sisbajud.js`
+- Módulos (no site externo):
+  - `modules/juds/sisbajud/minuta.js`
+  - `modules/juds/sisbajud/minuta_cadastrar.js`
+  - `modules/juds/sisbajud/ordem_judicial.js`
+
+Fluxo:
+- painel no eproc coleta dados do processo e dados de consulta
+- abre iframe para SISBAJUD
+- envia payload via `postMessage`
+- content script no SISBAJUD executa automações
+
+Pontos sensíveis:
+- painéis com iframe grande (layout)
+- fluxo de login/SSO
+- all_frames ativado no content script
+
+
+5.6. RENAJUD
+- Módulo (eproc): `modules/consulta/consulta_renajud.js`
+- Módulos (site externo):
+  - `modules/juds/renajud/pesquisa.js`
+  - `modules/juds/renajud/pesquisa_antigo.js`
+  - `modules/juds/renajud/inclusao.js`
+
+Capacidades:
+- suporte a ambiente novo/antigo
+- preferências padrão (parâmetro de pesquisa, tipo de ação)
+- fluxo com aba e background (`EFFRAIM_ABRIR_RENAJUD_ABA`)
+- captura/salvamento de preferências (modelo "aprender no primeiro uso")
+
+
+5.7. Painel Inicial Flutuante
+- Módulo: `modules/painel_inicial/painel_inicial_flutuante.js`
+- Base UI: `criarPainelFlutuante()`
+- Finalidade:
+  - atalhos para fieldsets do painel inicial (Processos, Localizadores, Relatório Geral etc.)
+  - integração com Favoritos do Painel (seção favoritada + botão de favoritos)
+
+Observação:
+- Usa a mesma infraestrutura de seções flutuantes do helper.
+
+
+5.8. Favoritos do Painel Inicial
+- Núcleo:
+  - `modules/painel_inicial/favoritos/state.js`
+  - `modules/painel_inicial/favoritos/dom/render.js`
+  - `modules/painel_inicial/favoritos/menu.js`
+  - `modules/painel_inicial/favoritos/painel.js`
+
+Capacidades:
+- favoritar itens de seções do painel inicial
+- organização por pastas e subpastas
+- reordenação por drag and drop
+- coloração de pastas e itens
+- persistência chunkada no sync
+- limpeza automática de favoritos ausentes na página
+- (novo) persistência de estado aberto/fechado das pastas (`pastas_estado_abertas`)
+- botão global de refresh dos relatórios no legend do fieldset Favoritos
+
+Pontos sensíveis:
+- limites de storage (3 chaves de chunks)
+- necessidade de IDs estáveis em pastas para persistir estado de colapsável
+- sincronização do conteúdo "Relatórios" por `MutationObserver`
+
+
+5.9. Corregedoria TRF2 (quadro no painel inicial)
+- Módulo principal: `modules/painel_inicial/corregedoria_painel_inicial.js`
+- Content script: `content/corregedoria_init.js`
+- CSS: `assets/css/corregedoria_painel_inicial.css`
+- Util de filtros do drill: `modules/utils/corregedoria_drill_filtros.js`
+
+Arquitetura:
+- quadro perene no painel inicial (sem botão no container EFFRAIM)
+- minimizado por padrão
+- captura automática de favoritos `sec`/`uni` no portal da Corregedoria (iframe/guia)
+- fetch de dados via `background.js` para contornar CORS
+- render de cards a partir de JSON (`IndCorregedoria_Graf.aspx`)
+- drill por card (`IndCorregedoria_Api.aspx?op=dg`)
+
+Capacidades de drill (estado atual):
+- click no card abre/fecha drill
+- tags multi-seleção
+- filtro por dias (drills com `Tempo Em Dias`)
+- filtros por coluna estilo Excel (checkbox + busca)
+- integração com Relatório Geral (até 300 primeiros)
+- mini gráficos para Conclusos (gid=4), com clique na barra refletindo filtros
+
+Exceção de regra (domínio):
+- `Parados não conclusos` usa `pzaberto=Não` e recalcula card/drill para "sem prazo aberto"
+
+Pontos sensíveis:
+- CORS (sempre via background)
+- `mes=YYYY_M` no endpoint de gráficos
+- mudanças no portal podem quebrar parse dos JSONs
+- overlays e z-index com container EFFRAIM
+
+
+5.10. Relatório Geral (preenchimento em lote)
+- Módulo: `modules/relatorio_geral/preenchimento_lote.js`
+- Finalidade:
+  - receber lote temporário (ex.: vindo do drill da Corregedoria)
+  - preencher `#txtMultiplosProcessos`
+  - clicar automaticamente em `Consultar`
+
+Integração:
+- usa token/payload temporário em storage/local + hash para comunicação entre telas
+
+Ponto sensível:
+- depende da estrutura específica da tela do Relatório Geral (seletor real do textarea/botão)
+
+
+5.11. Tabelas Compactas
+- Módulo: `modules/tabelas_compactas.js`
+- CSS: `assets/css/tabelas_compactas.css`
+
+Finalidade:
+- limitar altura de células com texto grande em tabelas-alvo:
+  - `tblProcessoLista`
+  - `tabelaNomAJG`
+  - `tabelaLocalizadores`
+
+Comportamento atual:
+- altura compactada: configurável (padrão 50px)
+- destaque por hover: overlay da linha inteira (não altera altura da tabela)
+- scroll vertical no overlay da linha
+- altura destacada fixa: 200px
+- botão "Expandir todos" no aviso restaurado
+
+Pontos sensíveis:
+- distinção entre altura compactada (configurável) e altura expandida (fixa)
+- overlay de linha precisa respeitar largura/estilo da linha original
+
+
+5.12. Lista de Partes Aprimorada
+- Módulo: `modules/lista_partes_aprimorada.js`
+- Bridge: `modules/lista_partes_aprimorada_bridge.js`
+
+Finalidade:
+- melhorar legibilidade da seção de partes
+- compactar/expandir grupos de partes
+
+Observação:
+- interage com tabelas e fieldsets complexos da consulta processual
+
+
+5.13. Paginação Aprimorada
+- Módulo: `modules/paginacao_aprimorada.js`
+- Finalidade:
+- melhorar experiência de paginação em listas (processos / relatório geral)
+- persistir preferência local de quantidade por página (quando aplicável)
+
+
+===========================================================================
+6. UTEIS CENTRAIS (modules/utils)
+===========================================================================
+
+6.1. `interface.js`
+- Biblioteca central de UI injetada (painéis, avisos, painéis flutuantes, painéis deslizantes)
+- É um dos arquivos mais críticos da extensão.
+
+6.2. `configuracoes.js`
+- Leitura/gravação de configurações
+- renderização de preferências
+- integração com dados estáticos (ex.: SISBAJUD)
+
+6.3. `rotas.js`
+- Filtro de rotas ativas por `funcionalidades_ativas`
+
+6.4. `processo.js`
+- utilitários de leitura/extração de dados processuais
+
+6.5. `interacao_DOM.js`
+- utilitários de manipulação/interação de DOM
+
+6.6. `gestao_pastas.js`
+- operações estruturais em árvores de pastas (favoritos)
+
+6.7. `sync_chunk_storage.js`
+- leitura/gravação de objetos grandes em chunks fixos no sync
+
+6.8. `menus_eproc.js`
+- localiza URL de menus do eproc por nome/texto/aria-label
+- usado por Requisitórios e Relatório Geral (Corregedoria drill)
+
+6.9. `disparo_automatico_localizadores.js`
+- util compartilhado para decidir disparo automático baseado em localizadores
+- centraliza normalização + operação lógica (`OU`/`E`) + logs
+
+6.10. `corregedoria_drill_filtros.js`
+- helpers puros de filtro para o drill da Corregedoria
+- extraído para reduzir tamanho do módulo principal
+
+
+===========================================================================
+7. SISTEMA DE TUTORIAIS E AJUDA
+===========================================================================
+
+Arquivos principais:
+- `ajuda/tutorial.html`, `ajuda/tutorial.js`
+- `ajuda/tutorial_runner.html`, `ajuda/tutorial_runner.js`
+- `modules/tutorials/*.js` (tours vivos)
+- `ajuda/mock_pages/*` (páginas salvas para simulação)
+
+Arquitetura:
+- runner carrega página mock sanitizada em `iframe`
+- injeta bootstrap real (`content/eproc_init.js`)
+- dispara tutorial vivo por evento (`EFFRAIM_START_TUTORIAL`)
+- cada funcionalidade possui tour próprio (`live_*_tour.js`)
+
+Pontos sensíveis:
+- sanitização de HTML salvo (scripts/handlers inline)
+- seletor de prontidão antes de iniciar tutorial
+- coerência entre tutorial, ajuda e UI real
+
+
+===========================================================================
+8. PREFERENCIAS / UI DE CONFIGURACAO
+===========================================================================
+
+Arquivos relevantes:
+- `preferencias.html`
+- `modules/utils/configuracoes.js`
+- `assets/preferencias/dados/sisbajud_dados_padrao.html`
+
+Pontos importantes:
+- Preferências são geradas a partir de `configuracoes.json` + `_meta`
+- Há tratamentos especiais por campo (ex.: SISBAJUD com busca digitável)
+- Alguns campos são ocultados da UI por regra (ex.: caches internos como `resumo_cache` da Corregedoria)
+
+
+===========================================================================
+9. PADROES ARQUITETURAIS IMPORTANTES (RESUMO PRATICO)
+===========================================================================
+
+9.1. Módulos iniciáveis
+- Todo módulo ativado por rota deve exportar `init()`.
+
+9.2. Logs
+- Prefixos por funcionalidade são obrigatórios/fortemente recomendados.
+- Investigar bugs aumentando logs antes de refatorar grande.
+
+9.3. Integrações externas
+- Preferir endpoint/JSON a raspar HTML quando possível.
+- Em CORS, mover fetch para `background.js`.
+
+9.4. Painéis com iframe
+- Definir altura útil do container + iframe explicitamente.
+- `height: 100%` sem container dimensionado gera painel “vazio”/iframe minúsculo.
+
+9.5. Storage sync
+- Evitar item único gigante.
+- Usar storage segmentado e chunking para objetos grandes.
+
+9.6. Funcionalidades disparadas por localizador
+- Usar util compartilhado (`disparo_automatico_localizadores.js`).
+
+
+===========================================================================
+10. MAPA RAPIDO POR PAGINA-TIPO
+===========================================================================
+
+10.1. Consulta processual (`acao=processo_selecionar`)
+- Dados do processo (cache global)
+- Consulta Flutuante
+- Requisitórios
+- SISBAJUD
+- RENAJUD
+- Ação Flutuante
+- Lista de Partes Aprimorada
+
+10.2. Painel inicial (`painel_secretaria_listar` / `painel_magistrado_listar`)
+- Painel Inicial Flutuante
+- Favoritos do Painel
+- Corregedoria TRF2 (quadro + drill)
+
+10.3. Listagens / Relatório Geral
+- Tabelas Compactas
+- Paginação Aprimorada
+- Relatório Geral (preenchimento em lote, quando rota `acao=relatorio_geral`)
+
+
+===========================================================================
+11. PONTOS DE ATENCAO PARA CHATS FUTUROS (RETOMADA RAPIDA)
+===========================================================================
+
+Antes de mexer em componente novo:
+- conferir rota em `content/eproc_init.js`
+- conferir chave em `configuracoes.json` (`funcionalidades_ativas`)
+- verificar se precisa botão no container EFFRAIM ou `ocultarNoPainel`
+- checar CORS/host_permissions se houver domínio novo
+- decidir se há tutorial/ajuda para atualizar
+
+Antes de mexer em layout de painel:
+- revisar `modules/utils/interface.js`
+- revisar CSS da funcionalidade
+- validar altura do container + iframe (quando houver)
+
+Antes de mexer em favoritos:
+- revisar limites de storage chunkado (3 chaves)
+- preservar `id` de pastas (estado de colapso depende disso)
+
+Antes de mexer em Corregedoria:
+- lembrar que dados vêm por background (CORS)
+- `sec/uni` são capturados automaticamente no portal
+- drill e filtros têm bastante lógica já extraída em util
+
+
+===========================================================================
+12. ARQUIVOS-CHAVE (REFERENCIA RAPIDA)
+===========================================================================
+
+Bootstrap e orquestração:
+- `content/eproc_init.js`
+- `background.js`
+- `funcoes.js`
+
+UI/infra:
+- `modules/utils/interface.js`
+- `assets/css/paineis_deslizantes.css`
+
+Config/storage:
+- `configuracoes.json`
+- `modules/utils/configuracoes.js`
+- `modules/utils/sync_chunk_storage.js`
+
+Painel inicial:
+- `modules/painel_inicial/painel_inicial_flutuante.js`
+- `modules/painel_inicial/favoritos/*`
+- `modules/painel_inicial/corregedoria_painel_inicial.js`
+
+Consulta processual:
+- `modules/consulta/consulta_flutuante.js`
+- `modules/consulta/acao_flutuante/index.js`
+- `modules/consulta/consulta_requisitorio.js`
+- `modules/consulta/consulta_sisbajud.js`
+- `modules/consulta/consulta_renajud.js`
+
+Listas e legibilidade:
+- `modules/tabelas_compactas.js`
+- `assets/css/tabelas_compactas.css`
+- `modules/paginacao_aprimorada.js`
+- `modules/lista_partes_aprimorada.js`
+
+Tutoriais:
+- `ajuda/tutorial_runner.js`
+- `modules/tutorials/*.js`
+
+
+Fim do documento.
+
