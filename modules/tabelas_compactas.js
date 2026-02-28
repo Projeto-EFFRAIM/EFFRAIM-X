@@ -78,6 +78,17 @@ function normalizarTextoColuna(valor = "") {
 		.trim();
 }
 
+function tituloEhColunaProcesso(tituloNorm = "") {
+	if (!tituloNorm) return false;
+	if (tituloNorm.includes("nº do processo")) return true;
+	if (tituloNorm.includes("numero do processo")) return true;
+	if (tituloNorm.includes("nº processo")) return true;
+	if (tituloNorm.includes("numero processo")) return true;
+	if (tituloNorm === "processo") return true;
+	if (tituloNorm.startsWith("processo ")) return true;
+	return false;
+}
+
 function calcularIndicesExcluidosPorTitulo(tabela) {
 	const indices = new Set(INDICES_COLUNAS_EXCLUIDAS_COMPACTACAO);
 	if (!(tabela instanceof HTMLElement)) return indices;
@@ -89,12 +100,7 @@ function calcularIndicesExcluidosPorTitulo(tabela) {
 	colunas.forEach((coluna, idx) => {
 		const titulo = normalizarTextoColuna(coluna.textContent || "");
 		if (!titulo) return;
-		if (
-			titulo.includes("nº do processo") ||
-			titulo.includes("numero do processo") ||
-			titulo === "processo" ||
-			titulo.startsWith("processo ")
-		) {
+		if (tituloEhColunaProcesso(titulo)) {
 			indices.add(idx);
 		}
 	});

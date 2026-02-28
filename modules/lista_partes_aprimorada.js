@@ -450,6 +450,29 @@ function descreverGrupo(grupo) {
 	return ths.length ? ths.join(" | ") : "Grupo sem título";
 }
 
+function atualizarContagemNosCabecalhos() {
+	const tabela = obterTabelaPartes();
+	if (!tabela) return { grupos: 0, atualizados: 0 };
+	const tbody = tabela.querySelector("tbody");
+	if (!tbody) return { grupos: 0, atualizados: 0 };
+
+	const grupos = obterGruposDeLinhas(tbody);
+	let atualizados = 0;
+	for (const grupo of grupos) {
+		const ths = [...(grupo?.cabecalho?.querySelectorAll("th") || [])];
+		if (!ths.length) continue;
+		const contagem = Array.isArray(grupo?.dados) ? grupo.dados.length : 0;
+		for (const th of ths) {
+			const textoAtual = String(th.textContent || "").replace(/\s+/g, " ").trim();
+			const base = (th.dataset.effraimTituloBase || textoAtual.replace(/\s*\(\d+\)\s*$/, "").trim()).trim();
+			th.dataset.effraimTituloBase = base;
+			th.textContent = `${base} (${contagem})`;
+			atualizados += 1;
+		}
+	}
+	return { grupos: grupos.length, atualizados };
+}
+
 function compactarGrupo(tbody, grupo) {
 	const { cabecalho, dados } = grupo;
 	if (!dados || dados.length <= 1) return false;
@@ -526,12 +549,13 @@ async function aplicarListaPartesAprimorada() {
 		garantirScrollNaTabela();
 		garantirAviso();
 		await expandirPartesOcultas();
-		const { alterados, totalGrupos } = compactarTabelaPartes();
-		logInfo("Compactação aplicada.", { gruposAlterados: alterados, gruposAnalisados: totalGrupos });
+		const { grupos, atualizados } = atualizarContagemNosCabecalhos();
+		logInfo("Contagem aplicada nos cabeçalhos de partes.", { grupos, cabecalhosAtualizados: atualizados });
 		sinalizarListaPartesPronta({
 			canceladoPeloUsuario,
-			gruposAlterados: alterados,
-			gruposAnalisados: totalGrupos,
+			gruposAlterados: 0,
+			gruposAnalisados: grupos,
+			cabecalhosAtualizados: atualizados,
 			timestamp: Date.now()
 		});
 	} finally {
