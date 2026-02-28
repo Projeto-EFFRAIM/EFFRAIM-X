@@ -3,18 +3,21 @@ const CSS_ID = "effraim-tabelas-compactas-css";
 const AVISO_ID = "effraim-tabelas-compactas-aviso";
 const AVISO_TOGGLE_ID = "effraim-tabelas-compactas-toggle";
 const IDS_TABELAS_ALVO = ["tblProcessoLista", "tabelaNomAJG", "tabelaLocalizadores"];
-const INDICES_COLUNAS_EXCLUIDAS_COMPACTACAO = new Set([0, 1]); // checkbox + número do processo
+const INDICES_COLUNAS_EXCLUIDAS_COMPACTACAO = new Set(); // apenas por heurística real (checkbox/processo)
 const ALTURA_MAXIMA_PADRAO = 50;
 let observador = null;
 let timerReaplicar = null;
 let observadorPausado = false;
 let expandirTodosAtivo = false;
 let linhaHoverAtiva = null;
-let bloqueioHoverAte = 0;
+let timerHoverLinha = null;
+let timerFecharOverlay = null;
 let overlayLinha = null;
 let overlayLinhaHover = false;
 let overlayLinhaFonte = null;
-const BLOQUEIO_HOVER_MS = 900;
+const DELAY_HOVER_MS = 500;
+const DELAY_FECHAR_MS = 120;
+const cacheIndicesExcluidosPorTabela = new WeakMap();
 
 function logInfo(mensagem, dados) {
 	if (dados !== undefined) console.info(`${LOG_PREFIXO} ${mensagem}`, dados);
@@ -64,6 +67,65 @@ function localizarTabelasAlvo() {
 		if (tabelaInterna) tabelas.push(tabelaInterna);
 	}
 	return tabelas;
+}
+
+function normalizarTextoColuna(valor = "") {
+	return String(valor || "")
+		.toLowerCase()
+		.normalize("NFD")
+		.replace(/[\u0300-\u036f]/g, "")
+		.replace(/\s+/g, " ")
+		.trim();
+}
+
+function calcularIndicesExcluidosPorTitulo(tabela) {
+	const indices = new Set(INDICES_COLUNAS_EXCLUIDAS_COMPACTACAO);
+	if (!(tabela instanceof HTMLElement)) return indices;
+	const linhaCabecalho =
+		tabela.querySelector("thead tr") ||
+		tabela.querySelector("tr");
+	if (!(linhaCabecalho instanceof HTMLElement)) return indices;
+	const colunas = [...linhaCabecalho.children].filter((el) => el instanceof HTMLElement);
+	colunas.forEach((coluna, idx) => {
+		const titulo = normalizarTextoColuna(coluna.textContent || "");
+		if (!titulo) return;
+		if (
+			titulo.includes("nº do processo") ||
+			titulo.includes("numero do processo") ||
+			titulo === "processo" ||
+			titulo.startsWith("processo ")
+		) {
+			indices.add(idx);
+		}
+	});
+	return indices;
+}
+
+function obterIndicesExcluidosPorTabela(tabela) {
+	if (!(tabela instanceof HTMLElement)) return new Set(INDICES_COLUNAS_EXCLUIDAS_COMPACTACAO);
+	const cache = cacheIndicesExcluidosPorTabela.get(tabela);
+	if (cache) return cache;
+	const calculado = calcularIndicesExcluidosPorTitulo(tabela);
+	cacheIndicesExcluidosPorTabela.set(tabela, calculado);
+	return calculado;
+}
+
+function deveExcluirCelulaDaCompactacao(celula, tabela) {
+	if (!(celula instanceof HTMLElement)) return false;
+	const indices = obterIndicesExcluidosPorTabela(tabela);
+	if (indices.has(celula.cellIndex)) return true;
+	if (celula.querySelector("input[type='checkbox'], input[type='radio']")) return true;
+	return false;
+}
+
+function restaurarCelulaCompactada(celula) {
+	if (!(celula instanceof HTMLElement)) return;
+	if (celula.dataset.effraimTabelaCompactaAplicada !== "1") return;
+	const conteudo = celula.querySelector(".effraim-tabelas-compactas-celula-conteudo");
+	if (conteudo instanceof HTMLElement) {
+		celula.innerHTML = conteudo.innerHTML;
+	}
+	delete celula.dataset.effraimTabelaCompactaAplicada;
 }
 
 function montarControleAviso(aviso) {
@@ -153,14 +215,25 @@ function garantirOverlayLinha() {
 	host.className = "effraim-tabelas-compactas-overlay-linha";
 	host.style.display = "none";
 	host.addEventListener("mouseenter", () => {
+		if (timerFecharOverlay) {
+			clearTimeout(timerFecharOverlay);
+			timerFecharOverlay = null;
+		}
 		overlayLinhaHover = true;
 	});
 	host.addEventListener("mouseleave", () => {
 		overlayLinhaHover = false;
-		if (!expandirTodosAtivo && overlayLinhaFonte && !overlayLinhaFonte.matches(":hover")) {
+		if (expandirTodosAtivo) return;
+		if (timerFecharOverlay) clearTimeout(timerFecharOverlay);
+		timerFecharOverlay = setTimeout(() => {
+			timerFecharOverlay = null;
+			if (expandirTodosAtivo) return;
+			if (!overlayLinhaFonte) return;
+			if (overlayLinhaFonte.matches(":hover")) return;
+			if (overlayLinhaHover) return;
 			recolherLinha(overlayLinhaFonte);
 			linhaHoverAtiva = null;
-		}
+		}, DELAY_FECHAR_MS);
 	});
 	host.addEventListener(
 		"wheel",
@@ -191,44 +264,70 @@ function clonarLinhaExpandida(linha) {
 	const cloneTabela = document.createElement("table");
 	cloneTabela.className = "effraim-tabelas-compactas-overlay-tabela";
 	const tbody = document.createElement("tbody");
-	const linhaClone = linha.cloneNode(true);
+	const linhaClone = document.createElement("tr");
 	linhaClone.classList.add("effraim-tabelas-compactas-overlay-row");
 	tbody.appendChild(linhaClone);
 	cloneTabela.appendChild(tbody);
 
 	const celulasOriginais = [...linha.children].filter((el) => el instanceof HTMLElement);
-	const celulasClone = [...linhaClone.children].filter((el) => el instanceof HTMLElement);
-	celulasClone.forEach((celulaClone, idx) => {
-		const celulaOriginal = celulasOriginais[idx];
-		if (!celulaOriginal) return;
+	const tabelaOrigem = linha.closest("table");
+	const celulasUtilizadas = celulasOriginais.filter(
+		(celulaOriginal) => !deveExcluirCelulaDaCompactacao(celulaOriginal, tabelaOrigem)
+	);
+	if (!celulasUtilizadas.length) return null;
+
+	celulasUtilizadas.forEach((celulaOriginal) => {
+		const celulaClone = celulaOriginal.cloneNode(true);
 		const largura = Math.max(1, Math.round(celulaOriginal.getBoundingClientRect().width));
 		celulaClone.style.width = `${largura}px`;
 		celulaClone.style.minWidth = `${largura}px`;
 		celulaClone.style.maxWidth = `${largura}px`;
-		const colunaFixa = INDICES_COLUNAS_EXCLUIDAS_COMPACTACAO.has(idx);
-		if (colunaFixa) celulaClone.classList.add("effraim-tabelas-compactas-overlay-coluna-fixa");
 		const wrappers = celulaClone.querySelectorAll(".effraim-tabelas-compactas-colapsavel");
 		wrappers.forEach((w) => {
-			w.dataset.expandido = colunaFixa ? "0" : "1";
+			w.dataset.expandido = "1";
 		});
+		linhaClone.appendChild(celulaClone);
 	});
 
-	return cloneTabela;
+	const rects = celulasUtilizadas
+		.map((c) => c.getBoundingClientRect())
+		.filter((r) => Number.isFinite(r?.left) && Number.isFinite(r?.right) && r.width > 1);
+	const rectsBase = rects.length ? rects : celulasUtilizadas.map((c) => c.getBoundingClientRect());
+	const leftMin = Math.min(...rectsBase.map((r) => r.left));
+	const rightMax = Math.max(...rectsBase.map((r) => r.right));
+	let left = Math.round(leftMin);
+	let width = Math.max(1, Math.round(rightMax - leftMin));
+	if (width <= 2) {
+		const linhaRect = linha.getBoundingClientRect();
+		left = Math.round(linhaRect.left);
+		width = Math.max(1, Math.round(linhaRect.width));
+	}
+	return {
+		node: cloneTabela,
+		left,
+		width
+	};
 }
 
 function mostrarOverlayLinha(linha) {
 	if (!(linha instanceof HTMLElement)) return;
 	const host = garantirOverlayLinha();
+	if (overlayLinhaFonte === linha && host.style.display !== "none") return;
 	const rect = linha.getBoundingClientRect();
 	if (rect.width <= 0 || rect.height <= 0) return;
+	const overlay = clonarLinhaExpandida(linha);
+	if (!overlay?.node) return;
+	const primeiraCelula = [...linha.children].find((el) => el instanceof HTMLElement) || linha;
+	const corFundo = obterCorFundoEfetiva(primeiraCelula) || "rgba(255, 255, 255, 0.96)";
 
 	host.innerHTML = "";
-	host.appendChild(clonarLinhaExpandida(linha));
+	host.appendChild(overlay.node);
 	Object.assign(host.style, {
 		display: "",
 		top: `${Math.round(rect.top)}px`,
-		left: `${Math.round(rect.left)}px`,
-		width: `${Math.round(rect.width)}px`
+		left: `${overlay.left}px`,
+		width: `${overlay.width}px`,
+		background: corFundo
 	});
 	overlayLinhaFonte = linha;
 }
@@ -243,6 +342,7 @@ function ocultarOverlayLinha() {
 }
 
 function expandirLinha(linha) {
+	if (overlayLinhaFonte === linha && overlayLinha?.style?.display !== "none") return;
 	linha.classList.add("effraim-tabelas-compactas-linha-hover");
 	mostrarOverlayLinha(linha);
 }
@@ -261,31 +361,37 @@ function ativarHoverEmLinhas(tabela) {
 		linha.dataset.effraimTabelaCompactaHoverBind = "1";
 		linha.addEventListener("mouseenter", () => {
 			if (expandirTodosAtivo) return;
-			const agora = Date.now();
-			if (agora < bloqueioHoverAte && linhaHoverAtiva && linha !== linhaHoverAtiva) return;
-			linhaHoverAtiva = linha;
-			bloqueioHoverAte = agora + BLOQUEIO_HOVER_MS;
-			expandirLinha(linha);
+			if (timerFecharOverlay) {
+				clearTimeout(timerFecharOverlay);
+				timerFecharOverlay = null;
+			}
+			if (linhaHoverAtiva === linha && overlayLinhaFonte === linha && overlayLinha?.style?.display !== "none") return;
+			if (timerHoverLinha) clearTimeout(timerHoverLinha);
+			timerHoverLinha = setTimeout(() => {
+				timerHoverLinha = null;
+				if (expandirTodosAtivo) return;
+				if (!linha.matches(":hover")) return;
+				if (linhaHoverAtiva === linha && overlayLinhaFonte === linha && overlayLinha?.style?.display !== "none") return;
+				linhaHoverAtiva = linha;
+				expandirLinha(linha);
+			}, DELAY_HOVER_MS);
 		});
 		linha.addEventListener("mouseleave", () => {
 			if (expandirTodosAtivo) return;
-			if (linha !== linhaHoverAtiva) return;
-			const agora = Date.now();
-			if (agora < bloqueioHoverAte) {
-				const espera = bloqueioHoverAte - agora + 10;
-				setTimeout(() => {
-					if (expandirTodosAtivo) return;
-					if (linha !== linhaHoverAtiva) return;
-					if (linha.matches(":hover")) return;
-					if (overlayLinhaHover) return;
-					recolherLinha(linha);
-					linhaHoverAtiva = null;
-				}, espera);
-				return;
+			if (timerHoverLinha) {
+				clearTimeout(timerHoverLinha);
+				timerHoverLinha = null;
 			}
-			if (overlayLinhaHover) return;
-			recolherLinha(linha);
-			linhaHoverAtiva = null;
+			if (linha !== linhaHoverAtiva) return;
+			if (timerFecharOverlay) clearTimeout(timerFecharOverlay);
+			timerFecharOverlay = setTimeout(() => {
+				timerFecharOverlay = null;
+				if (expandirTodosAtivo) return;
+				if (linha.matches(":hover")) return;
+				if (overlayLinhaHover) return;
+				recolherLinha(linha);
+				linhaHoverAtiva = null;
+			}, DELAY_FECHAR_MS);
 		});
 	}
 }
@@ -390,8 +496,12 @@ function aplicarNaTabela(tabela) {
 	const alturaMaxima = obterAlturaMaximaCelula();
 
 	for (const celula of celulas) {
+		const excluida = deveExcluirCelulaDaCompactacao(celula, tabela);
+		if (excluida) {
+			restaurarCelulaCompactada(celula);
+			continue;
+		}
 		if (celula.dataset.effraimTabelaCompactaAplicada === "1") continue;
-		if (INDICES_COLUNAS_EXCLUIDAS_COMPACTACAO.has(celula.cellIndex)) continue;
 		const htmlOriginal = celula.innerHTML;
 		const alturaConteudo = medirAlturaNaturalConteudo(celula, htmlOriginal);
 		if (alturaConteudo <= alturaMaxima) continue;
@@ -421,6 +531,7 @@ function aplicarTabelasCompactas() {
 
 		let totalConvertidas = 0;
 		for (const tabela of tabelas) {
+			cacheIndicesExcluidosPorTabela.delete(tabela);
 			const qtd = aplicarNaTabela(tabela);
 			totalConvertidas += qtd;
 			ativarHoverEmLinhas(tabela);

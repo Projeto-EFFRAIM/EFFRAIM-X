@@ -54,7 +54,6 @@ td[data-effraim-tabela-compacta-aplicada="1"] {
 	position: fixed;
 	z-index: 12050;
 	pointer-events: auto;
-	background: rgba(255, 255, 255, 0.96);
 	border: 1px solid #bfd6ea;
 	border-radius: 6px;
 	box-shadow: 0 8px 20px rgba(17, 60, 99, 0.18);
