@@ -25,7 +25,7 @@ async function effraimFetchCorregedoria(mensagem) {
   return { ok: true, data: await resposta.json() };
 }
 
-chrome.runtime.onMessage.addListener((mensagem, _sender, sendResponse) => {
+chrome.runtime.onMessage.addListener((mensagem, sender, sendResponse) => {
   if (!mensagem?.type) return;
 
   if (mensagem.type === "EFFRAIM_CORREGEDORIA_FETCH") {
@@ -35,6 +35,50 @@ chrome.runtime.onMessage.addListener((mensagem, _sender, sendResponse) => {
         console.warn("[EFFRAIM/bg] Falha no fetch da Corregedoria.", e);
         sendResponse({ ok: false, erro: String(e?.message || e) });
       });
+    return true;
+  }
+
+  if (mensagem.type === "EFFRAIM_FECHAR_ABA_ATUAL") {
+    try {
+      const tabId = sender?.tab?.id;
+      if (tabId) {
+        chrome.tabs.remove(tabId, () => {
+          const erroRemove = chrome.runtime.lastError;
+          if (erroRemove) {
+            console.warn("[EFFRAIM/bg] Falha ao fechar aba do sender.", erroRemove);
+            sendResponse({ ok: false, erro: erroRemove.message || "falha_fechar_aba_sender" });
+            return;
+          }
+          console.info("[EFFRAIM/bg] Aba do sender fechada com sucesso.", { tabId });
+          sendResponse({ ok: true, via: "sender" });
+        });
+        return true;
+      }
+
+      chrome.tabs.query({ active: true, currentWindow: true }, (abas) => {
+        const erroQuery = chrome.runtime.lastError;
+        if (erroQuery) {
+          sendResponse({ ok: false, erro: erroQuery.message || "falha_tabs_query" });
+          return;
+        }
+        const ativa = abas?.[0];
+        if (!ativa?.id) {
+          sendResponse({ ok: false, erro: "aba_ativa_indisponivel" });
+          return;
+        }
+        chrome.tabs.remove(ativa.id, () => {
+          const erroRemove = chrome.runtime.lastError;
+          if (erroRemove) {
+            sendResponse({ ok: false, erro: erroRemove.message || "falha_fechar_aba_ativa" });
+            return;
+          }
+          console.info("[EFFRAIM/bg] Aba ativa fechada com sucesso (fallback).", { tabId: ativa.id });
+          sendResponse({ ok: true, via: "ativa_fallback" });
+        });
+      });
+    } catch (e) {
+      sendResponse({ ok: false, erro: String(e?.message || e) });
+    }
     return true;
   }
 

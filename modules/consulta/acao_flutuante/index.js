@@ -112,6 +112,27 @@ function aplicarConfiguracaoPainelPorAcao(manipulador) {
 	}
 }
 
+async function solicitarFechamentoGuiaAtual() {
+	logInfo("Solicitando fechamento da guia atual ao background...");
+	return await new Promise((resolve) => {
+		chrome.runtime.sendMessage({ type: "EFFRAIM_FECHAR_ABA_ATUAL" }, (resposta) => {
+			const erro = chrome.runtime.lastError;
+			if (erro) {
+				logWarn("Falha ao solicitar fechamento da guia atual.", { erro: erro.message || String(erro) });
+				resolve({ ok: false, erro: erro.message || "runtime_sendmessage_falhou" });
+				return;
+			}
+			if (!resposta?.ok) {
+				logWarn("Background recusou fechamento da guia atual.", resposta);
+				resolve({ ok: false, erro: resposta?.erro || "fechamento_rejeitado" });
+				return;
+			}
+			logInfo("Background confirmou fechamento da guia atual.", resposta);
+			resolve({ ok: true });
+		});
+	});
+}
+
 async function aplicarComportamentoDoManipuladorNoIframe() {
 	const manipulador = iframe?.__effraimManipuladorAtual || manipuladorAtual;
 	if (!manipulador || typeof manipulador.aoCarregarIframe !== "function") return;
@@ -123,7 +144,8 @@ async function aplicarComportamentoDoManipuladorNoIframe() {
 			iframe,
 			documento,
 			janela: iframe.contentWindow,
-			atualizarStatus
+			atualizarStatus,
+			solicitarFechamentoGuia: solicitarFechamentoGuiaAtual
 		});
 		logInfo("Comportamento específico do manipulador aplicado.", {
 			manipulador: manipulador.id || "padrao"

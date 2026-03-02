@@ -1,6 +1,8 @@
 const MAPEAMENTO_ACOES = {
 	processo_enviar_email_listar: () => import("./manipuladores/processo_enviar_email_listar.js"),
-	arvore_documento_listar: () => import("./manipuladores/arvore_documento_listar.js")
+	arvore_documento_listar: () => import("./manipuladores/arvore_documento_listar.js"),
+	"baixa_definitiva_de_processo/index": () => import("./manipuladores/baixa_definitiva_de_processo.js"),
+	baixa_definitiva_de_processo: () => import("./manipuladores/baixa_definitiva_de_processo.js")
 };
 
 export async function obterManipuladorAcao(chaveAcao) {

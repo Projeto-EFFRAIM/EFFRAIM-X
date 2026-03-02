@@ -224,7 +224,7 @@ export function criarPainelFlutuante({
   botao,
   secoes,
   id = "effraim-painel-flutuante",
-  posicionamentoSecao = "ancora_subindo"
+  posicionamentoSecao = "meio_viewport"
 }) {
   if (!id || !botao || !Array.isArray(secoes)) return null;
 
@@ -291,7 +291,10 @@ export function criarPainelFlutuante({
     const painelRect = painel.getBoundingClientRect();
     const baseOriginal = painelRect.top + painel.scrollHeight + 8;
     const vh = window.innerHeight || document.documentElement.clientHeight || 800;
-    const usarMeioViewport = posicionamentoSecao === "meio_viewport";
+    const modoPosicionamento = posicionamentoSecao === "ancora_subindo"
+      ? "ancora_subindo"
+      : "meio_viewport";
+    const usarMeioViewport = modoPosicionamento === "meio_viewport";
     const base = Math.max(48, baseOriginal + 15);
     const baseMinViewport = Math.round(vh * 0.35);
     const deslocamentoSubida = usarMeioViewport ? 0 : Math.round(vh * 0.30);
