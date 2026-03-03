@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Lista de Processos - Ambiente de Treino</title>
+  <style>
+    :root {
+      color-scheme: light;
+      font-family: Arial, sans-serif;
+    }
+    body {
+      margin: 16px;
+      background: #f4f7fb;
+      color: #17364a;
+    }
+    .pagina {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    .topo {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 12px;
+      padding: 10px 12px;
+      border: 1px solid #c9d7e2;
+      border-radius: 8px;
+      background: #ffffff;
+    }
+    .topo h1 {
+      margin: 0;
+      font-size: 18px;
+    }
+    .topo p {
+      margin: 0;
+      font-size: 13px;
+      color: #3c5e74;
+    }
+    .cartao {
+      border: 1px solid #c9d7e2;
+      border-radius: 8px;
+      background: #ffffff;
+      margin-bottom: 12px;
+      overflow: hidden;
+    }
+    .cartao-conteudo {
+      padding: 12px;
+    }
+    #divPaginacao {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+    #divPaginacao > div {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    #tblProcessoLista {
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+    }
+    #tblProcessoLista th,
+    #tblProcessoLista td {
+      border: 1px solid #d8e1e8;
+      padding: 8px;
+      vertical-align: top;
+      font-size: 12px;
+    }
+    #tblProcessoLista th {
+      background: #edf4f9;
+      text-align: left;
+    }
+    #tblProcessoLista_length {
+      margin-top: 10px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+    }
+    #tblProcessoLista_length select {
+      padding: 2px 6px;
+      min-width: 90px;
+    }
+  </style>
+</head>
+<body>
+  <main class="pagina">
+    <section class="topo">
+      <div>
+        <h1>Lista de Processos (Treino)</h1>
+        <p>Pagina anonimizada para demonstracao dos tutoriais.</p>
+      </div>
+      <strong>Dados ficticios</strong>
+    </section>
+
+    <section class="cartao">
+      <div class="cartao-conteudo">
+        <div id="divPaginacao" aria-label="Tipo de paginacao">
+          <div id="divDesPaginacao"><strong>Tipo de paginacao</strong></div>
+          <div>
+            <input type="radio" name="paginacao" id="optPaginacao25" value="25" checked />
+            <label id="lblPaginacao25" for="optPaginacao25">25 processos por pagina</label>
+          </div>
+          <div>
+            <input type="radio" name="paginacao" id="optPaginacao50" value="50" />
+            <label id="lblPaginacao50" for="optPaginacao50">50 processos por pagina</label>
+          </div>
+          <div>
+            <input type="radio" name="paginacao" id="optPaginacao100" value="100" />
+            <label id="lblPaginacao100" for="optPaginacao100">100 processos por pagina</label>
+          </div>
+        </div>
+
+        <table id="tblProcessoLista" aria-label="Tabela de processos">
+          <thead>
+            <tr>
+              <th style="width: 16%;">Processo</th>
+              <th style="width: 18%;">Classe</th>
+              <th style="width: 20%;">Parte autora</th>
+              <th style="width: 20%;">Parte re</th>
+              <th style="width: 26%;">Resumo</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>5000001-11.2026.4.00.0001</td>
+              <td>Procedimento comum</td>
+              <td>Parte Autora 01</td>
+              <td>Parte Re 01</td>
+              <td>
+                Texto longo de exemplo para demonstrar a compactacao da celula. Este bloco foi criado apenas para treino,
+                sem qualquer referencia real de pessoa, orgao, unidade ou dado sensivel.
+              </td>
+            </tr>
+            <tr>
+              <td>5000002-22.2026.4.00.0001</td>
+              <td>Juizado especial</td>
+              <td>Parte Autora 02</td>
+              <td>Parte Re 02</td>
+              <td>
+                Outro texto comprido para forcar o modo compacto e permitir a demonstracao de abrir no hover, abrir todos
+                e recolher novamente conforme o estado da chave de expansao global.
+              </td>
+            </tr>
+            <tr>
+              <td>5000003-33.2026.4.00.0001</td>
+              <td>Cumprimento de sentenca</td>
+              <td>Parte Autora 03</td>
+              <td>Parte Re 03</td>
+              <td>
+                Exemplo adicional com descricao extensa. O foco desta tela e apenas permitir o comportamento visual da
+                funcionalidade, mantendo uma base limpa, leve e completamente anonimizada.
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div id="tblProcessoLista_length">
+          <label for="selPaginacaoTabela">Itens por pagina:</label>
+          <select id="selPaginacaoTabela" aria-label="Itens por pagina">
+            <option value="25" selected>25</option>
+            <option value="50">50</option>
+            <option value="100">100</option>
+          </select>
+        </div>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

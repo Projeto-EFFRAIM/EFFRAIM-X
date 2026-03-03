@@ -1,0 +1,526 @@
+
+
+<html class="htmlgraf">
+	<head>
+        <meta charset="UTF-8"/>
+        <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+        <meta name="viewport" content="width=device-width, initial-scale=1"/>
+        <meta http-equiv="cache-control" content="no-cache">
+		<title>Painel de Indicadores - Seções Judiciárias</title>
+
+        <link href="/css/font-awesome/css/font-awesome.min.css" rel="stylesheet" />
+        <link href="/css/bootstrap/css/bootstrap.min.css" rel="stylesheet" />
+        <link href="/css/select2/select2.min.css" rel="stylesheet" />
+        <link rel="stylesheet" href="/js/ms/multiple-select.min.css" />
+        <link href="IndCorregedoria.css?3.1" rel="stylesheet" />
+
+        <script src="/js/jquery/jquery.min.js"></script>
+        <script src="/js/jquery-ui/jquery-ui.js"></script>
+        <script src="/js/dt/moment/moment.min.js"></script>
+        <script src="/js/dt/moment/moment-ptbr.js"></script>
+        <script src="/css/bootstrap/js/bootstrap.min.js"></script>
+        <script src="/js/select2/select2.min.js"></script>
+        <script src="/js/select2/select2.full.min.js"></script>
+        <script src="/js/ms/multiple-select.min.js"></script>
+        <script src="/js/charts/loader.js"></script>
+        <script src="/js/utils/bibl.js"></script>
+        <script type="module" src="IndCorregedoria.js?4.8"></script>
+        <script async src="https://www.googletagmanager.com/gtag/js?id=G-MLFJ4MG2WY"></script>
+        
+        <script>
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', 'G-MLFJ4MG2WY');
+        </script>
+	</head>
+	
+	<body>
+        <form id="form1">
+            <div class="aguarde">
+                <i class="fa fa-spin circle-spinner-colorido"></i> 
+            </div>
+
+		    <div id="app">
+			    <div class="barra-superior" style="background: #002F6C;"> 
+                    <div class="icone-titulo-subtitulo">
+					    <img src="/Images/trf2-IndCorregedoria.png"> 
+					    <div class="titulo-subtitulo">
+						    <h5 class="titulo-ampliado">Painel de Indicadores da Corregedoria<br />Seções</h5> 
+                        </div>
+                    </div>
+
+                    <div class="filtros-painel" style="display:inline-block;">
+						<div class="seletor-variacao2">
+							<input type="radio" name="painel" id="painel1" checked="checked" class="with-gap" value="Seção"> 
+							<label for="painel1">Seção</label>
+							<input type="radio" name="painel" id="painel2" class="with-gap" value="TR">
+							<label for="painel2">TR</label>
+						</div>
+                    </div>
+
+                    <div class="filtros-orgao" style="display:inline-block;">
+						<div class="seletor-variacao2">
+							<input type="radio" name="orgao" id="orgao1" class="with-gap" value="51"> 
+							<label for="orgao1">SJRJ</label>
+							<input type="radio" name="orgao" id="orgao2" class="with-gap" value="50">
+							<label for="orgao2">SJES</label>
+						</div>
+                    </div>
+
+                    <div class="form-group filtro-vara">
+                        <select id="vara" class="form-control"></select> 
+                    </div>
+
+                    <div class="historico" title="Histórico de magistrados">
+                        <a id="hrefHistorico">
+                            <span></span>
+                        </a>
+                    </div>                        
+    			</div>
+
+    		    <div class="conteudo">
+                    <div class="bem-vindo">
+                        <i class="fa fa-pie-chart fa-4x icone-bem-vindo">&nbsp;</i>
+                        <i class="fa fa-th-list fa-4x icone-bem-vindo">&nbsp;</i>
+                        <i class="fa fa-bar-chart fa-4x icone-bem-vindo"></i>
+                        <h2 class="selecione-vara">Selecione uma vara no campo superior para exibir as informações.</h2>
+                        <h5 class="use-chrome">Para um melhor desempenho, recomenda-se o uso dos navegadores</h5>
+                        <h6 style="font-size:15px;"><a target="_blank" href="../RedirecionadorLinks/?nav=chrome">Google Chrome</a>, 
+                        <a target="_blank" href="../RedirecionadorLinks/?nav=edge">Microsoft Edge Chromium</a> e 
+                        <a target="_blank" href="../RedirecionadorLinks/?nav=firefox">Mozilla Firefox</a></h6>
+                    </div>
+
+                    <div id="manutencao">
+                        <i class="fa fa-pie-chart fa-4x icone-bem-vindo">&nbsp;</i>
+                        <i class="fa fa-th-list fa-4x icone-bem-vindo">&nbsp;</i>
+                        <i class="fa fa-bar-chart fa-4x icone-bem-vindo"></i>
+                        <h2 class="selecione-vara">Painel de Indicadores da SJRJ em manutenção.</h2>
+                    </div>
+
+                    <div class="row">
+                        <div class="galeria-outer">
+                            <div class="galeria-inner col-xs-12 col-sm-6 col-md-2"></div>
+                        </div>
+
+                        <div id="dtAtualizacao"></div>
+                            
+                        <div id="divDados">
+                		    <div class="col-lg-4 col-sm-6 col-xs-12">
+						        <div class="quadro">
+							        <div class="barra-titulo-grafico" style="background: rgb(56, 142, 60);">
+								        <div class="titulo-grafico2">Acervo</div> 
+                                        <div class="subtitulo-link">
+                                            <a id="hrefAcervo" style="color:white">
+                                                <i class="fa fa-bar-chart fa-card"></i>
+                                            </a>
+								        </div> 
+                                    </div>
+								    <div class="spinner">
+									    <i class="fa fa-spin circle-spinner"></i>
+								    </div>
+                                    <div id="cg1" class="conteudo-grafico">
+                                        <div id="g1" class="grafico"></div>
+                                        <div class="rodape-grafico">
+                                            <div class="total">
+                                                <span id="total1"></span>
+                                            </div>
+                                        </div>
+                                    </div>                      
+                                    <div id="errog1" class="erro-grafico">
+                                        <span class="erroSpan" id="erro1"></span>
+                                    </div>
+                                </div>
+						    </div>
+						
+                		    <div class="col-lg-4 col-sm-6 col-xs-12">
+						        <div class="quadro">
+							        <div class="barra-titulo-grafico" style="background: rgb(56, 142, 60);">
+								        <div class="titulo-grafico2">Tipo de Suspensão</div> 
+                                    </div>
+								    <div class="spinner">
+									    <i class="fa fa-spin circle-spinner"></i>
+								    </div>
+                                    <div id="cg16" class="conteudo-grafico">
+                                        <div id="g16" class="grafico"></div>
+                                    </div>                      
+                                    <div id="errog16" class="erro-grafico">
+                                        <span class="erroSpan" id="erro16"></span>
+                                    </div>
+                                </div>
+						    </div>
+
+                		    <div class="col-lg-4 col-sm-6 col-xs-12">
+							    <div class="quadro">
+								    <div class="barra-titulo-grafico" style="background: rgb(123, 31, 162);">
+									    <div class="titulo-grafico2">Acervo por Ano de Autuação</div> 
+									    <div class="subtitulo-grafico">
+                                            <select class="form-control-sm" data-placeholder="Selecione uma ou mais Situações" multiple="multiple" id="slcSituacao">
+                                                <option value="1">Trâmite</option>
+                                                <option value="2">Sem Sentença</option>
+                                                <option value="3">Concluso</option>
+                                            </select>
+									    </div> 
+								    </div>
+								    <div class="spinner">
+									    <i class="fas fa-spin circle-spinner"></i>
+								    </div>
+                                    <div id="cg2" class="conteudo-grafico">
+                                        <span id="annotation1"></span>
+                                        <div id="g2" class="grafico"></div>
+                                        <div class="rodape-grafico">
+                                            <div class="total">
+                                                <span id="total2"></span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div id="errog2" class="erro-grafico">
+                                        <span class="erroSpan" id="erro2"></span>
+                                    </div>
+							    </div>
+						    </div>
+
+                		    <div class="col-lg-4 col-sm-6 col-xs-12">
+							    <div class="quadro">
+								    <div class="barra-titulo-grafico" style="background: rgb(25, 118, 210);">
+									    <div class="titulo-grafico2">Conclusos x Não Conclusos</div> 
+								    </div>
+								    <div class="spinner">
+    								    <i class="fa fa-spin circle-spinner"></i>
+								    </div>
+                                    <div id="cg3" class="conteudo-grafico">
+                                        <div id="g3" class="grafico"></div>
+                                        <div class="rodape-grafico">
+                                            <div class="total">
+                                                <span id="total3"></span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div id="errog3" class="erro-grafico">
+                                        <span class="erroSpan" id="erro3"></span>
+                                    </div>
+			    			    </div>
+				    	    </div>
+
+                		    <div class="col-lg-4 col-sm-6 col-xs-12">
+							    <div class="quadro">
+							        <div class="barra-titulo-grafico" style="background: rgb(81, 45, 168);">
+								        <div class="titulo-grafico2">Conclusos (Fase 11)</div> 
+                                        <div class="subtitulo-link">
+                                            <a id="hrefFluxoConclusos">
+                                                <i class="fa fa-bar-chart fa-card"></i>
+                                            </a>
+                                        </div>
+								    </div>
+								    <div class="spinner">
+									    <i class="fas fa-spin circle-spinner"></i>
+								    </div>
+                                    <div id="cg4" class="conteudo-grafico">
+                                        <div id="g4" class="grafico"></div>
+                                        <div class="rodape-grafico">
+                                            <div class="total">
+                                                <span id="total4"></span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div id="errog4" class="erro-grafico">
+                                        <span class="erroSpan" id="erro4"></span>
+                                    </div>
+			    			    </div>
+				    	    </div>
+
+                		    <div class="col-lg-4 col-sm-6 col-xs-12">
+							    <div class="quadro">
+							        <div class="barra-titulo-grafico" style="background: rgb(0, 121, 107);">
+								        <div class="titulo-grafico2">Conclusão Vencida</div>
+                                        <div class="subtitulo-link">
+                                             <i class="fa fa-info-circle" onclick="event.stopPropagation(); window.open('/arquivos/legendas/PainelIndicadores/inf_conclusao_vencida.html?1.3','_blank', 
+                                                'toolbar=yes,scrollbars=yes,resizable=yes,top=250,left=400,width=600,height=600');">
+                                            </i>
+                                            <a id="hrefConcVenc" style="color:white;margin-left:5px">
+                                                <i class="fa fa-bar-chart fa-card"></i>
+                                            </a>
+
+                                        </div>
+									    <div class="subtitulo-grafico">
+                                            <select class="form-control-sm" data-placeholder="Todos os Magistrados" id="slcMagistrado">
+                                            </select>
+									    </div> 
+								    </div>
+								    <div class="spinner">
+									    <i class="fa fa-spin circle-spinner"></i>
+								    </div>
+                                    <div id="cg5" class="conteudo-grafico">
+                                        <div id="g5" class="grafico"></div>
+                                        <div class="rodape-grafico">
+                                            <div class="total">
+                                                <span id="total5"></span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div id="errog5" class="erro-grafico">
+                                        <span class="erroSpan" id="erro5"></span>
+                                    </div>
+			    			    </div>
+				    	    </div>
+
+                		    <div class="col-lg-4 col-sm-6 col-xs-12">
+							    <div class="quadro">
+							        <div class="barra-titulo-grafico" style="background: rgb(211, 47, 47);">
+								        <div class="titulo-grafico2">Parados Não Conclusos</div> 
+                                        <div class="subtitulo-link">
+                                            <a id="hrefParadosNaoConc" style="color:white">
+                                                <i class="fa fa-bar-chart fa-card"></i>
+                                            </a>
+                                        </div>
+                                        <div class="subtitulo-grafico">
+                                            <span class="">Prazo aberto:</span>    
+									        <label class="prazo_aberto_graf6">Sim
+										        <input type="checkbox" name="prazo_aberto_graf6" id="prazo_aberto_sim_graf6" value="Sim"> 
+										        <span class="checkmark"></span>
+									        </label>
+									        <label class="prazo_aberto_graf6">Não
+										        <input type="checkbox" name="prazo_aberto_graf6" id="prazo_aberto_nao_graf6" value="Não">
+										        <span class="checkmark"></span>
+									        </label>
+                                        </div>
+								    </div>
+
+								    <div class="spinner">
+									    <i class="fas fa-spin circle-spinner"></i>
+								    </div>
+                                    <div id="cg6" class="conteudo-grafico">
+                                        <div id="g6" class="grafico"></div>
+                                        <div class="rodape-grafico">
+                                            <div class="total">
+                                                <span id="total6"></span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div id="errog6" class="erro-grafico">
+                                        <span class="erroSpan" id="erro6"></span>
+                                    </div>
+			    			    </div>
+				    	    </div>						
+
+                		    <div class="col-lg-4 col-sm-6 col-xs-12">
+							    <div class="quadro">
+							        <div class="barra-titulo-grafico" style="background: rgb(50,72,141);">
+								        <div class="titulo-grafico2">Total de Entradas</div> 
+                                        <div class="subtitulo-link">
+                                            <a id="hrefEntradas" style="color:white">
+                                                <i class="fa fa-bar-chart fa-card"></i>
+                                            </a>
+								        </div> 
+                                        <div class="subtitulo-grafico">
+									        <div class="seletor-variacao">
+										        <input type="radio" name="variacao_graf7" id="mes_corrente_graf7" class="with-gap"> 
+										        <label for="mes_corrente_graf7"></label>
+									        </div>
+									        <div class="seletor-variacao">
+										        <input type="radio" name="variacao_graf7" id="mes_anterior_graf7" class="with-gap">
+										        <label for="mes_anterior_graf7"></label>
+									        </div>
+                                        </div>
+		    					    </div>
+								    <div class="spinner">
+									    <i class="fas fa-spin circle-spinner"></i>
+								    </div>
+                                    <div id="cg7" class="conteudo-grafico">
+                                        <div id="g7" class="grafico"></div>
+                                        <div class="rodape-grafico">
+                                            <div class="total">
+                                                <span id="total7"></span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div id="errog7" class="erro-grafico">
+                                        <span class="erroSpan" id="erro7"></span>
+                                    </div>
+			    			    </div>
+				    	    </div>						
+
+                		    <div class="col-lg-4 col-sm-6 col-xs-12">
+							    <div class="quadro">
+							        <div class="barra-titulo-grafico" style="background: rgb(61,102,71);">
+								        <div class="titulo-grafico2">Total de Saídas</div> 
+                                        <div class="subtitulo-link">
+                                            <a id="hrefSaidas" style="color:white">
+                                                <i class="fa fa-bar-chart fa-card"></i>
+                                            </a>
+								        </div> 
+
+                                        <div class="subtitulo-grafico">
+									        <div class="seletor-variacao">
+										        <input type="radio" name="variacao_graf8" id="mes_corrente_graf8" class="with-gap"> 
+										        <label for="mes_corrente_graf8"></label>
+									        </div>
+									        <div class="seletor-variacao">
+										        <input type="radio" name="variacao_graf8" id="mes_anterior_graf8" class="with-gap">
+										        <label for="mes_anterior_graf8"></label>
+									        </div>
+                                        </div>
+		    					    </div>
+								    <div class="spinner">
+									    <i class="fas fa-spin circle-spinner"></i>
+								    </div>
+                                    <div id="cg8" class="conteudo-grafico">
+                                        <div id="g8" class="grafico"></div>
+                                        <div class="rodape-grafico">
+                                            <div class="total">
+                                                <span id="total8"></span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div id="errog8" class="erro-grafico">
+                                        <span class="erroSpan" id="erro8"></span>
+                                    </div>
+		    				    </div>
+				    	    </div>						
+
+                		    <div class="col-lg-4 col-sm-6 col-xs-12">
+							    <div class="quadro">
+							        <div class="barra-titulo-grafico" style="background: rgb(0, 121, 107);">
+								        <div class="titulo-grafico2">Produtividade</div>
+                                        <div class="subtitulo-link">
+                                            <a id="hrefProdutividade">
+                                                <i class="fa fa-bar-chart fa-card"></i>
+                                            </a>
+								        </div> 
+                                        
+                                        <div class="subtitulo-grafico">
+									        <div class="seletor-variacao">
+										        <input type="radio" name="variacao_graf9" id="mes_corrente_graf9" class="with-gap"> 
+										        <label for="mes_corrente_graf9"></label>
+									        </div>
+									        <div class="seletor-variacao">
+										        <input type="radio" name="variacao_graf9" id="mes_anterior_graf9" class="with-gap">
+										        <label for="mes_anterior_graf9"></label>
+									        </div>
+                                        </div>
+		    					    </div>
+								    <div class="spinner">
+									    <i class="fas fa-spin circle-spinner"></i>
+								    </div>
+                                    <div id="cg9" class="conteudo-grafico">
+                                        <div id="g9" class="grafico"></div>
+                                        <div class="rodape-grafico">
+                                            <div class="total">
+                                                <span id="total9"></span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div id="errog9" class="erro-grafico">
+                                        <span class="erroSpan" id="erro9"></span>
+                                    </div>
+						        </div>
+						    </div>	
+
+                		    <div class="col-lg-4 col-sm-6 col-xs-12">
+							    <div class="quadro">
+							        <div class="barra-titulo-grafico" style="background: rgb(99, 98, 44);">
+								        <div class="titulo-grafico">Metas 2026</div> 
+								    </div>
+								    <div class="spinner">
+									    <i class="fas fa-spin circle-spinner"></i>
+								    </div>
+                                    <div id="cg11" class="conteudo-grafico">
+                                        <div id="g11" class="grafico"></div>
+                                    </div>
+                                    <div id="errog11" class="erro-grafico">
+                                        <span class="erroSpan" id="erro11"></span>
+                                    </div>
+			    			    </div>
+				    	    </div>
+
+                		    <div class="col-lg-4 col-sm-6 col-xs-12">
+							    <div class="quadro">
+							        <div class="barra-titulo-grafico" style="background: rgb(210, 180, 140);">
+								        <div class="titulo-grafico">Metas 1 e 2 (2026)</div> 
+								    </div>
+								    <div class="spinner">
+									    <i class="fas fa-spin circle-spinner"></i>
+								    </div>
+                                    <div id="cg12" class="conteudo-grafico gauge">
+                                        <div id="g12" class="grafico"></div>
+                                    </div>
+                                    <div id="errog12" class="erro-grafico">
+                                        <span class="erroSpan" id="erro12"></span>
+                                    </div>
+			    			    </div>
+				    	    </div>
+
+                		    <div class="col-lg-4 col-sm-6 col-xs-12">
+							    <div class="quadro">
+							        <div class="barra-titulo-grafico" style="background: #e30052;">
+								        <div class="titulo-grafico">Metas 2025</div> 
+								    </div>
+								    <div class="spinner">
+									    <i class="fas fa-spin circle-spinner"></i>
+								    </div>
+                                    <div id="cg10" class="conteudo-grafico">
+                                        <div id="g10" class="grafico"></div>
+                                    </div>
+                                    <div id="errog10" class="erro-grafico">
+                                        <span class="erroSpan" id="erro10"></span>
+                                    </div>
+			    			    </div>
+				    	    </div>
+
+                		    <div class="col-lg-4 col-sm-6 col-xs-12">
+							    <div class="quadro">
+							        <div class="barra-titulo-grafico" style="background: #e2725b;">
+								        <div class="titulo-grafico">Metas 2024</div> 
+								    </div>
+								    <div class="spinner">
+									    <i class="fas fa-spin circle-spinner"></i>
+								    </div>
+                                    <div id="cg13" class="conteudo-grafico">
+                                        <div id="g13" class="grafico"></div>
+                                    </div>
+                                    <div id="errog13" class="erro-grafico">
+                                        <span class="erroSpan" id="erro13"></span>
+                                    </div>
+			    			    </div>
+				    	    </div>
+
+                		    <div class="col-lg-4 col-sm-6 col-xs-12">
+							    <div class="quadro">
+							        <div class="barra-titulo-grafico" style="background: #e2725b;">
+								        <div class="titulo-grafico">Segredo de Justiça</div> 
+								    </div>
+								    <div class="spinner">
+									    <i class="fas fa-spin circle-spinner"></i>
+								    </div>
+                                    <div id="cg14" class="conteudo-grafico">
+                                        <div id="g14" class="grafico"></div>
+                                    </div>
+                                    <div id="errog14" class="erro-grafico">
+                                        <span class="erroSpan" id="erro14"></span>
+                                    </div>
+			    			    </div>
+				    	    </div>
+
+                		    <div class="col-lg-4 col-sm-6 col-xs-12">
+							    <div class="quadro">
+							        <div class="barra-titulo-grafico" style="background: #e2725b;">
+								        <div class="titulo-grafico">Ações e Situações Sujeitas à Verificação Obrigatória</div> 
+								    </div>
+								    <div class="spinner">
+									    <i class="fas fa-spin circle-spinner"></i>
+								    </div>
+                                    <div id="cg15" class="conteudo-grafico">
+                                        <div id="g15" class="grafico"></div>
+                                    </div>
+                                    <div id="errog15" class="erro-grafico">
+                                        <span class="erroSpan" id="erro15"></span>
+                                    </div>
+			    			    </div>
+				    	    </div>
+                        </div>									
+				    </div>
+                </div>
+            </div>
+        </form>
+	</body>
+</html>	

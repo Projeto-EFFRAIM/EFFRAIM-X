@@ -1,0 +1,224 @@
+CHECKLIST DE NOVA FUNCIONALIDADE (EFFRAIM-X)
+
+0) Leitura obrigatória de arquitetura (primeiro passo)
+- A primeira ação antes de analisar/planejar/codar deve ser ler `assets/componentes_sistema.txt`.
+- Ao concluir uma funcionalidade (nova ou alteração relevante), atualizar `assets/componentes_sistema.txt` para manter o catálogo de componentes coerente com o sistema real.
+
+1) Configuração
+- Criar/confirmar chave em configuracoes.json dentro de funcionalidades_ativas.
+- Incluir valor e _meta (nome + explicacao) para aparecer corretamente nas preferências.
+
+2) Rota de ativação
+- Registrar no array rotas em content/eproc_init.js:
+  - cond
+  - modulo
+  - nome
+  - titulo
+
+3) Coerência nome <-> configuração
+- Garantir que rotas[].nome seja idêntico à chave em funcionalidades_ativas.
+- O filtro é feito por verificarRotasAtivas (modules/utils/rotas.js).
+
+4) Módulo
+- Garantir que o arquivo do módulo exista e seja importável via chrome.runtime.getURL(...).
+- Exportar função init() no módulo.
+
+5) Ícone do botão
+- Adicionar assets/icones/<nome>.png.
+- O botão no painel principal usa esse padrão de nome.
+
+6) Manifest / permissões
+- Se a funcionalidade usar novo domínio:
+  - atualizar host_permissions em manifest.json.
+  - atualizar web_accessible_resources (se necessário).
+
+7) Storage sync
+- Avaliar impacto no chrome.storage.sync (limites de quota).
+- Usar verificarUsoSync durante desenvolvimento/validação.
+- Persistir configurações em múltiplas chaves no `chrome.storage.sync` (por seções/partes), evitando item único gigante (`effraim_configuracoes`).
+- Para favoritos do painel inicial + coloridos, manter armazenamento chunkado em no máximo 3 chaves fixas no sync (com migração compatível quando necessário).
+
+8) Segurança de desenvolvimento
+- Em produção, remover/comentar await zerarConfiguracoes(); em content/eproc_init.js.
+- Manter zerar configuracoes apenas para testes controlados.
+
+9) Validação manual mínima
+- Confirmar que o botão aparece na rota correta.
+- Confirmar que o toggle em preferências habilita/desabilita a funcionalidade.
+- Confirmar que init() executa sem erro no console.
+- Confirmar que não houve regressão nas funcionalidades já ativas.
+
+10) Organização de arquivos grandes
+- Quando um arquivo crescer demais, dividir em módulos menores.
+- Criar subpastas por domínio/etapa (ex.: consulta/requisitorio/) para separar responsabilidades.
+- Priorizar arquivos curtos e focados para facilitar leitura, revisão e manutenção.
+- Evitar concentrar fluxos longos em um único arquivo (referência prática: acima de ~350-400 linhas, avaliar extração).
+- Regra prática de manutenção: manter arquivos preferencialmente até cerca de 500 linhas; acima disso, refatorar em submódulos (salvo exceções justificadas).
+
+11) Barrel de utilitários
+- O arquivo funcoes.js é o barrel file do projeto para utilitários.
+- Sempre exportar novos utils por modules/utils/* e agregá-los em funcoes.js para manter padrão único de importação.
+
+12) Tutorial por funcionalidade
+- Sempre criar/atualizar o tutorial da funcionalidade assim que ela estiver concluída (tanto em criação quanto em alteração).
+- Ao concluir a funcionalidade, perguntar explicitamente ao usuário: "Já é hora de criar o tutorial desta funcionalidade?" antes de iniciar o material.
+- O tutorial deve ser explicativo ao ponto de servir como documentação da funcionalidade.
+- O tutorial não deve listar parâmetros de funções; deve focar em como a funcionalidade funciona, comportamento esperado e limitações.
+- Usar linguagem de usuário final (não técnica): preferir termos como campo, ícone, área e painel deslizante; evitar jargões de implementação.
+- É proibido usar no texto do tutorial termos técnicos de implementação (ex.: rota, flag, página-tipo, bootstrap, runtime, seletor, módulo).
+- Quando precisar mencionar execução guiada, usar termos de uso real (ex.: tela de treino, passo a passo, botão de iniciar, área principal).
+- Diferenciar claramente:
+  - Ajuda: instruções rápidas, contextuais e objetivas para destravar o uso imediato.
+  - Tutorial: fluxo guiado completo da funcionalidade (visão geral, uso, limitações e boas práticas).
+- Sempre manter coerência entre Ajuda e Tutorial para evitar instruções conflitantes.
+
+13) CSS por funcionalidade
+- Cada nova funcionalidade deve criar seu próprio arquivo `.css`.
+- Na implementação de interface, priorizar classes CSS da funcionalidade e evitar estilo inline repetido.
+- Ao criar novos elementos web, considerar desde o início o acoplamento com o CSS da própria funcionalidade.
+
+14) Tutoriais por página-tipo (rota com flag)
+- Para tutoriais vivos/simulados, organizar por página-tipo (ex.: painel inicial, consulta processual, lista de processos).
+- Usar rota de tutorial com flag explícita (`effraim_tutorial=1`) para separar modo de treino do modo normal.
+- Manter mapeamento entre tutorial e página-tipo em arquivo central do tutorial runner.
+- Priorizar reaproveitamento do init real da extensão no modo tutorial, evitando duplicar regras de negócio.
+
+15) Anonimização dos HTMLs de tutorial
+- Na primeira captura de cada página-tipo usada no tutorial, anonimizar dados sensíveis antes de salvar.
+- Revisar especialmente: nomes de partes, números de documentos, números processuais sensíveis, valores e identificadores internos.
+- Registrar no arquivo da própria página (ou README da pasta) que a anonimização inicial foi concluída.
+
+16) Revisão periódica do checklist
+- Verificar periodicamente este checklist para manter aderência com a arquitetura e decisões mais recentes.
+- Sempre que houver mudança estrutural relevante (rotas, storage, UI, tutorial), atualizar imediatamente o checklist.
+- Pendências de produto/funcionalidade não devem ser registradas neste checklist; registrar em `assets/pendencias.txt`.
+
+17) Implementação prática de tutorial por página-tipo (padrão validado)
+- Usar `ajuda/tutorial_runner.html` com flag de rota `effraim_tutorial=1` e parâmetro `tipo=<pagina_tipo>`.
+- Guardar HTML da página-tipo em `ajuda/mock_pages/<tipo>/` junto da pasta `_files` associada (quando existir).
+- Antes de usar no runner, limpar a página-base para estado zero (sem EFFRAIM pré-injetado e sem links `chrome-extension://...` fixos).
+- No runner, carregar a página-base por `fetch`, sanitizar e renderizar em `iframe.srcdoc`:
+  - remover `<script>` da página salva;
+  - remover atributos inline `on*` (ex.: `onclick`, `onload`);
+  - neutralizar `javascript:` em `href/src`;
+  - injetar `<base href="...">` para preservar recursos relativos.
+- Após `load` do iframe sanitizado, injetar `content/eproc_init.js` (module) para subir o EFFRAIM com o bootstrap real.
+- No `eproc_init`, reconhecer modo tutorial via `effraim_tutorial=1` + `tipo`, com fallback de runtime (`chrome.runtime`) e sem depender exclusivamente da navbar.
+- Em modo tutorial, usar âncora fixa (`#effraim-tutorial-anchor`) para garantir que o painel EFFRAIM fique visível.
+
+18) Estratégia incremental de tutoriais
+- Quando o ciclo estiver longo, implementar e validar primeiro apenas um tutorial completo (inicialmente Requisitórios).
+- Depois de estabilizar, replicar o mesmo padrão para as demais funcionalidades.
+
+19) Tutoriais vivos por funcionalidade (mesma página-tipo)
+- Na página `ajuda/tutorial.html`, cada funcionalidade deve ter sua própria seção (card) e seu próprio botão "Iniciar Tutorial Guiado".
+- Não agrupar múltiplas funcionalidades em um único tutorial genérico de página.
+- Exemplo para consulta processual: `consulta_flutuante`, `sisbajud`, `renajud`, `requisitorios` com tutoriais separados.
+- Cada tutorial deve ter ID próprio no `data-tutorial` e mapeamento explícito em:
+  - `ajuda/tutorial.js` (tutorial -> tipo de página)
+  - `content/eproc_init.js` (tutorial -> módulo live_*_tour.js)
+  - `ajuda/tutorial_runner.js` (tutorial -> seletor de prontidão para disparo)
+
+20) Roteiro obrigatório de passo a passo
+- Todo tutorial deve demonstrar o fluxo completo da funcionalidade, não apenas destacar o botão.
+- Cada passo deve, quando necessário, executar ação real na interface (abrir painel, alternar opção, preencher campo, etc.).
+- O texto do passo deve explicar consequência da ação para o usuário (o que muda na tela e por quê).
+- Para funcionalidades com painel deslizante, incluir no mínimo:
+  - abertura do painel;
+  - uma interação interna relevante;
+  - resultado/estado final esperado.
+
+21) Observabilidade dos tutoriais (logs)
+- Manter logs com prefixo claro para diagnóstico rápido:
+  - runner: `[EFFRAIM tutorial_runner]`
+  - bootstrap: `[EFFRAIM tutorial_bootstrap]`
+- Logar no mínimo:
+  - parâmetros de entrada (`tipo`, `tutorial`, `flag`);
+  - carregamento/sanitização da página-base;
+  - injeção do `eproc_init`;
+  - envio/recebimento do evento de início do tutorial;
+  - falhas e timeouts de seletor de prontidão.
+
+22) Assets visuais de tutorial por página-tipo
+- Imagens e arquivos ilustrativos usados somente no tutorial devem ficar dentro da pasta da própria página-tipo em `ajuda/mock_pages/<tipo>/`.
+- Evitar salvar esse tipo de asset genérico em `assets/` quando ele for exclusivo de uma simulação de tutorial.
+- Exemplo validado: mock de Requisitórios em `ajuda/mock_pages/consulta_processual/mockreq.png`.
+
+23) Limpeza obrigatória de navegação nos HTMLs de tutorial
+- Em páginas salvas para tutorial, remover menu lateral, menu de fundo, mapa do site e quaisquer estruturas de navegação correlatas.
+- Remover também arquivos relacionados a esses blocos quando não forem necessários para a compreensão do tutorial.
+- Objetivo: manter apenas o conteúdo funcional que participa do passo a passo guiado.
+
+24) Observabilidade obrigatória de funcionalidades (logs)
+- Toda nova funcionalidade deve nascer com logs ricos desde o `init()` até os fluxos principais de interação.
+- Usar prefixo padronizado por funcionalidade para facilitar filtro no console (ex.: `[EFFRAIM acao_flutuante]`).
+- Logar no mínimo:
+  - detecção/registro de listeners;
+  - identificação de elementos-alvo no DOM;
+  - parâmetros críticos de entrada (URL, seletor, ação);
+  - decisões de controle de fluxo (fallbacks, bloqueios, early returns);
+  - sucesso e falha de carregamento (iframe, fetch, import, timeout).
+- Em problemas de produção, priorizar aumentar logs antes de refatorações grandes para reduzir tentativa e erro.
+
+25) Convenção de nomenclatura em português
+- Em novas implementações, priorizar nomes em português para variáveis, funções, arquivos e módulos.
+- Só manter termos em inglês quando houver ganho claro de legibilidade, compatibilidade externa ou padrão consolidado do ecossistema.
+- Ao criar estruturas extensíveis (ex.: mapeadores/registradores de funcionalidades), usar nomes autoexplicativos em português.
+
+26) Padrão Ação Flutuante (botões do fieldset Ações)
+- Para funcionalidades do fieldset `#fldAcoes`, usar um único módulo base `acao_flutuante` com painel único compartilhado.
+- Não criar um botão EFFRAIM para cada ação do fieldset; o gatilho deve ser o clique no botão nativo do eproc.
+- Ao clicar em um botão de ação:
+  - ancorar o painel imediatamente abaixo do botão clicado;
+  - carregar no mesmo iframe o link correspondente ao botão clicado.
+- Ao trocar de botão, reutilizar o mesmo painel/iframe (sem multiplicar painéis).
+- Manter estrutura extensível por ação:
+  - `modules/consulta/acao_flutuante/mapeamento_acoes.js` (mapeia ação -> manipulador);
+  - `modules/consulta/acao_flutuante/manipuladores/<acao>.js` (comportamento específico por botão);
+  - manipulador padrão para ações sem customização.
+- Regras de UX mínimas:
+  - painel permanece aberto durante uso (sem autoclose por hover/mouseleave);
+  - fechamento por clique fora, `Esc` ou toggle explícito da mesma ação.
+- Regras de observabilidade:
+- logs com prefixo `[EFFRAIM acao_flutuante]`;
+- registrar detecção de clique, ação mapeada, URL final, carregamento do iframe e falhas.
+
+27) Regra de autorização antes de codar
+- É proibido iniciar implementação de código sem autorização explícita do usuário no turno atual.
+- Antes de qualquer edição de arquivo, confirmar autorização de forma objetiva.
+
+28) Regra de alinhamento antes de planejar nova funcionalidade
+- Em toda nova funcionalidade, perguntar primeiro "como você quer que seja feito?" antes de qualquer planejamento.
+- Não apresentar plano, arquitetura ou etapas sem esse alinhamento inicial do usuário.
+
+29) Regra de versionamento de arquivos novos (Git)
+- Todo arquivo novo criado durante a implementação deve ser adicionado ao track do Git (staged), salvo determinação explícita em contrário do usuário.
+- Ao final da implementação, conferir se não restaram arquivos `untracked` relacionados à funcionalidade.
+
+30) Finalização de funcionalidade com Git add
+- Ao concluir qualquer funcionalidade (mesmo sem arquivo novo), executar `git add` dos arquivos alterados antes de encerrar a entrega.
+- Sempre confirmar no `git status --short` que os arquivos da funcionalidade ficaram staged.
+
+31) Orquestração central de painéis deslizantes
+- Toda interface de painel deslizante (inclusive painéis custom, como favoritos/painel inicial) deve integrar o helper central e o orquestrador de abertura/fechamento.
+- Ao abrir um painel novo, qualquer painel anterior deve fechar imediatamente, sem depender da rota.
+- Personalizações visuais por funcionalidade não podem sobrescrever o comportamento fundamental de orquestração.
+
+32) Padrão de dados estáticos para integrações externas (SISBAJUD/RENAJUD/INFOJUD etc.)
+- Quando houver listas estáveis de opções de sistemas externos, manter arquivo de apoio em `assets/preferencias/dados/`.
+- Usar arquivo único de dados padrão por integração (ex.: `*_dados_padrao.html`) para evitar arrays hardcoded no JS.
+- Em listas com código numérico, ordenar em ordem crescente de código antes de renderizar no campo de preferências.
+- Preferir campo com busca digitável na preferência e persistir apenas o valor necessário (ex.: código).
+
+33) Disparo automático por localizadores (util reutilizável)
+- Funcionalidades disparadas automaticamente a partir de localizadores do processo devem usar util compartilhado (ex.: `modules/utils/disparo_automatico_localizadores.js`).
+- Centralizar no util:
+  - normalização de textos dos localizadores;
+  - operação lógica (`OU` / `E`);
+  - fallback de alvos padrão;
+  - logs de avaliação do disparo.
+- Evitar duplicar essa lógica dentro de cada funcionalidade (ex.: Requisitórios, futuras automações por localizador).
+
+---
+Histórico de melhorias do checklist:
+- 22/02/2026: reforçada diretriz de storage sync segmentado (multichave) e limite de 3 chaves fixas para favoritos+coloridos.
