@@ -1,5 +1,8 @@
 import { inserir_aviso_effraim } from "../../utils/interface.js";
-import { normalizarTextoComparacao } from "../../utils/corregedoria_drill_filtros.js";
+import {
+	normalizarTextoComparacao,
+	extrairTagsFiltroParaGrupo
+} from "../../utils/corregedoria_drill_filtros.js";
 import {
 	escapeHtml,
 	escapeAttr,
@@ -99,13 +102,22 @@ export function criarWidget(wrap, deps) {
 		timerDebounceFiltroDias: null,
 		__drillCsvColunasSelecionadas: [],
 		__drillColunasDisponiveis: [],
-		__drillLinhasFiltradas: []
+		__drillLinhasFiltradas: [],
+		__dataAtualizacaoPainelBr: ""
 	};
 
 	const protegerCliqueCabecalho = (handler) => (event) => {
 		event?.preventDefault?.();
 		event?.stopPropagation?.();
 		return handler();
+	};
+
+	const obterGrupoResumoPorGid = (gid) => {
+		const grupos = Array.isArray(view.__gruposResumoAtuais) ? view.__gruposResumoAtuais : [];
+		return grupos.find((grupo) => {
+			const m = String(grupo?.id || "").match(/Grafico(\d+)/i);
+			return Number(m?.[1]) === Number(gid);
+		}) || null;
 	};
 
 	const renderizarMenuCsv = () => {
@@ -243,10 +255,33 @@ export function criarWidget(wrap, deps) {
 		}
 
 		try {
-			const tags = [];
-			view.__drillAberto = { gid, titulo, tags, tagsAtivas: [], linhas: [], diasMin: null, filtrosColunas: {}, buscasColunas: {}, faixaConclusos: null };
+			const grupoResumo = obterGrupoResumoPorGid(gid);
+			const tags = extrairTagsFiltroParaGrupo(grupoResumo);
+			view.__drillAberto = {
+				gid,
+				titulo,
+				tags,
+				tagsAtivas: [],
+				linhas: [],
+				diasMin: null,
+				dataBasePainel: view.__dataAtualizacaoPainelBr || "",
+				dataVenceAte: "",
+				filtrosColunas: {},
+				buscasColunas: {},
+				faixaConclusos: null
+			};
 			renderizarValores(view, view.__gruposResumoAtuais || []);
-			renderizarDrill(view, `${titulo}`, [], "", { gid, tags, tagsAtivas: [], diasMin: null, filtrosColunas: {}, buscasColunas: {}, faixaConclusos: null });
+			renderizarDrill(view, `${titulo}`, [], "", {
+				gid,
+				tags,
+				tagsAtivas: [],
+				diasMin: null,
+				dataBasePainel: view.__dataAtualizacaoPainelBr || "",
+				dataVenceAte: "",
+				filtrosColunas: {},
+				buscasColunas: {},
+				faixaConclusos: null
+			});
 			view.drillConteudo.innerHTML = `<div class="effraim-corregedoria__drill-carregando">Carregando...</div>`;
 			const favoritos = await lerFavoritosCorregedoria();
 			const linhas = await carregarDrillGrafico(favoritos, gid);
@@ -257,6 +292,8 @@ export function criarWidget(wrap, deps) {
 				tags: view.__drillAberto.tags || [],
 				tagsAtivas: view.__drillAberto.tagsAtivas || [],
 				diasMin: view.__drillAberto.diasMin,
+				dataBasePainel: view.__drillAberto.dataBasePainel || "",
+				dataVenceAte: view.__drillAberto.dataVenceAte || "",
 				filtrosColunas: view.__drillAberto.filtrosColunas || {},
 				buscasColunas: view.__drillAberto.buscasColunas || {},
 				faixaConclusos: view.__drillAberto.faixaConclusos || null
@@ -284,6 +321,8 @@ export function criarWidget(wrap, deps) {
 			tags: view.__drillAberto.tags || [],
 			tagsAtivas: view.__drillAberto.tagsAtivas || [],
 			diasMin: view.__drillAberto.diasMin,
+			dataBasePainel: view.__drillAberto.dataBasePainel || "",
+			dataVenceAte: view.__drillAberto.dataVenceAte || "",
 			filtrosColunas: view.__drillAberto.filtrosColunas || {},
 			buscasColunas: view.__drillAberto.buscasColunas || {},
 			faixaConclusos: view.__drillAberto.faixaConclusos || null
@@ -306,11 +345,21 @@ export function criarWidget(wrap, deps) {
 				tags: view.__drillAberto.tags || [],
 				tagsAtivas: view.__drillAberto.tagsAtivas || [],
 				diasMin: view.__drillAberto.diasMin,
+				dataBasePainel: view.__drillAberto.dataBasePainel || "",
+				dataVenceAte: view.__drillAberto.dataVenceAte || "",
 				filtrosColunas: view.__drillAberto.filtrosColunas || {},
 				buscasColunas: view.__drillAberto.buscasColunas || {},
 				faixaConclusos: view.__drillAberto.faixaConclusos || null
 			});
 		}, 2000);
+	});
+
+	view.drillConteudo?.addEventListener("change", (event) => {
+		const alvo = event.target instanceof Element ? event.target : null;
+		const inputVenceAte = alvo?.matches?.("[data-drill-vence-ate]") ? alvo : null;
+		if (!inputVenceAte || !view.__drillAberto) return;
+		view.__drillAberto.dataVenceAte = String(inputVenceAte.value || "").trim();
+		rerenderDrillAtual();
 	});
 
 	function rerenderDrillAtual() {
@@ -320,6 +369,8 @@ export function criarWidget(wrap, deps) {
 			tags: view.__drillAberto.tags || [],
 			tagsAtivas: view.__drillAberto.tagsAtivas || [],
 			diasMin: view.__drillAberto.diasMin,
+			dataBasePainel: view.__drillAberto.dataBasePainel || "",
+			dataVenceAte: view.__drillAberto.dataVenceAte || "",
 			filtrosColunas: view.__drillAberto.filtrosColunas || {},
 			buscasColunas: view.__drillAberto.buscasColunas || {},
 			faixaConclusos: view.__drillAberto.faixaConclusos || null
@@ -423,7 +474,7 @@ export function criarWidget(wrap, deps) {
 		const repetido = atual.tipo === tipo && atual.rotulo === rotulo;
 		view.__drillAberto.faixaConclusos = repetido ? null : { tipo, rotulo };
 		view.__drillAberto.diasMin = null;
-		view.__drillAberto.tagsAtivas = [tipo === "sentenca" ? "Sentença" : "Despacho/Decisão"];
+		view.__drillAberto.tagsAtivas = [];
 		rerenderDrillAtual();
 	});
 

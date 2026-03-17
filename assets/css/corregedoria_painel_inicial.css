@@ -454,7 +454,8 @@
   padding: 2px 8px;
 }
 
-.effraim-corregedoria__drill-filtro-dias input {
+.effraim-corregedoria__drill-filtro-dias input,
+.effraim-corregedoria__drill-filtro-data input {
   width: 70px;
   border: 1px solid #b9d0e4;
   border-radius: 6px;
@@ -462,6 +463,43 @@
   font-size: 11px;
   background: #fff;
   color: #123f66;
+}
+
+.effraim-corregedoria__drill-filtro-data {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: #214663;
+  border: 1px solid #d4e3f0;
+  border-radius: 999px;
+  background: #f8fbff;
+  padding: 2px 8px;
+}
+
+.effraim-corregedoria__drill-filtro-data input {
+  width: 132px;
+}
+
+.effraim-corregedoria__drill-ajuda {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border: 1px solid #9ebfda;
+  border-radius: 999px;
+  background: #fff;
+  color: #1b527c;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: help;
+  padding: 0;
+}
+
+.effraim-corregedoria__drill-ajuda:hover {
+  background: #eef6fd;
 }
 
 .effraim-corregedoria__drill-tag {

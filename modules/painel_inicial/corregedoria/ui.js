@@ -8,6 +8,7 @@ import {
 	escapeHtml,
 	escapeAttr,
 	aplicarFiltroFaixaConclusosDrill,
+	aplicarFiltroVenceAteConclusosDrill,
 	resumirGraficosFlutuantesConclusos,
 	renderizarMiniBarrasConclusos,
 	normalizarNumero,
@@ -76,6 +77,8 @@ export function renderizarDrill(view, titulo, linhas = [], erro = "", opcoes = {
 	const faixaConclusos = (opcoes.faixaConclusos && typeof opcoes.faixaConclusos === "object")
 		? opcoes.faixaConclusos
 		: null;
+	const dataBasePainel = String(opcoes.dataBasePainel || "").trim();
+	const dataVenceAte = String(opcoes.dataVenceAte || "").trim();
 
 	if (erro) {
 		view.drillConteudo.innerHTML = `<div class="effraim-corregedoria__drill-erro">${escapeHtml(erro)}</div>`;
@@ -90,6 +93,7 @@ export function renderizarDrill(view, titulo, linhas = [], erro = "", opcoes = {
 	let linhasFiltradas = aplicarFiltrosDrill(linhas, opcoes.gid, tagsAtivas);
 	linhasFiltradas = aplicarFiltroDiasDrill(linhasFiltradas, diasMin);
 	linhasFiltradas = aplicarFiltroFaixaConclusosDrill(linhasFiltradas, Number(opcoes.gid) === 4 ? faixaConclusos : null);
+	linhasFiltradas = aplicarFiltroVenceAteConclusosDrill(linhasFiltradas, Number(opcoes.gid) === 4 ? dataBasePainel : "", Number(opcoes.gid) === 4 ? dataVenceAte : "");
 	linhasFiltradas = aplicarFiltrosColunasDrill(linhasFiltradas, filtrosColunas);
 	const suportaFiltroDias = [4, 5, 6].includes(Number(opcoes.gid));
 	const linhasBaseColunas = aplicarFiltroDiasDrill(aplicarFiltrosDrill(linhas, opcoes.gid, tagsAtivas), diasMin);
@@ -100,13 +104,26 @@ export function renderizarDrill(view, titulo, linhas = [], erro = "", opcoes = {
 			return `<button type="button" class="effraim-corregedoria__drill-tag${ativo ? " effraim-corregedoria__drill-tag--ativa" : ""}" data-drill-tag="${escapeAttr(tag)}">${escapeHtml(tag)}</button>`;
 		}).join("")}</div>`
 		: "";
-	const htmlFiltroDias = suportaFiltroDias
+	const htmlFiltroDias = suportaFiltroDias || Number(opcoes.gid) === 4
 		? `<div class="effraim-corregedoria__drill-filtros">
 			<label class="effraim-corregedoria__drill-filtro-dias">
 				<span>Dias mínimos:</span>
 				<input type="number" min="0" step="1" data-drill-dias-min value="${diasMin ?? ""}">
 				<span>dias</span>
 			</label>
+			${Number(opcoes.gid) === 4 ? `
+				<label class="effraim-corregedoria__drill-filtro-data">
+					<span>Vence até:</span>
+					<input type="date" data-drill-vence-ate value="${escapeAttr(dataVenceAte)}">
+					<button
+						type="button"
+						class="effraim-corregedoria__drill-ajuda"
+						data-drill-ajuda-vence-ate="1"
+						title="${escapeAttr(`Filtra os conclusos que estarão vencidos até a data escolhida, usando a data do painel (${dataBasePainel || "indisponível"}) como base. Prazos: despacho 60 dias; sentença com descrição Matéria Juizado Cível 120 dias; demais sentenças 150 dias.`)}"
+						aria-label="${escapeAttr(`Ajuda sobre o filtro Vence até. Data-base do painel: ${dataBasePainel || "indisponível"}.`)}"
+					>?</button>
+				</label>
+			` : ""}
 		</div>`
 		: "";
 	const htmlGraficosConclusos = Number(opcoes.gid) === 4 && Array.isArray(linhas) && linhas.length
@@ -222,6 +239,7 @@ export function renderizarDrill(view, titulo, linhas = [], erro = "", opcoes = {
 export function renderizarStatus(view, favoritos, _resumo, erro = "") {
 	const configurado = !!(favoritos.sec && favoritos.uni);
 	const dataAtualizacao = String(_resumo?.dataAtualizacao || "").match(/\b\d{2}\/\d{2}\/\d{4}\b/)?.[0] || String(_resumo?.dataAtualizacao || "").trim();
+	view.__dataAtualizacaoPainelBr = dataAtualizacao || "";
 	view.subtitulo.textContent = dataAtualizacao || "";
 	view.status.innerHTML = "";
 	if (erro || !configurado) {

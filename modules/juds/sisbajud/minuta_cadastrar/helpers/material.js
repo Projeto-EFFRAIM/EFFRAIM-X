@@ -84,38 +84,53 @@ export function descreverCampoMat(campoInfix) {
 }
 
 export function formatarDataBR(iso) {
-	const m = String(iso ?? "").match(/(\d{4})-(\d{2})-(\d{2})/);
-	if (!m) return "";
-	const [_, ano, mes, dia] = m;
-	return `${dia}/${mes}/${ano}`;
+	const info = normalizarDataEntrada(iso);
+	return info ? info.br : "";
 }
 
 export async function preencherCampoDataMaterial(el, valor) {
 	if (!el) return;
+	const info = normalizarDataEntrada(valor);
+	if (!info) {
+		console.warn("[preencherCampoDataMaterial] Data inválida para preenchimento:", valor);
+		return;
+	}
+
 	const parent = el.closest(".mat-form-field");
 	const toggleBtn = parent?.querySelector(".mat-datepicker-toggle button, button[aria-haspopup='dialog']");
 	const wasDisabled = el.disabled;
 	if (wasDisabled) el.disabled = false;
 
 	el.focus();
-	el.value = String(valor ?? "");
-	const dateObj = (() => {
-		const m = String(valor ?? "").match(/(\d{2})\/(\d{2})\/(\d{4})/);
-		return m ? new Date(`${m[3]}-${m[2]}-${m[1]}T00:00:00`) : null;
-	})();
-	if (dateObj instanceof Date && !isNaN(dateObj)) {
-		const fireMatEvent = (name) => {
-			const evt = new Event(name, { bubbles: true });
-			evt.value = dateObj;
-			el.dispatchEvent(evt);
-		};
+	el.value = info.br;
+
+	// Evita parsing ambíguo MM/DD vs DD/MM: manda Date explícita para o Angular Material.
+	try {
+		el.valueAsDate = info.dateObj;
+	} catch {}
+
+	const fireMatEvent = (name) => {
+		const evt = new Event(name, { bubbles: true });
+		evt.value = info.dateObj;
+		el.dispatchEvent(evt);
+	};
+	fireMatEvent("dateInput");
+	fireMatEvent("dateChange");
+
+	// Alguns fluxos internos leem o campo após blur.
+	el.dispatchEvent(new Event("blur", { bubbles: true }));
+	parent?.dispatchEvent(new Event("blur", { bubbles: true }));
+
+	if (dataCampoPareceInvertida(el.value, info)) {
+		console.warn("[preencherCampoDataMaterial] Campo retornou data invertida (possível MM/DD). Reaplicando.", {
+			preenchida: info.br,
+			lida: el.value
+		});
+		el.value = info.br;
 		fireMatEvent("dateInput");
 		fireMatEvent("dateChange");
+		el.dispatchEvent(new Event("blur", { bubbles: true }));
 	}
-
-	["input", "change", "blur"].forEach((ev) => el.dispatchEvent(new Event(ev, { bubbles: true })));
-	parent?.dispatchEvent(new Event("input", { bubbles: true }));
-	parent?.dispatchEvent(new Event("change", { bubbles: true }));
 	el.classList.remove("ng-pristine");
 	el.classList.add("ng-dirty");
 	el.classList.add("ng-touched");
@@ -128,6 +143,55 @@ export async function preencherCampoDataMaterial(el, valor) {
 
 	if (wasDisabled) el.disabled = true;
 	await esperar(150);
+}
+
+function normalizarDataEntrada(valor) {
+	const texto = String(valor ?? "").trim();
+	let ano = 0;
+	let mes = 0;
+	let dia = 0;
+
+	let m = texto.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+	if (m) {
+		ano = Number(m[1]);
+		mes = Number(m[2]);
+		dia = Number(m[3]);
+	} else {
+		m = texto.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+		if (!m) return null;
+		dia = Number(m[1]);
+		mes = Number(m[2]);
+		ano = Number(m[3]);
+	}
+
+	const dateObj = new Date(ano, mes - 1, dia);
+	const valida =
+		dateObj instanceof Date &&
+		!isNaN(dateObj) &&
+		dateObj.getFullYear() === ano &&
+		dateObj.getMonth() === mes - 1 &&
+		dateObj.getDate() === dia;
+	if (!valida) return null;
+
+	const dd = String(dia).padStart(2, "0");
+	const mm = String(mes).padStart(2, "0");
+	return {
+		dia,
+		mes,
+		ano,
+		br: `${dd}/${mm}/${ano}`,
+		iso: `${ano}-${mm}-${dd}`,
+		dateObj
+	};
+}
+
+function dataCampoPareceInvertida(valorCampo, info) {
+	const m = String(valorCampo || "").trim().match(/^(\d{2})[\/-](\d{2})[\/-](\d{4})$/);
+	if (!m) return false;
+	const diaLido = Number(m[1]);
+	const mesLido = Number(m[2]);
+	const anoLido = Number(m[3]);
+	return anoLido === info.ano && diaLido === info.mes && mesLido === info.dia;
 }
 
 export async function esperarCampo(seletor) {
@@ -169,4 +233,3 @@ export function esperarNovoCampoValor(indiceEsperado) {
 		}, 3000);
 	});
 }
-

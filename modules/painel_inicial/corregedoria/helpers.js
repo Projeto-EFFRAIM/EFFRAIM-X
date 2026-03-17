@@ -241,11 +241,68 @@ export function extrairDataBr(texto = "") {
 	return m ? m[0] : String(texto || "").trim();
 }
 
+export function parseDataBr(texto = "") {
+	const m = String(texto || "").match(/^\s*(\d{2})\/(\d{2})\/(\d{4})\s*$/);
+	if (!m) return null;
+	const dia = Number(m[1]);
+	const mes = Number(m[2]);
+	const ano = Number(m[3]);
+	if (!Number.isInteger(dia) || !Number.isInteger(mes) || !Number.isInteger(ano)) return null;
+	const data = new Date(Date.UTC(ano, mes - 1, dia));
+	if (
+		data.getUTCFullYear() !== ano ||
+		data.getUTCMonth() !== (mes - 1) ||
+		data.getUTCDate() !== dia
+	) return null;
+	return data;
+}
+
+export function parseDataIso(texto = "") {
+	const m = String(texto || "").match(/^\s*(\d{4})-(\d{2})-(\d{2})\s*$/);
+	if (!m) return null;
+	const ano = Number(m[1]);
+	const mes = Number(m[2]);
+	const dia = Number(m[3]);
+	if (!Number.isInteger(dia) || !Number.isInteger(mes) || !Number.isInteger(ano)) return null;
+	const data = new Date(Date.UTC(ano, mes - 1, dia));
+	if (
+		data.getUTCFullYear() !== ano ||
+		data.getUTCMonth() !== (mes - 1) ||
+		data.getUTCDate() !== dia
+	) return null;
+	return data;
+}
+
+export function diferencaDiasEntreDatas(inicio, fim) {
+	if (!(inicio instanceof Date) || Number.isNaN(inicio.getTime())) return null;
+	if (!(fim instanceof Date) || Number.isNaN(fim.getTime())) return null;
+	return Math.round((fim.getTime() - inicio.getTime()) / 86400000);
+}
+
 export function normalizarTipoConclusaoLinha(linha) {
 	const valor = normalizarTextoComparacao(linha?.["Conclusão"] || linha?.Conclusao || "");
 	if (valor.includes("sentenc")) return "sentenca";
 	if (valor.includes("despacho") || valor.includes("decis")) return "despacho";
 	return "";
+}
+
+export function ehClasseJefLinha(linha) {
+	const descricao = normalizarTextoComparacao(
+		linha?.["Descrição da Matéria"] ||
+		linha?.["Descricao da Materia"] ||
+		linha?.["Descrição da Materia"] ||
+		linha?.["Descricao da Matéria"] ||
+		""
+	);
+	if (!descricao) return false;
+	return descricao === normalizarTextoComparacao("Matéria Juizado Cível");
+}
+
+export function obterPrazoConclusaoLinha(linha) {
+	const tipo = normalizarTipoConclusaoLinha(linha);
+	if (tipo === "despacho") return 60;
+	if (tipo === "sentenca") return ehClasseJefLinha(linha) ? 120 : 150;
+	return null;
 }
 
 export function rotuloFaixaDias(tempo, passo = 15) {
@@ -294,6 +351,24 @@ export function aplicarFiltroFaixaConclusosDrill(linhas = [], faixaConclusos = n
 		const tempo = normalizarNumero(linha?.["Tempo Em Dias"]);
 		if (!Number.isFinite(tempo)) return false;
 		return tempo >= faixa.min && tempo <= faixa.max;
+	});
+}
+
+export function aplicarFiltroVenceAteConclusosDrill(linhas = [], dataBasePainelBr = "", dataVenceAteIso = "") {
+	if (!Array.isArray(linhas)) return [];
+	if (!String(dataVenceAteIso || "").trim()) return linhas;
+	const dataBase = parseDataBr(dataBasePainelBr);
+	const dataVenceAte = parseDataIso(dataVenceAteIso);
+	if (!dataBase || !dataVenceAte) return linhas;
+	const diasAProjetar = diferencaDiasEntreDatas(dataBase, dataVenceAte);
+	if (!Number.isFinite(diasAProjetar)) return linhas;
+
+	return linhas.filter((linha) => {
+		const prazo = obterPrazoConclusaoLinha(linha);
+		if (!Number.isFinite(prazo)) return false;
+		const tempoAtual = normalizarNumero(linha?.["Tempo Em Dias"]);
+		if (!Number.isFinite(tempoAtual)) return false;
+		return (tempoAtual + diasAProjetar) >= prazo;
 	});
 }
 

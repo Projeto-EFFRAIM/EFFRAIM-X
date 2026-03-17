@@ -13,7 +13,9 @@ import {
 	normalizarNumero,
 	criarGrupoResumo,
 	resumirGraficosJson,
-	extrairNumerosProcessoDeLinhas
+	extrairNumerosProcessoDeLinhas,
+	aplicarFiltroFaixaConclusosDrill,
+	aplicarFiltroVenceAteConclusosDrill
 } from "./corregedoria/helpers.js";
 import { renderizarDrill, renderizarStatus, renderizarValores } from "./corregedoria/ui.js";
 import { criarWidget } from "./corregedoria/widget.js";
@@ -224,6 +226,7 @@ async function abrirRelatorioGeralComProcessos(view) {
 	let linhasFiltradas = aplicarFiltrosDrill(linhasBase, drill.gid, drill.tagsAtivas || []);
 	linhasFiltradas = aplicarFiltroDiasDrill(linhasFiltradas, drill.diasMin);
 	linhasFiltradas = aplicarFiltroFaixaConclusosDrill(linhasFiltradas, drill.faixaConclusos || null);
+	linhasFiltradas = aplicarFiltroVenceAteConclusosDrill(linhasFiltradas, drill.dataBasePainel || "", drill.dataVenceAte || "");
 	linhasFiltradas = aplicarFiltrosColunasDrill(linhasFiltradas, drill.filtrosColunas || {});
 	const processos = extrairNumerosProcessoDeLinhas(linhasFiltradas).slice(0, 300);
 	if (!processos.length) {
@@ -233,8 +236,11 @@ async function abrirRelatorioGeralComProcessos(view) {
 			tagsAtivas: drill.tagsAtivas || []
 			,
 			diasMin: drill.diasMin,
+			dataBasePainel: drill.dataBasePainel || "",
+			dataVenceAte: drill.dataVenceAte || "",
 			filtrosColunas: drill.filtrosColunas || {},
-			buscasColunas: drill.buscasColunas || {}
+			buscasColunas: drill.buscasColunas || {},
+			faixaConclusos: drill.faixaConclusos || null
 		});
 		return;
 	}
