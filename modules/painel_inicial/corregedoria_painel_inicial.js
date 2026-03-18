@@ -15,7 +15,8 @@ import {
 	resumirGraficosJson,
 	extrairNumerosProcessoDeLinhas,
 	aplicarFiltroFaixaConclusosDrill,
-	aplicarFiltroVenceAteConclusosDrill
+	aplicarFiltroVenceAteConclusosDrill,
+	obterDescricaoMateriaLinha
 } from "./corregedoria/helpers.js";
 import { renderizarDrill, renderizarStatus, renderizarValores } from "./corregedoria/ui.js";
 import { criarWidget } from "./corregedoria/widget.js";
@@ -28,7 +29,6 @@ const ID_WIDGET = "effraim-corregedoria-widget";
 const ID_WRAP = "effraim-corregedoria-widget-wrap";
 const CHAVE_PREFIXO_RELATORIO_GERAL_PENDENTE = "effraim_relatorio_geral_pendente_";
 
-let timerMonitoramento = null;
 let ultimaAssinaturaFavoritos = "";
 let listenerStorageInstalado = false;
 let timerDebounceStorage = null;
@@ -273,14 +273,99 @@ async function abrirRelatorioGeralComProcessos(view) {
 
 async function carregarDrillGrafico(favoritos, gid) {
 	if (!favoritos?.uni || !Number.isFinite(Number(gid))) return [];
+	if (!viewCacheValidoParaFavoritos(favoritos)) {
+		limparCachesDrill();
+		definirAssinaturaCacheDrill(favoritos);
+	}
+	const gidNum = Number(gid);
+	const cacheExistente = obterDrillCacheado(gidNum);
+	if (cacheExistente) return cacheExistente;
 	const params = new URLSearchParams({
 		op: "dg",
 		uni: String(favoritos.uni),
-		gid: String(Number(gid))
+		gid: String(gidNum)
 	});
 	const mes = obterMesAtualPainel();
-	if ([7, 8, 9].includes(Number(gid))) params.set("mes", mes);
-	if (Number(gid) === 6) {
+	if ([7, 8, 9].includes(gidNum)) params.set("mes", mes);
+	if (gidNum === 6) {
+		params.set("mes", "0");
+		params.set("pzaberto", "Não");
+		params.set("numgrafpremio", "0");
+	}
+	const url = `${URL_API_BASE}?${params.toString()}`;
+	const dados = await fetchJson(url);
+	const lista = Array.isArray(dados) ? dados : [];
+	const enriquecida = await enriquecerDrillSeNecessario(favoritos, gidNum, lista);
+	definirDrillCacheado(gidNum, enriquecida);
+	return enriquecida;
+}
+
+let assinaturaCacheDrill = "";
+const cacheDrillPorGid = new Map();
+let mapaDescricaoMateriaPorProcesso = null;
+
+function criarAssinaturaFavoritosCacheDrill(favoritos) {
+	return `${String(favoritos?.sec || "").trim()}|${String(favoritos?.uni || "").trim()}`;
+}
+
+function viewCacheValidoParaFavoritos(favoritos) {
+	return assinaturaCacheDrill && assinaturaCacheDrill === criarAssinaturaFavoritosCacheDrill(favoritos);
+}
+
+function definirAssinaturaCacheDrill(favoritos) {
+	assinaturaCacheDrill = criarAssinaturaFavoritosCacheDrill(favoritos);
+}
+
+function limparCachesDrill() {
+	cacheDrillPorGid.clear();
+	mapaDescricaoMateriaPorProcesso = null;
+}
+
+function obterDrillCacheado(gid) {
+	const lista = cacheDrillPorGid.get(Number(gid));
+	return Array.isArray(lista) ? lista : null;
+}
+
+function definirDrillCacheado(gid, linhas) {
+	cacheDrillPorGid.set(Number(gid), Array.isArray(linhas) ? linhas : []);
+}
+
+function normalizarNumeroProcessoChave(valor = "") {
+	return String(valor || "").replace(/\D/g, "");
+}
+
+function construirMapaDescricaoMateriaPorProcesso(linhasAtivos = []) {
+	const mapa = new Map();
+	for (const linha of Array.isArray(linhasAtivos) ? linhasAtivos : []) {
+		const processo = normalizarNumeroProcessoChave(linha?.Processo || linha?.processo || "");
+		if (!processo) continue;
+		const descricao = String(obterDescricaoMateriaLinha(linha) || "").trim();
+		if (!descricao) continue;
+		if (!mapa.has(processo)) mapa.set(processo, descricao);
+	}
+	return mapa;
+}
+
+async function garantirMapaDescricaoMateria(favoritos) {
+	if (mapaDescricaoMateriaPorProcesso instanceof Map) return mapaDescricaoMateriaPorProcesso;
+	const ativosCache = obterDrillCacheado(1);
+	const linhasAtivos = ativosCache || await carregarDrillGraficoBase(favoritos, 1);
+	if (!ativosCache) definirDrillCacheado(1, linhasAtivos);
+	mapaDescricaoMateriaPorProcesso = construirMapaDescricaoMateriaPorProcesso(linhasAtivos);
+	return mapaDescricaoMateriaPorProcesso;
+}
+
+async function carregarDrillGraficoBase(favoritos, gid) {
+	if (!favoritos?.uni || !Number.isFinite(Number(gid))) return [];
+	const gidNum = Number(gid);
+	const params = new URLSearchParams({
+		op: "dg",
+		uni: String(favoritos.uni),
+		gid: String(gidNum)
+	});
+	const mes = obterMesAtualPainel();
+	if ([7, 8, 9].includes(gidNum)) params.set("mes", mes);
+	if (gidNum === 6) {
 		params.set("mes", "0");
 		params.set("pzaberto", "Não");
 		params.set("numgrafpremio", "0");
@@ -288,6 +373,23 @@ async function carregarDrillGrafico(favoritos, gid) {
 	const url = `${URL_API_BASE}?${params.toString()}`;
 	const dados = await fetchJson(url);
 	return Array.isArray(dados) ? dados : [];
+}
+
+async function enriquecerDrillSeNecessario(favoritos, gid, linhas = []) {
+	if (Number(gid) !== 4) return Array.isArray(linhas) ? linhas : [];
+	const mapa = await garantirMapaDescricaoMateria(favoritos);
+	if (!(mapa instanceof Map) || !mapa.size) return Array.isArray(linhas) ? linhas : [];
+	return (Array.isArray(linhas) ? linhas : []).map((linha) => {
+		if (String(linha?.["Descrição da Matéria"] || "").trim()) return linha;
+		const processo = normalizarNumeroProcessoChave(linha?.Processo || linha?.processo || "");
+		if (!processo) return linha;
+		const descricao = mapa.get(processo);
+		if (!descricao) return linha;
+		return {
+			...linha,
+			"Descrição da Matéria": descricao
+		};
+	});
 }
 
 async function carregarGrupoParadosNaoConclusosSemPrazoAberto(favoritos) {
@@ -468,23 +570,6 @@ async function sincronizarWidgetSeFavoritosMudaram(view, { origem = "desconhecid
 	}
 }
 
-function iniciarMonitoramento(view) {
-	if (timerMonitoramento) return;
-	timerMonitoramento = window.setInterval(async () => {
-		try {
-			await sincronizarWidgetSeFavoritosMudaram(view, { origem: "monitor" });
-		} catch (e) {
-			if (ehErroContextoExtensaoInvalidado(e)) {
-				console.debug(`${PREFIXO_LOG} Contexto da extensao invalidado; encerrando monitoramento antigo.`);
-				clearInterval(timerMonitoramento);
-				timerMonitoramento = null;
-				return;
-			}
-			console.warn(`${PREFIXO_LOG} Erro no monitoramento.`, e);
-		}
-	}, 3000);
-}
-
 function instalarListenerStorage(view) {
 	if (listenerStorageInstalado) return;
 	if (!chrome?.storage?.onChanged?.addListener) return;
@@ -543,7 +628,6 @@ export async function init() {
 			setEstadoCarregando(view, false);
 		});
 	instalarListenerStorage(view);
-	iniciarMonitoramento(view);
 	console.log(`${PREFIXO_LOG} Quadro perene inicializado.`);
 }
 

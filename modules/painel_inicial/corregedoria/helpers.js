@@ -241,6 +241,13 @@ export function extrairDataBr(texto = "") {
 	return m ? m[0] : String(texto || "").trim();
 }
 
+function obterValorPorChaveNormalizada(linha, predicado) {
+	for (const [chave, valor] of Object.entries(linha || {})) {
+		if (predicado(normalizarTextoComparacao(chave))) return String(valor ?? "").trim();
+	}
+	return "";
+}
+
 export function parseDataBr(texto = "") {
 	const m = String(texto || "").match(/^\s*(\d{2})\/(\d{2})\/(\d{4})\s*$/);
 	if (!m) return null;
@@ -286,16 +293,38 @@ export function normalizarTipoConclusaoLinha(linha) {
 	return "";
 }
 
-export function ehClasseJefLinha(linha) {
-	const descricao = normalizarTextoComparacao(
+export function obterDescricaoMateriaLinha(linha) {
+	const descricaoDireta =
 		linha?.["Descrição da Matéria"] ||
 		linha?.["Descricao da Materia"] ||
 		linha?.["Descrição da Materia"] ||
 		linha?.["Descricao da Matéria"] ||
-		""
+		linha?.["Descrição Matéria"] ||
+		linha?.["Descricao Materia"] ||
+		linha?.["Matéria"] ||
+		linha?.["Materia"] ||
+		"";
+	const descricao = String(descricaoDireta || "").trim();
+	if (descricao) return descricao;
+
+	const porNome = obterValorPorChaveNormalizada(linha, (chaveNorm) =>
+		chaveNorm.includes("materia") ||
+		chaveNorm.includes("mat ria") ||
+		chaveNorm.includes("descricao da materia") ||
+		chaveNorm.includes("descricao materia")
 	);
+	if (porNome) return porNome;
+
+	const porValor = Object.values(linha || {}).find((valor) =>
+		normalizarTextoComparacao(String(valor ?? "")).includes(normalizarTextoComparacao("Juizado Civel"))
+	);
+	return String(porValor || "").trim();
+}
+
+export function ehClasseJefLinha(linha) {
+	const descricao = normalizarTextoComparacao(obterDescricaoMateriaLinha(linha));
 	if (!descricao) return false;
-	return descricao === normalizarTextoComparacao("Matéria Juizado Cível");
+	return descricao.includes(normalizarTextoComparacao("Juizado Civel"));
 }
 
 export function obterPrazoConclusaoLinha(linha) {

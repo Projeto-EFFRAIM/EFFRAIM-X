@@ -9,6 +9,7 @@ import {
 	escapeAttr,
 	aplicarFiltroFaixaConclusosDrill,
 	aplicarFiltroVenceAteConclusosDrill,
+	obterDescricaoMateriaLinha,
 	resumirGraficosFlutuantesConclusos,
 	renderizarMiniBarrasConclusos,
 	normalizarNumero,
@@ -43,6 +44,37 @@ function posicionarDrillNoSubquadro(view) {
 function obterGidNumericoDoGrupo(idGrupo = "") {
 	const m = String(idGrupo || "").match(/Grafico(\d+)/i);
 	return m ? Number(m[1]) : null;
+}
+
+function coletarColunasLinhas(linhas = []) {
+	const ordem = [];
+	const vistas = new Set();
+	for (const linha of Array.isArray(linhas) ? linhas : []) {
+		for (const coluna of Object.keys(linha || {})) {
+			if (vistas.has(coluna)) continue;
+			vistas.add(coluna);
+			ordem.push(coluna);
+		}
+	}
+	return ordem;
+}
+
+function obterColunasDrill(linhasFiltradas = [], linhasBase = [], gid = null) {
+	if (Number(gid) === 4) {
+		const linhasConclusos = (Array.isArray(linhasBase) && linhasBase.length) ? linhasBase : linhasFiltradas;
+		const colunasConclusos = coletarColunasLinhas(
+			linhasConclusos
+		);
+		if (
+			Array.isArray(linhasConclusos) &&
+			linhasConclusos.some((linha) => obterDescricaoMateriaLinha(linha)) &&
+			!colunasConclusos.includes("Descrição da Matéria")
+		) {
+			colunasConclusos.push("Descrição da Matéria");
+		}
+		if (colunasConclusos.length) return colunasConclusos;
+	}
+	return Object.keys((Array.isArray(linhasFiltradas) ? linhasFiltradas[0] : null) || {});
 }
 
 export function renderizarDrill(view, titulo, linhas = [], erro = "", opcoes = {}) {
@@ -119,7 +151,7 @@ export function renderizarDrill(view, titulo, linhas = [], erro = "", opcoes = {
 						type="button"
 						class="effraim-corregedoria__drill-ajuda"
 						data-drill-ajuda-vence-ate="1"
-						title="${escapeAttr(`Filtra os conclusos que estarão vencidos até a data escolhida, usando a data do painel (${dataBasePainel || "indisponível"}) como base. Prazos: despacho 60 dias; sentença com descrição Matéria Juizado Cível 120 dias; demais sentenças 150 dias.`)}"
+						title="${escapeAttr(`Filtra os conclusos que estarão vencidos até a data escolhida, usando a data do painel (${dataBasePainel || "indisponível"}) como base. Prazos: despacho 60 dias; sentença com descrição da matéria Juizado Civel 120 dias; demais sentenças 150 dias.`)}"
 						aria-label="${escapeAttr(`Ajuda sobre o filtro Vence até. Data-base do painel: ${dataBasePainel || "indisponível"}.`)}"
 					>?</button>
 				</label>
@@ -149,7 +181,7 @@ export function renderizarDrill(view, titulo, linhas = [], erro = "", opcoes = {
 
 	if (!Array.isArray(linhasFiltradas) || !linhasFiltradas.length) {
 		view.drillConteudo.innerHTML = `${htmlGraficosConclusos}${htmlTags}${htmlFaixaConclusos}${htmlFiltroDias}<div class="effraim-corregedoria__drill-vazio">Sem registros.</div>`;
-		const colunasSemRegistro = Object.keys((linhasBaseColunas && linhasBaseColunas[0]) || {});
+		const colunasSemRegistro = obterColunasDrill([], linhasBaseColunas, opcoes.gid);
 		view.__drillColunasDisponiveis = colunasSemRegistro;
 		view.__drillLinhasFiltradas = [];
 		if (!Array.isArray(view.__drillCsvColunasSelecionadas) || !view.__drillCsvColunasSelecionadas.length) {
@@ -160,7 +192,7 @@ export function renderizarDrill(view, titulo, linhas = [], erro = "", opcoes = {
 	}
 
 	const amostra = linhasFiltradas;
-	const colunas = Object.keys(amostra[0] || {});
+	const colunas = obterColunasDrill(amostra, linhasBaseColunas, opcoes.gid);
 	view.__drillColunasDisponiveis = [...colunas];
 	view.__drillLinhasFiltradas = [...linhasFiltradas];
 	if (!Array.isArray(view.__drillCsvColunasSelecionadas) || !view.__drillCsvColunasSelecionadas.length) {
@@ -214,7 +246,12 @@ export function renderizarDrill(view, titulo, linhas = [], erro = "", opcoes = {
 	}).join("");
 	const th = colunas.map((c) => `<th>${escapeHtml(c)}</th>`).join("");
 	const trs = amostra.map((linha) => {
-		const tds = colunas.map((c) => `<td>${escapeHtml(linha?.[c] ?? "")}</td>`).join("");
+		const tds = colunas.map((c) => {
+			const valor = c === "Descrição da Matéria"
+				? (linha?.[c] ?? obterDescricaoMateriaLinha(linha) ?? "")
+				: (linha?.[c] ?? "");
+			return `<td>${escapeHtml(valor)}</td>`;
+		}).join("");
 		return `<tr>${tds}</tr>`;
 	}).join("");
 
