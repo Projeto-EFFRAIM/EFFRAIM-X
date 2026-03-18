@@ -235,7 +235,6 @@ function garantirOverlayLinha() {
 			timerFecharOverlay = null;
 			if (expandirTodosAtivo) return;
 			if (!overlayLinhaFonte) return;
-			if (overlayLinhaFonte.matches(":hover")) return;
 			if (overlayLinhaHover) return;
 			recolherLinha(overlayLinhaFonte);
 			linhaHoverAtiva = null;

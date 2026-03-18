@@ -1,55 +1,30 @@
-import { criarPainelDeslizantePadrao } from "../../utils/interface.js";
+import {
+	criarPainelDeslizantePadrao,
+	forcarAberturaPainelDeslizante
+} from "../../utils/interface.js";
 import { obterManipuladorAcao } from "./mapeamento_acoes.js";
 
 const LOG_PREFIX = "[EFFRAIM acao_flutuante]";
 const CSS_ID = "effraim-acao-flutuante-css";
 const FIELDSET_SELECTOR = "#fldAcoes";
 const BOTOES_SELECTOR = "#fldAcoes a.infraButton";
+const TOOLBAR_CONTAINER_SELECTOR = "#effraim-funcionalidades-container .effraim-painel-conteudo";
+const TOOLBAR_BUTTON_ID = "btn-acao_flutuante-hub";
+const PANEL_ID = "painel-acao-flutuante";
 
+let botaoHub = null;
 let painel = null;
 let conteudo = null;
+let aviso = null;
 let status = null;
+let navegacao = null;
+let corpo = null;
 let iframe = null;
-let ancoraAtual = null;
-let observador = null;
-let listenersPosicao = false;
 let manipuladorAtual = null;
 let ultimoAlvoChave = "";
-let timeoutFechamentoMouse = null;
-
-function cancelarFechamentoPorMouse() {
-	if (timeoutFechamentoMouse) {
-		clearTimeout(timeoutFechamentoMouse);
-		timeoutFechamentoMouse = null;
-	}
-}
-
-function agendarFechamentoPorMouse(delay = 220) {
-	cancelarFechamentoPorMouse();
-	timeoutFechamentoMouse = setTimeout(() => {
-		const painelHover = painel?.matches?.(":hover");
-		const ancoraHover = ancoraAtual?.matches?.(":hover");
-		if (painelHover || ancoraHover) return;
-		fecharPainel();
-	}, delay);
-}
-
-const bloquearMouseleaveHelper = (event) => {
-	// impede o autoclose do helper padrao e delega para nosso controle.
-	event.stopImmediatePropagation();
-	agendarFechamentoPorMouse();
-};
-
-const bloquearMouseenterHelper = (event) => {
-	// impede conflito com timers internos do helper padrao.
-	event.stopImmediatePropagation();
-	cancelarFechamentoPorMouse();
-	const alvo = event.currentTarget;
-	if (alvo === ancoraAtual && !estaAberto() && ultimoAlvoChave) {
-		abrirPainel();
-		logInfo("Painel reaberto ao retornar com mouse para a ancora.");
-	}
-};
+let estadoAtual = "lista";
+let podeReabrirPorHover = false;
+let acaoCarregadaEmMemoria = "";
 
 function logInfo(msg, data) {
 	if (data !== undefined) console.info(`${LOG_PREFIX} ${msg}`, data);
@@ -68,11 +43,62 @@ function garantirCss() {
 	link.rel = "stylesheet";
 	link.href = chrome.runtime.getURL("assets/css/acao_flutuante.css");
 	(document.head || document.documentElement).appendChild(link);
-	logInfo("CSS carregado.", { href: link.href });
+}
+
+function obterContainerToolbar() {
+	return document.querySelector(TOOLBAR_CONTAINER_SELECTOR);
+}
+
+function obterAncoraTopologica() {
+	return document.getElementById("effraim-funcionalidades-container") || botaoHub;
+}
+
+function extrairRotuloAcao(anchor) {
+	return String(anchor?.textContent || anchor?.title || "Ação")
+		.replace(/\s+/g, " ")
+		.trim();
+}
+
+function obterMensagemAvisoNatural() {
+	const nomeCfg =
+		window?.EFFRAIM_CONFIGURACOES?.funcionalidades_ativas?.acao_flutuante?._meta?.nome ||
+		"Ação Flutuante";
+	return `Você está usando a funcionalidade ${nomeCfg}. Se desejar, desative nas configurações do EFFRAIM.`;
+}
+
+function atualizarStatus(texto = "", tipo = "normal") {
+	if (!status) return;
+	const textoLimpo = String(texto || "").trim();
+	status.textContent = textoLimpo;
+	status.dataset.status = tipo;
+	status.style.display = textoLimpo ? "block" : "none";
 }
 
 function estaAberto() {
 	return Boolean(painel) && painel.style.display !== "none" && painel.style.opacity !== "0";
+}
+
+function posicionarPainelFixo() {
+	if (!painel) return;
+	const ancora = obterAncoraTopologica();
+	const rect = ancora?.getBoundingClientRect?.();
+	const topo = rect ? Math.round(rect.bottom + 8) : 72;
+	painel.style.position = "fixed";
+	painel.style.top = `${Math.max(48, topo)}px`;
+	painel.style.left = "50%";
+	painel.style.right = "auto";
+	painel.style.transform = "translateX(-50%)";
+	painel.style.zIndex = "2147481000";
+}
+
+function abrirPainel() {
+	if (!painel) return;
+	podeReabrirPorHover = true;
+	forcarAberturaPainelDeslizante(painel);
+	posicionarPainelFixo();
+	requestAnimationFrame(() => {
+		posicionarPainelFixo();
+	});
 }
 
 function fecharPainel() {
@@ -81,54 +107,174 @@ function fecharPainel() {
 	painel.style.maxHeight = "0";
 	painel.style.pointerEvents = "none";
 	painel.style.display = "none";
-	logInfo("Painel fechado.");
 }
 
-function atualizarStatus(texto, tipo = "normal") {
-	if (!status) return;
-	status.textContent = texto;
-	status.dataset.status = tipo;
+function listarAcoesDisponiveis() {
+	return [...document.querySelectorAll(BOTOES_SELECTOR)].filter((anchor) => {
+		if (!(anchor instanceof HTMLAnchorElement)) return false;
+		if (!anchor.isConnected) return false;
+		if (anchor.dataset.effraimAcaoHubIgnorar === "1") return false;
+		return !!extrairRotuloAcao(anchor);
+	});
+}
+
+function renderizarCabecalhoInterno({ titulo = "Ações do processo", mostrarVoltar = false } = {}) {
+	if (!navegacao) return;
+	navegacao.innerHTML = "";
+
+	const barra = document.createElement("div");
+	barra.className = "effraim-acao-flutuante-topbar";
+
+	const esquerda = document.createElement("div");
+	esquerda.className = "effraim-acao-flutuante-topbar-esquerda";
+
+	if (mostrarVoltar) {
+		const btnVoltar = document.createElement("button");
+		btnVoltar.type = "button";
+		btnVoltar.className = "effraim-acao-flutuante-btn-secundario";
+		btnVoltar.textContent = "Voltar";
+		btnVoltar.addEventListener("click", () => {
+			renderizarListaAcoes({ abrir: true });
+		});
+		esquerda.appendChild(btnVoltar);
+	}
+
+	const tituloEl = document.createElement("div");
+	tituloEl.className = "effraim-acao-flutuante-topbar-titulo";
+	tituloEl.textContent = titulo;
+	esquerda.appendChild(tituloEl);
+
+	barra.appendChild(esquerda);
+	navegacao.appendChild(barra);
+}
+
+function garantirBotaoHub() {
+	const existente = document.getElementById(TOOLBAR_BUTTON_ID);
+	if (existente) {
+		botaoHub = existente;
+		return botaoHub;
+	}
+
+	const container = obterContainerToolbar();
+	if (!container) {
+		logWarn("Container do toolbar EFFRAIM nao encontrado para inserir o botao do hub.");
+		return null;
+	}
+
+	const botao = document.createElement("button");
+	botao.id = TOOLBAR_BUTTON_ID;
+	botao.className = "btn btn-sm btn-outline-primary d-flex flex-column align-items-center effraim-btn-init";
+	botao.title = "Ações Flutuantes";
+	botao.innerHTML = `
+		<img src="${chrome.runtime.getURL("assets/icones/acoes_flutuantes.png")}" style="width:32px; height:32px;">
+	`;
+
+	const referencia = document.getElementById("btn-sisbajud");
+	if (referencia?.parentElement === container) {
+		container.insertBefore(botao, referencia);
+	} else {
+		container.appendChild(botao);
+	}
+
+	botao.addEventListener("click", (event) => {
+		event.preventDefault();
+		event.stopPropagation();
+		renderizarListaAcoes({ abrir: true });
+	});
+
+	botao.addEventListener("mouseenter", (event) => {
+		if (!podeReabrirPorHover && !estaAberto()) {
+			event.stopImmediatePropagation();
+		}
+	}, true);
+
+	botao.addEventListener("mouseenter", () => {
+		if (!painel) return;
+		if (!estaAberto() && (estadoAtual === "lista" || ultimoAlvoChave)) {
+			abrirPainel();
+		}
+	});
+
+	botaoHub = botao;
+	logInfo("Botao do hub de acoes flutuantes inserido no toolbar.");
+	return botaoHub;
+}
+
+function garantirPainel() {
+	if (painel?.isConnected) return true;
+	const ancora = garantirBotaoHub();
+	if (!ancora) return false;
+
+	painel = criarPainelDeslizantePadrao(PANEL_ID, ancora);
+	if (!painel) return false;
+
+	painel.classList.add("effraim-acao-flutuante-painel");
+	Object.assign(painel.style, {
+		width: "92vw",
+		maxWidth: "92vw",
+		minHeight: "78vh",
+		maxHeight: "92vh",
+		background: "#f5fbff",
+		color: "#0f314a",
+		padding: "0",
+		overflowY: "auto",
+		overflowX: "hidden"
+	});
+
+	conteudo = document.createElement("div");
+	conteudo.className = "effraim-acao-flutuante-conteudo";
+
+	aviso = document.createElement("div");
+	aviso.className = "effraim-acao-flutuante-aviso";
+	aviso.textContent = obterMensagemAvisoNatural();
+
+	status = document.createElement("div");
+	status.className = "effraim-acao-flutuante-status";
+	status.style.display = "none";
+
+	navegacao = document.createElement("div");
+	navegacao.className = "effraim-acao-flutuante-navegacao";
+
+	corpo = document.createElement("div");
+	corpo.className = "effraim-acao-flutuante-corpo";
+
+	conteudo.appendChild(aviso);
+	conteudo.appendChild(status);
+	conteudo.appendChild(navegacao);
+	conteudo.appendChild(corpo);
+	painel.appendChild(conteudo);
+
+	window.addEventListener("resize", posicionarPainelFixo);
+	window.addEventListener("scroll", posicionarPainelFixo, true);
+	painel.addEventListener("mouseenter", () => {
+		posicionarPainelFixo();
+	});
+
+	logInfo("Painel central de acoes flutuantes criado.");
+	return true;
 }
 
 function aplicarConfiguracaoPainelPorAcao(manipulador) {
 	if (!painel) return;
-	painel.style.width = manipulador?.configuracaoPainel?.largura || "";
-	painel.style.maxWidth = manipulador?.configuracaoPainel?.larguraMaxima || "";
-	painel.style.minHeight = manipulador?.configuracaoPainel?.alturaMinima || "";
-	painel.style.maxHeight = manipulador?.configuracaoPainel?.alturaMaxima || "";
+	painel.style.width = manipulador?.configuracaoPainel?.largura || "92vw";
+	painel.style.maxWidth = manipulador?.configuracaoPainel?.larguraMaxima || "92vw";
+	painel.style.minHeight = manipulador?.configuracaoPainel?.alturaMinima || "78vh";
+	painel.style.maxHeight = manipulador?.configuracaoPainel?.alturaMaxima || "92vh";
 	if (iframe?.isConnected) {
 		iframe.style.height = manipulador?.configuracaoPainel?.alturaIframe || "";
 		iframe.style.minHeight = manipulador?.configuracaoPainel?.alturaIframeMinima || "";
 	}
-	if (painel.style.width || painel.style.maxWidth) {
-		logInfo("Configuracao de largura aplicada pelo manipulador.", {
-			manipulador: manipulador?.id || "padrao",
-			width: painel.style.width || null,
-			maxWidth: painel.style.maxWidth || null,
-			minHeight: painel.style.minHeight || null,
-			maxHeight: painel.style.maxHeight || null,
-			iframeHeight: iframe?.style?.height || null
-		});
-	}
 }
 
 async function solicitarFechamentoGuiaAtual() {
-	logInfo("Solicitando fechamento da guia atual ao background...");
 	return await new Promise((resolve) => {
 		chrome.runtime.sendMessage({ type: "EFFRAIM_FECHAR_ABA_ATUAL" }, (resposta) => {
 			const erro = chrome.runtime.lastError;
 			if (erro) {
-				logWarn("Falha ao solicitar fechamento da guia atual.", { erro: erro.message || String(erro) });
 				resolve({ ok: false, erro: erro.message || "runtime_sendmessage_falhou" });
 				return;
 			}
-			if (!resposta?.ok) {
-				logWarn("Background recusou fechamento da guia atual.", resposta);
-				resolve({ ok: false, erro: resposta?.erro || "fechamento_rejeitado" });
-				return;
-			}
-			logInfo("Background confirmou fechamento da guia atual.", resposta);
-			resolve({ ok: true });
+			resolve(resposta?.ok ? { ok: true } : { ok: false, erro: resposta?.erro || "fechamento_rejeitado" });
 		});
 	});
 }
@@ -147,21 +293,10 @@ async function aplicarComportamentoDoManipuladorNoIframe() {
 			atualizarStatus,
 			solicitarFechamentoGuia: solicitarFechamentoGuiaAtual
 		});
-		logInfo("Comportamento específico do manipulador aplicado.", {
-			manipulador: manipulador.id || "padrao"
-		});
 	} catch (erro) {
-		status.style.display = "block";
 		atualizarStatus("Falha ao aplicar comportamento da ação flutuante.", "erro");
 		logWarn("Erro ao aplicar comportamento especifico do manipulador.", erro);
 	}
-}
-
-function obterMensagemAvisoNatural() {
-	const nomeCfg =
-		window?.EFFRAIM_CONFIGURACOES?.funcionalidades_ativas?.acao_flutuante?._meta?.nome ||
-		"Ação Flutuante";
-	return `Você está usando a funcionalidade ${nomeCfg}. Se desejar, desative nas configurações do EFFRAIM.`;
 }
 
 function extrairUrlDeHrefJavascript(href) {
@@ -203,147 +338,116 @@ function extrairChaveAcao(url) {
 	}
 }
 
-function posicionarAbaixoDaAncora() {
-	if (!painel || !ancoraAtual?.isConnected) return;
-	const rect = ancoraAtual.getBoundingClientRect();
-	const margem = 8;
-	painel.style.position = "fixed";
-	painel.style.transform = "none";
-	painel.style.top = `${Math.round(rect.bottom + margem)}px`;
+function renderizarListaAcoes({ abrir = false } = {}) {
+	if (!garantirPainel()) return;
+	estadoAtual = "lista";
+	manipuladorAtual = null;
+	atualizarStatus("");
+	renderizarCabecalhoInterno({ titulo: "Ações do processo", mostrarVoltar: false });
+	corpo.innerHTML = "";
 
-	const largura = painel.offsetWidth || 0;
-	const limiteDireito = Math.max(12, window.innerWidth - largura - 12);
-	const left = Math.min(Math.max(12, rect.left), limiteDireito);
-	painel.style.left = `${Math.round(left)}px`;
-}
+	const acoes = listarAcoesDisponiveis();
+	if (!acoes.length) {
+		const vazio = document.createElement("div");
+		vazio.className = "effraim-acao-flutuante-vazio";
+		vazio.textContent = "Nenhuma ação disponível no fieldset.";
+		corpo.appendChild(vazio);
+	} else {
+		const lista = document.createElement("div");
+		lista.className = "effraim-acao-flutuante-lista";
 
-function rolarAncoraParaTopo(anchor) {
-	if (!anchor?.isConnected) return;
-	try {
-		anchor.scrollIntoView({
-			block: "start",
-			inline: "nearest",
-			behavior: "auto"
-		});
-		logInfo("Ancora rolada para o topo antes da abertura do painel.");
-	} catch (e) {
-		logWarn("Falha ao executar scrollIntoView da ancora.", e);
-	}
-}
+		for (const anchor of acoes) {
+			const item = document.createElement("button");
+			item.type = "button";
+			item.className = "effraim-acao-flutuante-item";
+			item.textContent = extrairRotuloAcao(anchor);
+			item.title = item.textContent;
+			item.addEventListener("click", () => {
+				void abrirAcaoPorAnchor(anchor, { alternarMesmoAlvo: false });
+			});
+			lista.appendChild(item);
+		}
 
-function abrirPainel() {
-	if (!painel) return;
-	painel.style.display = "inline-block";
-	painel.style.opacity = "1";
-	painel.style.pointerEvents = "auto";
-	if (!painel.style.minHeight) painel.style.minHeight = "78vh";
-	if (!painel.style.maxHeight) painel.style.maxHeight = "92vh";
-	painel.style.overflowY = "auto";
-	painel.style.overflowX = "hidden";
-	requestAnimationFrame(() => {
-		posicionarAbaixoDaAncora();
-	});
-}
-
-function garantirPainel(anchor) {
-	if (!anchor) return false;
-	if (painel && anchor === ancoraAtual && painel.isConnected) return true;
-
-	if (painel && painel.isConnected) painel.remove();
-
-	const novoPainel = criarPainelDeslizantePadrao("painel-acao-flutuante", anchor, "Ação Flutuante");
-	Object.assign(novoPainel.style, {
-		background: "#f5fbff",
-		color: "#0f314a",
-		paddingRight: "12px",
-		zIndex: "2147481000"
-	});
-
-	// O helper padrao fecha em mouseleave (comportamento de hover).
-	// Aqui usamos um fechamento controlado: fecha ao sair do painel/ancora com pequeno delay.
-	anchor.addEventListener("mouseenter", bloquearMouseenterHelper, true);
-	anchor.addEventListener("mouseleave", bloquearMouseleaveHelper, true);
-	novoPainel.addEventListener("mouseenter", bloquearMouseenterHelper, true);
-	novoPainel.addEventListener("mouseleave", bloquearMouseleaveHelper, true);
-
-	const novoConteudo = document.createElement("div");
-	novoConteudo.id = "conteudo-acao-flutuante";
-	novoConteudo.style.padding = "8px";
-
-	const novoAviso = document.createElement("div");
-	novoAviso.className = "effraim-acao-flutuante-aviso";
-	novoAviso.textContent = obterMensagemAvisoNatural();
-
-	const novoStatus = document.createElement("div");
-	novoStatus.className = "effraim-acao-flutuante-status";
-	novoStatus.style.display = "none";
-
-	novoConteudo.appendChild(novoAviso);
-	novoConteudo.appendChild(novoStatus);
-	novoPainel.appendChild(novoConteudo);
-
-	painel = novoPainel;
-	conteudo = novoConteudo;
-	status = novoStatus;
-	iframe = null;
-	ancoraAtual = anchor;
-
-	if (!listenersPosicao) {
-		window.addEventListener("resize", posicionarAbaixoDaAncora);
-		window.addEventListener("scroll", posicionarAbaixoDaAncora, true);
-		listenersPosicao = true;
+		corpo.appendChild(lista);
 	}
 
-	return true;
+	if (abrir) abrirPainel();
 }
 
-async function carregarAcaoNoPainel(anchor) {
+async function abrirAcaoPorAnchor(anchor, { alternarMesmoAlvo = true } = {}) {
+	if (!anchor || !garantirPainel()) return;
+
 	const url = resolverUrlDaAcao(anchor);
 	const chaveAcao = extrairChaveAcao(url);
 	const alvoChave = `${chaveAcao}|${url}`;
-	logInfo("Acao detectada.", { chaveAcao, url, texto: (anchor.textContent || "").trim().slice(0, 80) });
-
 	if (!url) {
-		atualizarStatus("Esta acao nao possui link compativel para abrir no painel flutuante.", "erro");
-		logWarn("Acao sem URL compativel.", { href: anchor.getAttribute("href") || "" });
+		atualizarStatus("Esta ação não possui link compatível para abrir no painel flutuante.", "erro");
+		renderizarListaAcoes({ abrir: true });
 		return;
 	}
 
+	if (alternarMesmoAlvo && ultimoAlvoChave === alvoChave && estadoAtual === "acao" && estaAberto()) {
+		fecharPainel();
+		ultimoAlvoChave = "";
+		podeReabrirPorHover = false;
+		return;
+	}
+
+	estadoAtual = "acao";
 	manipuladorAtual = await obterManipuladorAcao(chaveAcao);
 	aplicarConfiguracaoPainelPorAcao(manipuladorAtual);
 	const urlFinal = manipuladorAtual?.transformarUrl?.({ url, anchor }) || url;
+	const rotulo = extrairRotuloAcao(anchor);
 
-	abrirPainel();
+	renderizarCabecalhoInterno({ titulo: rotulo, mostrarVoltar: true });
+	atualizarStatus("");
+	corpo.innerHTML = "";
 
 	if (!iframe) {
 		iframe = document.createElement("iframe");
 		iframe.id = "effraim-iframe-acao-flutuante";
 		iframe.className = "effraim-iframe-acao-flutuante";
-		iframe.style.width = "100%";
-		iframe.style.height = manipuladorAtual?.configuracaoPainel?.alturaIframe || "";
-		iframe.style.minHeight = manipuladorAtual?.configuracaoPainel?.alturaIframeMinima || "";
 		iframe.addEventListener("load", async () => {
-			logInfo("Iframe carregado.", { src: iframe?.src || "" });
 			await aplicarComportamentoDoManipuladorNoIframe();
 		});
-		iframe.addEventListener("error", (e) => {
-			status.style.display = "block";
-			atualizarStatus("Falha ao carregar a acao no painel flutuante.", "erro");
-			logWarn("Erro no iframe.", e);
+		iframe.addEventListener("error", (erro) => {
+			atualizarStatus("Falha ao carregar a ação no painel flutuante.", "erro");
+			logWarn("Erro no iframe da acao flutuante.", erro);
 		});
-		conteudo.appendChild(iframe);
 	}
 
-	if (ultimoAlvoChave === alvoChave && estaAberto()) {
-		fecharPainel();
-		ultimoAlvoChave = "";
+	if (acaoCarregadaEmMemoria === alvoChave && iframe.src) {
+		iframe.__effraimManipuladorAtual = manipuladorAtual;
+		corpo.appendChild(iframe);
+		ultimoAlvoChave = alvoChave;
+		abrirPainel();
+		logInfo("Acao reaproveitada sem recarregar iframe.", { chaveAcao, rotulo });
 		return;
 	}
 
 	iframe.__effraimManipuladorAtual = manipuladorAtual;
+	corpo.appendChild(iframe);
 	iframe.src = urlFinal;
 	ultimoAlvoChave = alvoChave;
-	logInfo("SRC atualizado no iframe.", { src: urlFinal, manipulador: manipuladorAtual?.id || "padrao" });
+	acaoCarregadaEmMemoria = alvoChave;
+	abrirPainel();
+	logInfo("Acao carregada no hub.", { chaveAcao, url: urlFinal, rotulo });
+}
+
+function cliqueForaFecha(event) {
+	if (!estaAberto()) return;
+	const alvo = event.target instanceof Element ? event.target : null;
+	if (!alvo) return;
+	if (painel?.contains(alvo)) return;
+	if (botaoHub?.contains?.(alvo) || alvo === botaoHub) return;
+	if (alvo.closest?.(BOTOES_SELECTOR)) return;
+	fecharPainel();
+}
+
+function escapeFecha(event) {
+	if (event.key !== "Escape") return;
+	if (!estaAberto()) return;
+	fecharPainel();
 }
 
 async function interceptarCliqueAcao(event) {
@@ -355,60 +459,17 @@ async function interceptarCliqueAcao(event) {
 	event.__effraimAcaoFlutuanteHandled = true;
 	event.preventDefault();
 	event.stopPropagation();
-	rolarAncoraParaTopo(anchor);
-
-	if (!garantirPainel(anchor)) {
-		logWarn("Nao foi possivel criar/obter painel para ancora.");
-		return;
-	}
-	await carregarAcaoNoPainel(anchor);
-}
-
-function marcarBotoes() {
-	const fieldset = document.querySelector(FIELDSET_SELECTOR);
-	if (!fieldset) {
-		logWarn("Fieldset de acoes nao encontrado.");
-		return;
-	}
-	const botoes = fieldset.querySelectorAll("a.infraButton");
-	logInfo("Mapeando botoes de acao.", { quantidade: botoes.length });
-	botoes.forEach((anchor) => {
-		if (anchor.dataset.effraimAcaoFlutuanteVinculado === "1") return;
-		anchor.dataset.effraimAcaoFlutuanteVinculado = "1";
-		anchor.addEventListener("click", interceptarCliqueAcao, true);
-	});
-}
-
-function iniciarObservacao() {
-	if (observador) return;
-	observador = new MutationObserver(() => {
-		marcarBotoes();
-	});
-	observador.observe(document.body, { childList: true, subtree: true });
-}
-
-function cliqueForaFecha(event) {
-	if (!estaAberto()) return;
-	const target = event.target;
-	if (!target) return;
-	if (painel?.contains(target)) return;
-	if (target.closest?.(BOTOES_SELECTOR)) return;
-	fecharPainel();
-}
-
-function escapeFecha(event) {
-	if (event.key !== "Escape") return;
-	if (!estaAberto()) return;
-	fecharPainel();
+	await abrirAcaoPorAnchor(anchor, { alternarMesmoAlvo: true });
 }
 
 export function init() {
 	logInfo("Init iniciado.");
 	garantirCss();
-	marcarBotoes();
-	iniciarObservacao();
+	garantirBotaoHub();
+	garantirPainel();
+	renderizarListaAcoes({ abrir: false });
 	document.addEventListener("click", interceptarCliqueAcao, true);
 	document.addEventListener("mousedown", cliqueForaFecha, true);
 	document.addEventListener("keydown", escapeFecha, true);
-	logInfo("Acao Flutuante iniciada.");
+	logInfo("Hub de acoes flutuantes iniciado.");
 }
