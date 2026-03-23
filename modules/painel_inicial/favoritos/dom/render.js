@@ -30,6 +30,10 @@ import { createMenuHandlers } from "./menus.js";
 let abrirMenuMoverPastaHandler;
 let abrirConfirmExcluirPastaHandler;
 
+function paginaPainelInicialCarregadaCorretamente() {
+	return !!document.getElementById("effraim-funcionalidades-container");
+}
+
 function ensureMenuHandlers() {
 	if (abrirMenuMoverPastaHandler && abrirConfirmExcluirPastaHandler) return;
 	const handlers = createMenuHandlers({
@@ -126,6 +130,8 @@ export async function renderizarSecaoFavoritos(tentativa = 1) {
 }
 
 function limparFavoritosAusentesDaPagina(favs) {
+	if (!paginaPainelInicialCarregadaCorretamente()) return [];
+
 	const ausentes = [];
 	const chave = item => `${item.secaoId}::${item.id}`;
 	const chavesAusentes = new Set();
