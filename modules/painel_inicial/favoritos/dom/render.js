@@ -30,8 +30,16 @@ import { createMenuHandlers } from "./menus.js";
 let abrirMenuMoverPastaHandler;
 let abrirConfirmExcluirPastaHandler;
 
+const SECOES_ORIGINAIS_FAVORITAVEIS = [
+	"fldProcessoDeUmLocalizador",
+	"fldMeusLocalizadores",
+	"fldMinutas",
+	"fldRelatorioGeral"
+];
+
 function paginaPainelInicialCarregadaCorretamente() {
-	return !!document.getElementById("effraim-funcionalidades-container");
+	if (!document.getElementById("effraim-funcionalidades-container")) return false;
+	return SECOES_ORIGINAIS_FAVORITAVEIS.some((id) => document.getElementById(id));
 }
 
 function ensureMenuHandlers() {
