@@ -63,11 +63,7 @@ export async function renderizarSecaoFavoritos(tentativa = 1) {
 	ensureFavoritosCss();
 	ensureMenuHandlers();
 	const favs = ordenarSeNecessario(await obterFavoritos());
-	const favoritosAusentes = limparFavoritosAusentesDaPagina(favs);
-	if (favoritosAusentes.length > 0) {
-		await salvarFavoritos(favs);
-		notificarLimpezaFavoritosAusentes(favoritosAusentes);
-	}
+	const favoritosIndisponiveis = coletarFavoritosIndisponiveisDaPagina(favs);
 	document.querySelectorAll("fieldset.infraFieldset[id^='fldFavoritosPainel']").forEach(fs => fs.remove());
 
 	const fieldsets = Array.from(document.querySelectorAll("fieldset.infraFieldset[id^='fld']")).filter(
@@ -124,6 +120,9 @@ export async function renderizarSecaoFavoritos(tentativa = 1) {
 		vazio.className = "effraim-fav-empty-box";
 		conteudo.appendChild(vazio);
 	} else {
+		if (favoritosIndisponiveis.length) {
+			conteudo.appendChild(criarSecaoFavoritosIndisponiveis(favoritosIndisponiveis));
+		}
 		if (favs.itens_soltos?.length) {
 			conteudo.appendChild(criarTabelaFavoritos("Favoritos", favs.itens_soltos, [], null));
 		}
@@ -137,60 +136,33 @@ export async function renderizarSecaoFavoritos(tentativa = 1) {
 	window.dispatchEvent(new CustomEvent("effraim:atualizar_coloracao"));
 }
 
-function limparFavoritosAusentesDaPagina(favs) {
+function coletarFavoritosIndisponiveisDaPagina(favs) {
 	if (!paginaPainelInicialCarregadaCorretamente()) return [];
 
-	const ausentes = [];
+	const indisponiveis = [];
 	const chave = item => `${item.secaoId}::${item.id}`;
-	const chavesAusentes = new Set();
+	const chavesIndisponiveis = new Set();
 
-	const registrarSeAusente = item => {
+	const registrarSeIndisponivel = item => {
 		if (!item?.secaoId || !item?.id) return;
 		if (localizarLinhaOriginal(item)) return;
 		const key = chave(item);
-		if (chavesAusentes.has(key)) return;
-		chavesAusentes.add(key);
-		ausentes.push(item);
+		if (chavesIndisponiveis.has(key)) return;
+		chavesIndisponiveis.add(key);
+		indisponiveis.push(item);
 	};
 
-	(favs.itens_soltos || []).forEach(registrarSeAusente);
+	(favs.itens_soltos || []).forEach(registrarSeIndisponivel);
 
 	const visitarPastas = pastas => {
 		(pastas || []).forEach(pasta => {
-			(pasta.itens || []).forEach(registrarSeAusente);
+			(pasta.itens || []).forEach(registrarSeIndisponivel);
 			visitarPastas(pasta.pastas || []);
 		});
 	};
 	visitarPastas(favs.pastas || []);
 
-	if (chavesAusentes.size === 0) return [];
-
-	const manter = item => !chavesAusentes.has(chave(item));
-	favs.itens_soltos = (favs.itens_soltos || []).filter(manter);
-
-	const limparPastas = pastas => {
-		(pastas || []).forEach(pasta => {
-			pasta.itens = (pasta.itens || []).filter(manter);
-			limparPastas(pasta.pastas || []);
-		});
-	};
-	limparPastas(favs.pastas || []);
-
-	return ausentes;
-}
-
-function notificarLimpezaFavoritosAusentes(ausentes) {
-	if (!Array.isArray(ausentes) || ausentes.length === 0) return;
-	const limiteTitulos = 6;
-	const titulos = ausentes
-		.map(item => item?.titulo || item?.id || "item sem título")
-		.filter(Boolean);
-	const exibidos = titulos.slice(0, limiteTitulos);
-	const restantes = Math.max(0, titulos.length - exibidos.length);
-	const sufixo = restantes > 0 ? `\n... e mais ${restantes} item(ns).` : "";
-	const mensagem = `Favorito não encontrado na página e removido automaticamente dos favoritos:\n- ${exibidos.join("\n- ")}${sufixo}`;
-	inserir_aviso_effraim("Favoritos ausentes foram removidos automaticamente.", 7000);
-	alert(mensagem);
+	return indisponiveis;
 }
 
 function hasFavoritos(favs) {
@@ -210,6 +182,107 @@ function coletarTodosFavoritosDaEstrutura(favs) {
 	};
 	visitar(favs?.pastas || []);
 	return itens;
+}
+
+function criarSecaoFavoritosIndisponiveis(itens) {
+	const container = document.createElement("div");
+	container.className = "effraim-pasta-container";
+
+	const header = document.createElement("div");
+	header.className = "effraim-pasta-header";
+	const arrow = document.createElement("span");
+	arrow.textContent = "▸";
+	arrow.className = "effraim-pasta-arrow";
+	const nome = document.createElement("span");
+	nome.textContent = `Favoritos indisponíveis nesta página (${itens.length})`;
+	nome.className = "effraim-pasta-nome effraim-chip-texto";
+	header.append(arrow, nome);
+
+	const conteudo = document.createElement("div");
+	conteudo.className = "effraim-pasta-conteudo";
+	conteudo.style.display = "none";
+	conteudo.appendChild(criarTabelaFavoritosIndisponiveis(itens));
+
+	header.onclick = () => {
+		const aberto = conteudo.style.display !== "none";
+		conteudo.style.display = aberto ? "none" : "block";
+		arrow.textContent = aberto ? "▸" : "▾";
+	};
+
+	container.append(header, conteudo);
+	return container;
+}
+
+function criarTabelaFavoritosIndisponiveis(itens) {
+	const wrapper = document.createElement("div");
+	const tabela = document.createElement("table");
+	tabela.width = "99%";
+	tabela.className = "infraTable";
+	tabela.summary = "Favoritos indisponíveis";
+
+	const tbody = document.createElement("tbody");
+	const header = document.createElement("tr");
+	const thDesc = document.createElement("th");
+	thDesc.width = "70%";
+	thDesc.className = "infraTh";
+	thDesc.textContent = "Item";
+	const thOrigem = document.createElement("th");
+	thOrigem.className = "infraTh";
+	thOrigem.textContent = "Origem";
+	const thAcao = document.createElement("th");
+	thAcao.className = "infraTh effraim-fav-head";
+	thAcao.textContent = "Ações";
+	header.append(thDesc, thOrigem, thAcao);
+	tbody.appendChild(header);
+
+	(itens || []).forEach((item) => {
+		const tr = document.createElement("tr");
+		const tdDesc = document.createElement("td");
+		const descChip = document.createElement("span");
+		descChip.className = "effraim-chip-texto";
+		descChip.textContent = item?.titulo || item?.id || "Item sem título";
+		tdDesc.appendChild(descChip);
+
+		const tdOrigem = document.createElement("td");
+		tdOrigem.textContent = traduzirSecaoFavorito(item?.secaoId);
+
+		const tdAcao = document.createElement("td");
+		tdAcao.className = "effraim-fav-cell";
+
+		const img = document.createElement("img");
+		img.src = chrome.runtime.getURL("assets/icones/desfavoritar.png");
+		img.alt = "Remover dos favoritos";
+		img.title = "Remover dos favoritos";
+		img.className = "effraim-action-icon effraim-fav-star-icon";
+		img.onclick = async (e) => {
+			e.stopPropagation();
+			const removed = await removerFavorito(item.secaoId, item.id);
+			if (removed) {
+				await renderizarSecaoFavoritos();
+				const origBtn = localizarBotaoFavoritoOriginal(item.secaoId, item.id);
+				if (origBtn) atualizarIcone(origBtn, false);
+				inserir_aviso_effraim("Favorito indisponível removido.", 4000);
+			}
+		};
+		tdAcao.appendChild(img);
+
+		tr.append(tdDesc, tdOrigem, tdAcao);
+		tbody.appendChild(tr);
+	});
+
+	tabela.appendChild(tbody);
+	wrapper.appendChild(tabela);
+	return wrapper;
+}
+
+function traduzirSecaoFavorito(secaoId) {
+	const mapa = {
+		fldProcessoDeUmLocalizador: "Processos de um localizador",
+		fldMeusLocalizadores: "Meus localizadores",
+		fldMinutas: "Minutas",
+		fldRelatorioGeral: "Relatório Geral"
+	};
+	return mapa[secaoId] || secaoId || "Origem desconhecida";
 }
 
 function localizarControleRefreshNaLinhaOriginal(linhaOriginal) {
