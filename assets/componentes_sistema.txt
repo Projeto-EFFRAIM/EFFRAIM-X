@@ -293,7 +293,8 @@ Capacidades:
 - reordenação por drag and drop
 - coloração de pastas e itens
 - persistência chunkada no sync
-- limpeza automática de favoritos ausentes na página
+- área recolhida no topo para favoritos indisponíveis na página atual
+- remoção manual de favoritos indisponíveis pelo usuário
 - (novo) persistência de estado aberto/fechado das pastas (`pastas_estado_abertas`)
 - botão global de refresh dos relatórios no legend do fieldset Favoritos
 
@@ -587,4 +588,3 @@ Tutoriais:
 
 
 Fim do documento.
-

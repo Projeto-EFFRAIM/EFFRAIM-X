@@ -99,6 +99,11 @@ function getSteps(tutorialId) {
       selector: "#sim-favoritos-resultado",
       titulo: "Organizacao final",
       texto: "Aqui aparecem pastas e favoritos para acesso rapido no painel inicial."
+    },
+    {
+      selector: "#sim-favoritos-indisponiveis",
+      titulo: "Itens indisponiveis nesta pagina",
+      texto: "Quando um item nao aparece na pagina atual, ele fica em uma area recolhida para voce revisar depois e remover manualmente se quiser."
     }
   ];
 }

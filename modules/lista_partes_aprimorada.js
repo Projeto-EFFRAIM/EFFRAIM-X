@@ -450,6 +450,29 @@ function descreverGrupo(grupo) {
 	return ths.length ? ths.join(" | ") : "Grupo sem título";
 }
 
+function celulaTemParteValida(celula) {
+	if (!(celula instanceof HTMLElement)) return false;
+	const texto = (celula.textContent || "").replace(/\s+/g, " ").trim();
+	if (!texto) return false;
+	return texto !== "-";
+}
+
+function contarPartesPorColuna(grupo) {
+	const cabecalhos = [...(grupo?.cabecalho?.querySelectorAll("th") || [])];
+	if (!cabecalhos.length) return [];
+
+	const contadores = new Array(cabecalhos.length).fill(0);
+	for (const linha of grupo?.dados || []) {
+		const celulas = [...(linha?.querySelectorAll(":scope > td") || [])];
+		cabecalhos.forEach((_, indice) => {
+			if (celulaTemParteValida(celulas[indice])) {
+				contadores[indice] += 1;
+			}
+		});
+	}
+	return contadores;
+}
+
 function atualizarContagemNosCabecalhos() {
 	const tabela = obterTabelaPartes();
 	if (!tabela) return { grupos: 0, atualizados: 0 };
@@ -461,10 +484,11 @@ function atualizarContagemNosCabecalhos() {
 	for (const grupo of grupos) {
 		const ths = [...(grupo?.cabecalho?.querySelectorAll("th") || [])];
 		if (!ths.length) continue;
-		const contagem = Array.isArray(grupo?.dados) ? grupo.dados.length : 0;
-		for (const th of ths) {
+		const contagens = contarPartesPorColuna(grupo);
+		for (const [indice, th] of ths.entries()) {
 			const textoAtual = String(th.textContent || "").replace(/\s+/g, " ").trim();
 			const base = (th.dataset.effraimTituloBase || textoAtual.replace(/\s*\(\d+\)\s*$/, "").trim()).trim();
+			const contagem = Number.isFinite(contagens[indice]) ? contagens[indice] : 0;
 			th.dataset.effraimTituloBase = base;
 			th.textContent = `${base} (${contagem})`;
 			atualizados += 1;

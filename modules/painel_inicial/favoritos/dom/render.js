@@ -187,6 +187,7 @@ function coletarTodosFavoritosDaEstrutura(favs) {
 function criarSecaoFavoritosIndisponiveis(itens) {
 	const container = document.createElement("div");
 	container.className = "effraim-pasta-container";
+	container.id = "effraim-favoritos-indisponiveis";
 
 	const header = document.createElement("div");
 	header.className = "effraim-pasta-header";

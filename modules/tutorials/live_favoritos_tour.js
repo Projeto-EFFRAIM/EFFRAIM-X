@@ -51,6 +51,14 @@ export async function iniciarTutorial() {
 			texto: "Aqui ficam os favoritos organizados para acesso rápido, com pastas, subpastas e cores."
 		},
 		{
+			selector: "#effraim-favoritos-indisponiveis",
+			titulo: "Itens Indisponíveis Nesta Página",
+			texto: "Quando um item não aparece nesta página, ele fica em uma área recolhida no começo da lista. Assim, você pode revisar e remover manualmente só o que realmente não quiser mais.",
+			onEnter: async () => {
+				await garantirPainelFavoritosAberto();
+			}
+		},
+		{
 			selector: "#fldFavoritosPainel .effraim-folder-action-icon.color, #fldFavoritosPainel .effraim-action-icon[title='Colorir favorito']",
 			titulo: "Colorir Pasta ou Item",
 			texto: "Use o ícone de colorir para abrir a paleta de 12 opções, incluindo X vermelho para remover a cor.",
