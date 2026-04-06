@@ -82,12 +82,35 @@ function posicionarPainelFixo() {
 	if (!painel) return;
 	const ancora = obterAncoraTopologica();
 	const rect = ancora?.getBoundingClientRect?.();
-	const topo = rect ? Math.round(rect.bottom + 8) : 72;
+	const margemViewport = 8;
+	const espacamentoAncora = 0;
+	const larguraPainel = Math.min(
+		Math.round(painel.getBoundingClientRect?.().width || painel.offsetWidth || window.innerWidth * 0.92),
+		Math.max(320, window.innerWidth - 16)
+	);
+	const alturaPainel = Math.min(
+		Math.round(painel.getBoundingClientRect?.().height || painel.offsetHeight || window.innerHeight * 0.92),
+		Math.max(240, window.innerHeight - (margemViewport * 2))
+	);
+	const centroAncora = rect ? rect.left + (rect.width / 2) : window.innerWidth / 2;
+	const esquerdaMaxima = Math.max(margemViewport, window.innerWidth - larguraPainel - margemViewport);
+	const esquerda = Math.min(
+		Math.max(margemViewport, Math.round(centroAncora - (larguraPainel / 2))),
+		esquerdaMaxima
+	);
+	const topoPreferidoAbaixo = rect ? Math.round(rect.bottom + espacamentoAncora) : 72;
+	const topoPreferidoAcima = rect ? Math.round(rect.top - alturaPainel - espacamentoAncora) : 48;
+	const cabeAbaixo = topoPreferidoAbaixo + alturaPainel <= window.innerHeight - margemViewport;
+	const cabeAcima = topoPreferidoAcima >= margemViewport;
+	const topoMaximo = Math.max(margemViewport, window.innerHeight - alturaPainel - margemViewport);
+	const topo = cabeAbaixo
+		? topoPreferidoAbaixo
+		: (cabeAcima ? topoPreferidoAcima : Math.min(Math.max(margemViewport, topoPreferidoAbaixo), topoMaximo));
 	painel.style.position = "fixed";
-	painel.style.top = `${Math.max(48, topo)}px`;
-	painel.style.left = "50%";
+	painel.style.top = `${topo}px`;
+	painel.style.left = `${esquerda}px`;
 	painel.style.right = "auto";
-	painel.style.transform = "translateX(-50%)";
+	painel.style.transform = "none";
 	painel.style.zIndex = "2147481000";
 }
 
@@ -207,6 +230,9 @@ function garantirPainel() {
 
 	painel = criarPainelDeslizantePadrao(PANEL_ID, ancora);
 	if (!painel) return false;
+	if (painel.parentNode !== document.body) {
+		document.body.appendChild(painel);
+	}
 
 	painel.classList.add("effraim-acao-flutuante-painel");
 	Object.assign(painel.style, {

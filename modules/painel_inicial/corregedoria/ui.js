@@ -77,6 +77,33 @@ function obterColunasDrill(linhasFiltradas = [], linhasBase = [], gid = null) {
 	return Object.keys((Array.isArray(linhasFiltradas) ? linhasFiltradas[0] : null) || {});
 }
 
+function obterLinhasBaseParaColuna(linhas = [], opcoes = {}, colunaAtual = "") {
+	let linhasBase = aplicarFiltrosDrill(linhas, opcoes.gid, Array.isArray(opcoes.tagsAtivas) ? opcoes.tagsAtivas : []);
+	const diasMin = (opcoes.diasMin === null || opcoes.diasMin === undefined || opcoes.diasMin === "")
+		? null
+		: (Number.isFinite(Number(opcoes.diasMin)) ? Number(opcoes.diasMin) : null);
+	linhasBase = aplicarFiltroDiasDrill(linhasBase, diasMin);
+	linhasBase = aplicarFiltroFaixaConclusosDrill(
+		linhasBase,
+		Number(opcoes.gid) === 4 && opcoes.faixaConclusos && typeof opcoes.faixaConclusos === "object"
+			? opcoes.faixaConclusos
+			: null
+	);
+	linhasBase = aplicarFiltroVenceAteConclusosDrill(
+		linhasBase,
+		Number(opcoes.gid) === 4 ? String(opcoes.dataBasePainel || "").trim() : "",
+		Number(opcoes.gid) === 4 ? String(opcoes.dataVenceAte || "").trim() : ""
+	);
+
+	const filtrosOriginais = (opcoes.filtrosColunas && typeof opcoes.filtrosColunas === "object")
+		? opcoes.filtrosColunas
+		: {};
+	const filtrosSemColunaAtual = Object.fromEntries(
+		Object.entries(filtrosOriginais).filter(([coluna]) => String(coluna || "") !== String(colunaAtual || ""))
+	);
+	return aplicarFiltrosColunasDrill(linhasBase, filtrosSemColunaAtual);
+}
+
 export function renderizarDrill(view, titulo, linhas = [], erro = "", opcoes = {}) {
 	if (!view?.drillWrap || !view?.drillTitulo || !view?.drillConteudo) return;
 	if (!titulo && !erro) {
@@ -204,7 +231,8 @@ export function renderizarDrill(view, titulo, linhas = [], erro = "", opcoes = {
 	if (typeof view.__atualizarMenuCsv === "function") view.__atualizarMenuCsv();
 
 	const linhaFiltros = colunas.map((coluna) => {
-		const valoresDistintos = [...new Set(linhasBaseColunas.map((l) => String(l?.[coluna] ?? "").trim()))]
+		const linhasBaseColuna = obterLinhasBaseParaColuna(linhas, opcoes, coluna);
+		const valoresDistintos = [...new Set(linhasBaseColuna.map((l) => String(l?.[coluna] ?? "").trim()))]
 			.filter((v) => v !== "")
 			.sort((a, b) => a.localeCompare(b, "pt-BR", { numeric: true, sensitivity: "base" }))
 			.slice(0, 500);

@@ -1,10 +1,17 @@
 #painel-acao-flutuante {
   width: 92vw;
   max-width: 92vw;
+  min-width: 92vw;
   min-height: 78vh;
   max-height: 92vh;
   overflow-y: auto;
   overflow-x: hidden;
+}
+
+#painel-acao-flutuante.effraim-painel-deslizante--forcado {
+  width: 92vw !important;
+  max-width: 92vw !important;
+  min-width: 92vw !important;
 }
 
 .effraim-acao-flutuante-aviso {

@@ -203,6 +203,7 @@ Arquitetura:
 - não cria botão EFFRAIM por ação
 - intercepta clique nos botões nativos de `#fldAcoes`
 - abre/reutiliza um painel único + iframe
+- ancora o painel logo abaixo de `#effraim-funcionalidades-container`
 - aplicações específicas por ação via manipulador
 
 Regra atual:
