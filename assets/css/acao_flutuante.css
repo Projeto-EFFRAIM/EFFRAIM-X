@@ -6,6 +6,7 @@
   max-height: 92vh;
   overflow-y: auto;
   overflow-x: hidden;
+  z-index: 10000;
 }
 
 #painel-acao-flutuante.effraim-painel-deslizante--forcado {

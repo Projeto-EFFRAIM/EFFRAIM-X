@@ -88,7 +88,7 @@ body.effraim-tema-escuro .infraTable {
   width:fit-content;
   left: 50%;
   transform: translateX(-50%);
-  z-index: 1131;
+  z-index: 10000;
   display: flex;
   justify-content: center;
   align-items: center;

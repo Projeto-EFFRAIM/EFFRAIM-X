@@ -1,5 +1,5 @@
 CATALOGO DE COMPONENTES DO SISTEMA (EFFRAIM-X)
-Atualizado em: 24/02/2026
+Atualizado em: 27/04/2026
 Objetivo: servir como mapa técnico de arquitetura e componentes para retomada rápida em chats futuros.
 
 ===========================================================================
@@ -103,6 +103,8 @@ Uso:
 Ponto sensível:
 - O helper mede dimensão por proporção e pode encolher painéis se o módulo não definir altura/largura úteis.
 - Funcionalidades com iframe grande (SISBAJUD, Requisitórios, Ação Flutuante) costumam precisar override.
+- O z-index efetivo contra o DOM original deve ficar no container/escopo externo ou no CSS específico da funcionalidade.
+- Não usar z-index genérico em `.effraim-painel-deslizante`: painéis filhos não vencem elementos externos se o container pai tiver stacking context inferior.
 
 
 3.3. Painel flutuante de seções (fieldsets do eproc)

@@ -111,7 +111,6 @@ function posicionarPainelFixo() {
 	painel.style.left = `${esquerda}px`;
 	painel.style.right = "auto";
 	painel.style.transform = "none";
-	painel.style.zIndex = "2147481000";
 }
 
 function abrirPainel() {
