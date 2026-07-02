@@ -284,7 +284,9 @@ export function criarWidget(wrap, deps) {
 			});
 			view.drillConteudo.innerHTML = `<div class="effraim-corregedoria__drill-carregando">Carregando...</div>`;
 			const favoritos = await lerFavoritosCorregedoria();
-			const linhas = await carregarDrillGrafico(favoritos, gid);
+			const linhas = await carregarDrillGrafico(favoritos, gid, {
+				dataAtualizacaoPainelBr: view.__dataAtualizacaoPainelBr || ""
+			});
 			if (view.__drillAberto?.gid !== gid) return;
 			view.__drillAberto.linhas = linhas;
 			renderizarDrill(view, titulo, linhas, "", {

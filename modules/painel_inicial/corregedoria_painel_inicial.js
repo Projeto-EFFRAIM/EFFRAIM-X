@@ -181,12 +181,28 @@ function obterMesAtualPainel() {
 	return `${ano}_${mes}`;
 }
 
-async function carregarValoresGraficos(favoritos) {
+function extrairDataBr(texto = "") {
+	return String(texto || "").match(/\b\d{2}\/\d{2}\/\d{4}\b/)?.[0] || "";
+}
+
+function obterMesReferenciaPainel(dataAtualizacao = "") {
+	const dataBr = extrairDataBr(dataAtualizacao);
+	const partes = dataBr.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+	if (!partes) return obterMesAtualPainel();
+	const mes = Number(partes[2]);
+	const ano = Number(partes[3]);
+	if (!Number.isFinite(mes) || !Number.isFinite(ano) || mes < 1 || mes > 12) return obterMesAtualPainel();
+	return `${ano}_${mes}`;
+}
+
+async function carregarValoresGraficos(favoritos, dataAtualizacao = "") {
 	if (!favoritos?.uni) return [];
 	const uni = encodeURIComponent(favoritos.uni);
-	const mes = encodeURIComponent(obterMesAtualPainel());
+	const mesReferencia = obterMesReferenciaPainel(dataAtualizacao);
+	const mes = encodeURIComponent(mesReferencia);
 	const url = `${URL_GRAFICOS_BASE}?gid=t&uni=${uni}&mes=${mes}`;
 	try {
+		console.log(`${PREFIXO_LOG} Carregando graficos da Corregedoria.`, { mes: mesReferencia, dataAtualizacao });
 		const json = await fetchCorregedoriaViaBackground(url, { respostaComo: "json", metodo: "POST" });
 		const grupos = resumirGraficosJson(json);
 		return await substituirParadosNaoConclusosSemPrazoAberto(grupos, favoritos);
@@ -271,11 +287,12 @@ async function abrirRelatorioGeralComProcessos(view) {
 	});
 }
 
-async function carregarDrillGrafico(favoritos, gid) {
+async function carregarDrillGrafico(favoritos, gid, opcoes = {}) {
 	if (!favoritos?.uni || !Number.isFinite(Number(gid))) return [];
-	if (!viewCacheValidoParaFavoritos(favoritos)) {
+	const mesReferencia = obterMesReferenciaPainel(opcoes.dataAtualizacaoPainelBr || opcoes.dataAtualizacao || "");
+	if (!viewCacheValidoParaFavoritos(favoritos, mesReferencia)) {
 		limparCachesDrill();
-		definirAssinaturaCacheDrill(favoritos);
+		definirAssinaturaCacheDrill(favoritos, mesReferencia);
 	}
 	const gidNum = Number(gid);
 	const cacheExistente = obterDrillCacheado(gidNum);
@@ -285,7 +302,7 @@ async function carregarDrillGrafico(favoritos, gid) {
 		uni: String(favoritos.uni),
 		gid: String(gidNum)
 	});
-	const mes = obterMesAtualPainel();
+	const mes = mesReferencia;
 	if ([7, 8, 9].includes(gidNum)) params.set("mes", mes);
 	if (gidNum === 6) {
 		params.set("mes", "0");
@@ -304,16 +321,16 @@ let assinaturaCacheDrill = "";
 const cacheDrillPorGid = new Map();
 let mapaDescricaoMateriaPorProcesso = null;
 
-function criarAssinaturaFavoritosCacheDrill(favoritos) {
-	return `${String(favoritos?.sec || "").trim()}|${String(favoritos?.uni || "").trim()}`;
+function criarAssinaturaFavoritosCacheDrill(favoritos, mesReferencia = "") {
+	return `${String(favoritos?.sec || "").trim()}|${String(favoritos?.uni || "").trim()}|${String(mesReferencia || "").trim()}`;
 }
 
-function viewCacheValidoParaFavoritos(favoritos) {
-	return assinaturaCacheDrill && assinaturaCacheDrill === criarAssinaturaFavoritosCacheDrill(favoritos);
+function viewCacheValidoParaFavoritos(favoritos, mesReferencia = "") {
+	return assinaturaCacheDrill && assinaturaCacheDrill === criarAssinaturaFavoritosCacheDrill(favoritos, mesReferencia);
 }
 
-function definirAssinaturaCacheDrill(favoritos) {
-	assinaturaCacheDrill = criarAssinaturaFavoritosCacheDrill(favoritos);
+function definirAssinaturaCacheDrill(favoritos, mesReferencia = "") {
+	assinaturaCacheDrill = criarAssinaturaFavoritosCacheDrill(favoritos, mesReferencia);
 }
 
 function limparCachesDrill() {
@@ -355,7 +372,7 @@ async function garantirMapaDescricaoMateria(favoritos) {
 	return mapaDescricaoMateriaPorProcesso;
 }
 
-async function carregarDrillGraficoBase(favoritos, gid) {
+async function carregarDrillGraficoBase(favoritos, gid, opcoes = {}) {
 	if (!favoritos?.uni || !Number.isFinite(Number(gid))) return [];
 	const gidNum = Number(gid);
 	const params = new URLSearchParams({
@@ -363,7 +380,7 @@ async function carregarDrillGraficoBase(favoritos, gid) {
 		uni: String(favoritos.uni),
 		gid: String(gidNum)
 	});
-	const mes = obterMesAtualPainel();
+	const mes = obterMesReferenciaPainel(opcoes.dataAtualizacaoPainelBr || opcoes.dataAtualizacao || "");
 	if ([7, 8, 9].includes(gidNum)) params.set("mes", mes);
 	if (gidNum === 6) {
 		params.set("mes", "0");
@@ -462,10 +479,8 @@ async function atualizarWidget(view, { forcarResumo = false, forcarIframe = fals
 
 	if (forcarResumo || assinatura !== view.__ultimaAssinaturaResumo) {
 		try {
-			const [resumoNovo, valoresNovos] = await Promise.all([
-				carregarResumoRemoto(favoritos),
-				carregarValoresGraficos(favoritos)
-			]);
+			const resumoNovo = await carregarResumoRemoto(favoritos);
+			const valoresNovos = await carregarValoresGraficos(favoritos, resumoNovo?.dataAtualizacao || "");
 			resumo = resumoNovo;
 			valoresGraficos = valoresNovos;
 			view.resumoCache = resumo;
