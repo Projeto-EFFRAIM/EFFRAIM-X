@@ -177,6 +177,20 @@ export async function carregarConfiguracoes() {
 	return existentes;
 }
 
+export async function garantirEstruturaConfiguracoesAtualizada(contexto = "desconhecido") {
+	try {
+		const cfg = await carregarConfiguracoes();
+		console.log("[EFFRAIM] Estrutura de configuracoes verificada.", {
+			contexto,
+			versao_config: cfg?._interno?.versao_config || null
+		});
+		return cfg;
+	} catch (e) {
+		console.warn("[EFFRAIM] Falha ao verificar estrutura de configuracoes.", { contexto, erro: e });
+		throw e;
+	}
+}
+
 async function lerConfiguracoes() {
 	// 1) Formato novo: secoes em chaves separadas no sync.
 	const segmentado = await lerConfiguracoesSegmentadas();

@@ -1,7 +1,14 @@
 
-// Futuro uso para listeners globais
-chrome.runtime.onInstalled.addListener(() => {
-  console.log("EFFRAIM instalado.");
+import { garantirEstruturaConfiguracoesAtualizada } from "./modules/utils/configuracoes.js";
+
+chrome.runtime.onInstalled.addListener((detalhes) => {
+  const contexto = `runtime.onInstalled:${detalhes?.reason || "desconhecido"}`;
+  console.log("[EFFRAIM/bg] Evento de instalacao/atualizacao.", {
+    reason: detalhes?.reason || "",
+    previousVersion: detalhes?.previousVersion || ""
+  });
+  garantirEstruturaConfiguracoesAtualizada(contexto)
+    .catch((e) => console.warn("[EFFRAIM/bg] Falha ao atualizar estrutura de configuracoes.", e));
 });
 
 async function effraimFetchCorregedoria(mensagem) {

@@ -67,6 +67,7 @@ Observações:
 2.3. Background / service worker
 - Arquivo: `background.js`
 - Responsabilidades atuais:
+  - verificar/atualizar a estrutura de configurações no `chrome.storage.sync` em instalação/atualização da extensão (`chrome.runtime.onInstalled`)
   - proxy de fetch para Corregedoria (`EFFRAIM_CORREGEDORIA_FETCH`) para contornar CORS
   - abertura de aba para RENAJUD (`EFFRAIM_ABRIR_RENAJUD_ABA`)
 
@@ -147,6 +148,10 @@ Arquitetura atual (importante):
   - seções: `effraim_cfg_sec__<secao>`
 - Compatibilidade:
   - lê legado (`effraim_configuracoes`) e migra para segmentado
+- Atualização de estrutura:
+  - `background.js` chama `garantirEstruturaConfiguracoesAtualizada()` em `chrome.runtime.onInstalled`
+  - novas chaves do `configuracoes.json` são incorporadas ao storage sem sobrescrever preferências existentes
+  - migrações versionadas continuam controladas por `_interno.versao_config`
 
 Motivação:
 - Evitar erro de quota por item (`kQuotaBytesPerItem`) do `chrome.storage.sync`
